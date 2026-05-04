@@ -1,0 +1,16 @@
+[package]
+name = "katana-markdown-preview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Vendor-neutral Markdown preview interface. egui-agnostic trait surface for KatanA and other hosts."
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
