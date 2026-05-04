@@ -1,4 +1,4 @@
-<h1 align="center">katana-markdown-preview</h1>
+<h1 align="center">katana-document-preview</h1>
 
 <p align="center">
   Vendor-neutral Markdown preview library for
@@ -17,8 +17,8 @@
 Two-crate structure separates interface from implementation:
 
 ```
-katana-markdown-preview        ← neutral trait + DTO (no egui, no framework)
-katana-markdown-preview-egui   ← egui MVP implementation
+katana-document-preview        ← neutral trait + DTO (no egui, no framework)
+katana-document-preview-egui   ← egui MVP implementation
 ```
 
 KatanA depends on both crates. When the custom UI replaces egui in the future,

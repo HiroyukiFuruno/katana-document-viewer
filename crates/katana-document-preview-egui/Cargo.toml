@@ -1,17 +1,17 @@
 [package]
-name = "katana-markdown-preview-egui"
+name = "katana-document-preview-egui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 authors.workspace = true
-description = "egui implementation of the katana-markdown-preview trait. MVP backend; swap for custom UI without changing KatanA."
+description = "egui implementation of the katana-document-preview trait. MVP backend; swap for custom UI without changing KatanA."
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
-katana-markdown-preview = { path = "../katana-markdown-preview" }
+katana-document-preview = { path = "../katana-document-preview" }
 egui = { workspace = true }
 serde = { workspace = true }

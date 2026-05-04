@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/katana-markdown-preview",
-    "crates/katana-markdown-preview-egui",
+    "crates/katana-document-preview",
+    "crates/katana-document-preview-egui",
 ]
 resolver = "2"
 
@@ -9,7 +9,7 @@ resolver = "2"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/HiroyukiFuruno/katana-markdown-preview"
+repository = "https://github.com/HiroyukiFuruno/katana-document-preview"
 rust-version = "1.95.0"
 authors = ["Hiroyuki Furuno"]
 

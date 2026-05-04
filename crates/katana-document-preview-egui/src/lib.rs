@@ -1,12 +1,12 @@
-//! katana-markdown-preview-egui: egui implementation of MarkdownPreview.
+//! katana-document-preview-egui: egui implementation of MarkdownPreview.
 //!
-//! MVP backend. KatanA depends on `katana-markdown-preview` (neutral interface)
+//! MVP backend. KatanA depends on `katana-document-preview` (neutral interface)
 //! and wires in this implementation at startup. When the custom UI replaces
 //! egui, only this crate changes; KatanA's interface dependency is untouched.
 //!
 //! Status: scaffolding. Full implementation migrated from KatanA v0.26.0.
 
-use katana_markdown_preview::{
+use katana_document_preview::{
     MarkdownPreview, MarkdownSource, PreviewConfig, PreviewError, PreviewOutput,
 };
 
@@ -38,7 +38,7 @@ impl MarkdownPreviewWidget {
     pub fn show(&self, ui: &mut egui::Ui, source: &MarkdownSource, config: &PreviewConfig) {
         match self.inner.render(source, config) {
             Ok(_) => {
-                ui.label("[scaffold] katana-markdown-preview-egui");
+                ui.label("[scaffold] katana-document-preview-egui");
             }
             Err(e) => {
                 ui.label(format!("[error] {e}"));

@@ -1,13 +1,13 @@
-# katana-markdown-preview OpenSpec
+# katana-document-preview OpenSpec
 
 ## Project
 
-`katana-markdown-preview`（kmp）は、Markdown preview の neutral interface と egui MVP 実装を提供する library。KatanA はこれを git dependency として consume する。
+`katana-document-preview`（kmp）は、Markdown preview の neutral interface と egui MVP 実装を提供する library。KatanA はこれを git dependency として consume する。
 
 ## Design Principles
 
-- `katana-markdown-preview` crate（neutral interface）は `egui` に依存しない。
-- `katana-markdown-preview-egui` crate が egui 実装を持つ。将来の独自 UI への差し替えはこの crate のみ変更すれば良い。
+- `katana-document-preview` crate（neutral interface）は `egui` に依存しない。
+- `katana-document-preview-egui` crate が egui 実装を持つ。将来の独自 UI への差し替えはこの crate のみ変更すれば良い。
 - KatanA は neutral interface と egui 実装の両方を dependency に取るが、interface 経由でしか呼ばない。
 
 ## Versioning

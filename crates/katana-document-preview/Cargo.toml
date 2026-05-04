@@ -1,5 +1,5 @@
 [package]
-name = "katana-markdown-preview"
+name = "katana-document-preview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

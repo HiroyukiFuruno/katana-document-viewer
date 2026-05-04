@@ -1,10 +1,10 @@
-//! katana-markdown-preview: vendor-neutral Markdown preview interface.
+//! katana-document-preview: vendor-neutral Markdown preview interface.
 //!
 //! This crate defines the neutral trait surface and data-only types that hosts
 //! (KatanA, future non-egui hosts) depend on. It has no dependency on egui or
 //! any specific UI framework.
 //!
-//! The egui implementation lives in `katana-markdown-preview-egui`. When KatanA
+//! The egui implementation lives in `katana-document-preview-egui`. When KatanA
 //! eventually migrates away from egui, only the `-egui` crate is replaced;
 //! KatanA's dependency on this crate stays unchanged.
 
