@@ -2,7 +2,7 @@
 
 ## Project
 
-`katana-document-preview`（kmp）は、Markdown preview の neutral interface と egui MVP 実装を提供する library。KatanA はこれを git dependency として consume する。
+`katana-document-preview`（kdp）は、ドキュメントプレビュー（Markdown / PDF / 画像 / Draw.io / Word / Excel / PPT / CSV 等）の neutral interface と egui MVP 実装を提供する library。KatanA はこれを git dependency として consume する。
 
 ## Design Principles
 
