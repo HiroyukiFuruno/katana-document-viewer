@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/kdp-linter",
     "crates/katana-document-preview",
     "crates/katana-document-preview-egui",
 ]
@@ -17,3 +18,7 @@ authors = ["Hiroyuki Furuno"]
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 egui = "0.34"
+ignore = "0.4"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+syn = { version = "2", features = ["full", "visit"] }
+toml = "0.9"

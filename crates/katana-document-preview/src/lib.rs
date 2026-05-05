@@ -19,6 +19,9 @@ pub use types::{
 /// Implementations are free to use any UI framework internally. The trait
 /// surface contains only neutral types so KatanA never sees egui types.
 pub trait MarkdownPreview {
-    fn render(&self, source: &MarkdownSource, config: &PreviewConfig)
-        -> Result<PreviewOutput, PreviewError>;
+    fn render(
+        &self,
+        source: &MarkdownSource,
+        config: &PreviewConfig,
+    ) -> Result<PreviewOutput, PreviewError>;
 }

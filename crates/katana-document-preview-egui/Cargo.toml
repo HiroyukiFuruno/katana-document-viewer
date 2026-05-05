@@ -12,6 +12,6 @@ description = "egui implementation of the katana-document-preview trait. MVP bac
 path = "src/lib.rs"
 
 [dependencies]
-katana-document-preview = { path = "../katana-document-preview" }
+katana-document-preview = { path = "../katana-document-preview", version = "0.1.0" }
 egui = { workspace = true }
 serde = { workspace = true }
