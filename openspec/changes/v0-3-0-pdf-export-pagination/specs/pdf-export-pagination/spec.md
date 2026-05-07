@@ -1,8 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: PDF export はページ境界制御と事前 preview を提供しなければならない
+### Requirement: PDF export はページ境界制御と事前viewer確認を提供しなければならない
 
-システムは、Markdown を PDF export する際、見出し・コードブロック・ダイアグラム・テーブルがページ途中で分断されないようにする改ページルールを実装し、export 前にページ分割 preview を提供しなければならない（MUST）。
+システムは、Markdown を PDF export する際、見出し・コードブロック・ダイアグラム・テーブルがページ途中で分断されないようにする改ページルールを実装し、export 前にページ分割viewer確認を提供しなければならない（MUST）。
 
 #### Scenario: 改ページルールを適用する
 
@@ -11,13 +11,13 @@
 - **THEN** コードブロック・ダイアグラム・テーブルが分断される場合は前ページに留めるか次ページへ送る
 - **THEN** 強制改ページ記法（`---` 等）が尊重される
 
-#### Scenario: export 前にページ分割を preview する
+#### Scenario: export 前にページ分割をviewerで確認する
 
 - **WHEN** ユーザーが PDF export を実行する
-- **THEN** 保存ダイアログを開く前にページ分割 preview が表示される
-- **THEN** preview と実際の PDF 出力が同じページ計算結果を使う
+- **THEN** 保存ダイアログを開く前にページ分割viewerが表示される
+- **THEN** viewerと実際のPDF出力が同じページ計算結果を使う
 
 #### Scenario: ExportConfig 経由で改ページルール / 用紙設定を注入する
 
-- **WHEN** ホストが `ExportConfig`（用紙サイズ・余白・改ページルール）を kcf の `Exporter` に渡す
-- **THEN** kcf は `ExportConfig` に従って PDF を生成する
+- **WHEN** ホストが `ExportConfig`（用紙サイズ・余白・改ページルール）をKDVのexport pipelineへ渡す
+- **THEN** KDVは `ExportConfig` に従ってPDFを生成する

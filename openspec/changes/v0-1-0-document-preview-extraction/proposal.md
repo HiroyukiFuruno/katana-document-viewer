@@ -1,40 +1,42 @@
 ## Why
 
-preview 実装を独立した crate として確立する。`katana-document-preview` は Markdown に限らず、あらゆるドキュメント形式のプレビューを扱う汎用 widget として設計する。v0.1.0 は Markdown 中心だが、PDF / Draw.io / Word / Excel / PPT / CSV 等を順次対応していくための neutral interface を最初から設計する。
+viewer実装を独立したcrateとして確立する。`katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名してからv0.1.0を切る。v0.1.0はMarkdown viewerとexport pipeline方針を中心にし、KME public DTOを正本入力にする。
 
 ## What Changes
 
-- `katana-document-preview`（neutral interface、egui 非依存）に以下を定義する：
-  - `DocumentPreview` trait（フォーマット非依存の preview widget 契約）
-  - `PreviewConfig`（テーマ・フォントサイズ等の注入）
-  - `PreviewSource`（Markdown / 画像 / PDF / Binary 等を統一的に扱う enum）
-  - kcf の `Renderer` trait 経由で図表描画を呼び出す契約
-- `katana-document-preview-egui` に以下を実装する（v0.1.0 は Markdown 中心）：
-  - `egui_commonmark` ラップ、絵文字ハック（Twemoji 等アセット置換）
-  - ダイアグラムブロックの kcf 呼び出し
-  - 画像 preview（egui Image）
-  - 将来フォーマットの拡張ポイント（`PreviewSource` variant 追加で対応）
-- `vendor/egui_commonmark_upstream` を KatanA から除去し、この repo の dependency に移す
+- `katana-document-viewer`（neutral interface、egui非依存）に以下を定義する：
+  - `DocumentViewer` trait（KME DTOを入力にするviewer契約）
+  - `ViewerConfig`（テーマ・フォントサイズ等の注入）
+  - `ViewerSource`（KME document、画像、PDF、Binary等を統一的に扱うenum）
+  - `ExportConfig`（HTML/PDF/PNG/JPG export設定）
+  - KCFの外部描画結果をviewer/export pipelineへ組み込む契約
+- `katana-document-viewer-floem` に以下を実装する（v0.1.0 はMarkdown中心）：
+  - KME node rendering
+  - hit-test metadata
+  - unresolved metadata表示
+  - viewer/export共通render pipelineの土台
+- `katana-document-preview-egui` と `egui_commonmark` vendor patchを正規経路にしない
 - `v0.1.0` として release tag を切る
 
 ## Capabilities
 
 ### New Capabilities（v0.1.0）
 
-- `markdown-preview-component`: neutral interface + egui MVP 実装（Markdown 中心）
-- `image-preview`: 画像ファイルの inline preview
-- `diagram-preview`: kcf `Renderer` trait 経由の Mermaid / Draw.io 描画
+- `markdown-viewer-component`: KME DTOを入力にするneutral interface + Floem viewer実装
+- `markdown-viewer-export`: viewer表示と同じrender pipelineからHTML/PDF/PNG/JPG exportを行う方針
+- `diagram-rendering-delegation`: KCF経由のMermaid / Draw.io / PlantUML / math外部描画
 
 ### Planned（将来バージョン）
 
-- `pdf-preview`: PDF レンダリング
-- `office-preview`: Word / Excel / PPT / CSV
+- `pdf-viewer`: PDF表示
+- `office-viewer`: Word / Excel / PPT / CSV表示
+- `export-migration`: KCF既存exportのKDV移譲とKCF側削除
 
-## Known Constraints（egui MVP 段階）
+## Known Constraints
 
-egui はカラー絵文字（Apple Color Emoji 等）を OS フォントフォールバック経由では描画できないため、Markdown 内の絵文字は Twemoji 等のアセット画像で代替する。根本解決は `katana-document-preview-floem` 実装時。
+KDVはeditor-viewer同期制御を持たない。同期制御はKatanAが持ち、KatanAがviewerまたはeditorへ命令する。
 
 ## Impact
 
-- `crates/katana-document-preview/` — neutral interface crate（egui 非依存）
-- `crates/katana-document-preview-egui/` — egui 実装 crate
+- `crates/katana-document-viewer/` — neutral interface crate（egui非依存）
+- `crates/katana-document-viewer-floem/` — Floem viewer/export実装 crate

@@ -1,38 +1,40 @@
 ## ADDED Requirements
 
-### Requirement: DocumentPreview trait でフォーマット非依存の preview 契約を提供しなければならない
+### Requirement: DocumentViewer trait でフォーマット非依存のviewer契約を提供しなければならない
 
-システムは、`DocumentPreview` trait、`PreviewConfig`、`PreviewSource`（Markdown / 画像 / PDF / Binary 等を統一的に扱う enum）を `katana-document-preview` neutral crate として提供しなければならない（MUST）。
+システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerSource`（KME document / 画像 / PDF / Binary 等を統一的に扱う enum）を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
 
-#### Scenario: Markdown source を preview に渡す
+#### Scenario: KME documentをviewerに渡す
 
-- **WHEN** ホストが `PreviewSource::Markdown` を `DocumentPreview::render` に渡す
-- **THEN** preview は Markdown を解析して描画する
-- **THEN** ダイアグラムブロックは kcf の `Renderer` trait 経由で描画する
+- **WHEN** ホストが `ViewerSource::KmeDocument` を `DocumentViewer::render` に渡す
+- **THEN** viewer はKME public DTOを描画する
+- **THEN** ダイアグラムブロックはKCFの外部描画結果を組み込む
 
-#### Scenario: katana-document-preview は egui / kcf 実装本体に依存しない
+#### Scenario: katana-document-viewer は egui / kcf 実装本体に依存しない
 
-- **WHEN** `cargo tree -p katana-document-preview` を実行する
+- **WHEN** `cargo tree -p katana-document-viewer` を実行する
 - **THEN** `egui` は含まれない
 - **THEN** kcf の `Renderer` trait 定義のみ参照し、特定の Mermaid 実装に依存しない
 
-### Requirement: katana-document-preview-egui が Markdown / 画像 / 図表 preview の egui MVP を提供しなければならない
+### Requirement: katana-document-viewer-floem がMarkdown viewerとexport pipelineを提供しなければならない
 
-システムは、`egui_commonmark` ラップ、絵文字ハック（Twemoji 等のアセット置換）、画像 preview、kcf 経由のダイアグラム描画を `katana-document-preview-egui` impl crate として提供しなければならない（MUST）。
+システムは、KME node rendering、hit-test metadata、unresolved metadata表示、KCF経由の外部描画組み込み、HTML/PDF/PNG/JPG export pipelineを `katana-document-viewer-floem` impl crate として提供しなければならない（MUST）。
 
-#### Scenario: Markdown を egui で preview する
+#### Scenario: MarkdownをFloem viewerで表示する
 
-- **WHEN** ホストが `EguiDocumentPreview::show(ui, &PreviewSource::Markdown(...))` を呼ぶ
-- **THEN** Markdown が egui ui に描画される
+- **WHEN** ホストが `FloemDocumentViewer` に `ViewerSource::KmeDocument` を渡す
+- **THEN** Markdown documentがFloem viewerに描画される
+- **THEN** rendered node はKME node idとsource rangeへ戻れる
 
 #### Scenario: 図形ブロックを kcf 経由で描画する
 
-- **WHEN** preview に Mermaid / Draw.io block が含まれる
-- **THEN** kcf の `Renderer` trait に図形を渡し、返された SVG を preview に組み込む
-- **THEN** preview crate 内に独自 Mermaid / Draw.io 描画は含まれない
+- **WHEN** viewer に Mermaid / Draw.io / PlantUML / math block が含まれる
+- **THEN** KCFの外部描画結果をviewer/exportへ組み込む
+- **THEN** viewer crate 内に独自 Mermaid / Draw.io 描画は含まれない
 
-#### Scenario: egui MVP の既知制約
+#### Scenario: KatanAがeditor-viewer同期を制御する
 
-- **WHEN** preview にカラー絵文字が含まれる
-- **THEN** Twemoji 等のアセット画像で代替する
-- **THEN** 根本解決は `katana-document-preview-floem`（vello / cosmic-text）で行う
+- **WHEN** viewer上のnode selectionやscrollが必要になる
+- **THEN** KDVはhit-test metadataとviewer command surfaceを提供する
+- **THEN** KatanAがviewerまたはeditorへ命令する
+- **THEN** KDVはKLEやKatanA統合状態を知らない

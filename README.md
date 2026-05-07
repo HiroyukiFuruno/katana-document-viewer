@@ -1,7 +1,7 @@
-<h1 align="center">katana-document-preview</h1>
+<h1 align="center">katana-document-viewer</h1>
 
 <p align="center">
-  Vendor-neutral Markdown preview library for
+  Vendor-neutral Markdown viewer and export library for
   <a href="https://github.com/HiroyukiFuruno/KatanA">KatanA</a>.
 </p>
 
@@ -17,18 +17,20 @@
 Two-crate structure separates interface from implementation:
 
 ```
-katana-document-preview        ← neutral trait + DTO (no egui, no framework)
-katana-document-preview-egui   ← egui MVP implementation
+katana-document-viewer         ← neutral trait + DTO (no egui, no framework)
+katana-document-viewer-floem   ← Floem viewer/export implementation
 ```
 
-KatanA depends on both crates. When the custom UI replaces egui in the future,
-only the `-egui` crate is swapped; KatanA's dependency on the neutral interface
-crate remains unchanged.
+KatanA depends on the neutral interface and the Floem implementation. KDV does
+not own editor-viewer synchronization control; KatanA commands viewer or editor.
+
+HTML/PDF/PNG/JPG export belongs to KDV so viewer display and export share the
+same render pipeline. Diagram and math rendering is delegated to KCF.
 
 ## Status
 
-Scaffolding. Full implementation migrated from KatanA in the `v0.26.0` change
-(`openspec/changes/v0-1-0-markdown-preview-extraction`).
+Scaffolding. This repository is being renamed from `katana-document-preview`
+to `katana-document-viewer` before its first release.
 
 ## License
 
