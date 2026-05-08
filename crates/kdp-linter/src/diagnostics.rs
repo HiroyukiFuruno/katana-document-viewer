@@ -71,3 +71,56 @@ pub enum KdpLintError {
     #[error("workspace root could not be resolved from {path}")]
     WorkspaceRoot { path: PathBuf },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_LINE: usize = 12;
+    const TEST_COLUMN: usize = 4;
+
+    #[test]
+    fn violation_new_populates_fields() {
+        let violation = Violation::new(
+            PathBuf::from("src/lib.rs"),
+            TEST_LINE,
+            TEST_COLUMN,
+            "rule-id",
+            "message",
+        );
+
+        assert_eq!(violation.file, PathBuf::from("src/lib.rs"));
+        assert_eq!(violation.line, TEST_LINE);
+        assert_eq!(violation.column, TEST_COLUMN);
+        assert_eq!(violation.rule, "rule-id");
+        assert_eq!(violation.message, "message");
+    }
+
+    #[test]
+    fn violation_report_formats_all_fields() {
+        let violation = Violation::new(
+            PathBuf::from("src/lib.rs"),
+            TEST_LINE,
+            TEST_COLUMN,
+            "rule-id",
+            "message",
+        );
+
+        let report = ViolationReport::format(&[violation]);
+
+        assert!(report.contains("[AST lint]"));
+        assert!(report.contains("src/lib.rs:12:4 [rule-id] message"));
+    }
+
+    #[test]
+    fn workspace_root_error_includes_path() {
+        let error = KdpLintError::WorkspaceRoot {
+            path: PathBuf::from("missing"),
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "workspace root could not be resolved from missing"
+        );
+    }
+}

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Justfile'
+      - '.codex/**'
+      - '.github/workflows/**'
+      - 'README.md'
+      - 'docs/**'
+      - 'openspec/**'
+      - 'scripts/**'
+  pull_request:
+    branches: [master]
+    paths:
+      - '**.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Justfile'
+      - '.codex/**'
+      - '.github/workflows/**'
+      - 'README.md'
+      - 'docs/**'
+      - 'openspec/**'
+      - 'scripts/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test and Build
+    # WHY: master merge commits already passed PR checks; direct pushes still run the matrix.
+    if: >-
+      github.event_name != 'push' || (
+        !startsWith(github.event.head_commit.message, 'Merge pull request ') &&
+        !contains(github.event.head_commit.message, '(#')
+      )
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
+        with:
+          toolchain: stable
+          components: clippy, rustfmt, llvm-tools-preview
+
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-${{ matrix.os }}-stable-default
+
+      - name: Install cargo-llvm-cov
+        if: matrix.os == 'ubuntu-latest'
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Check types
+        run: cargo check --workspace --locked
+
+      - name: Check formatting
+        if: matrix.os != 'windows-latest'
+        run: just fmt-check
+
+      - name: Run Windows format check
+        if: matrix.os == 'windows-latest'
+        run: cargo fmt --all -- --check
+
+      - name: Run linter
+        if: matrix.os != 'windows-latest'
+        run: just lint
+
+      - name: Run AST linter
+        if: matrix.os != 'windows-latest'
+        run: just ast-lint
+
+      - name: Run tests
+        run: cargo test --workspace --locked
+
+      - name: Run coverage
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: just coverage

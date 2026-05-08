@@ -6,14 +6,12 @@ output:
 pre-commit:
   parallel: false
   commands:
-    fmt-check:
-      run: just fmt-check
-    lint:
-      run: just lint
-    ast-lint:
-      run: just ast-lint
+    formatting:
+      glob: "*.rs"
+      run: just fmt
 
 pre-push:
   commands:
-    release-verify:
-      run: just release-verify
+    check-strict:
+      run: just JOBS=2 check
+      glob: "*.{rs,toml,lock}"

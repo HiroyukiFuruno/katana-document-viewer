@@ -52,3 +52,26 @@ impl Default for MarkdownPreviewWidget {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn egui_preview_reports_scaffold_status() {
+        let preview = EguiMarkdownPreview;
+        let source = MarkdownSource {
+            content: String::from("# Title"),
+            document_id: None,
+        };
+
+        let result = preview.render(&source, &PreviewConfig::default());
+
+        assert!(matches!(result, Err(PreviewError::NotImplemented)));
+    }
+
+    #[test]
+    fn widget_default_constructs_scaffold_backend() {
+        let _widget = MarkdownPreviewWidget::default();
+    }
+}

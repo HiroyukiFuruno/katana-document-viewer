@@ -10,7 +10,7 @@ resolver = "2"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/HiroyukiFuruno/katana-document-preview"
+repository = "https://github.com/HiroyukiFuruno/katana-document-viewer"
 rust-version = "1.95.0"
 authors = ["Hiroyuki Furuno"]
 
@@ -21,4 +21,4 @@ egui = "0.34"
 ignore = "0.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 syn = { version = "2", features = ["full", "visit"] }
-toml = "0.9"
+toml = "1.1"

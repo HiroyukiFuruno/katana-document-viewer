@@ -1,5 +1,38 @@
-target/
-.DS_Store
+/target
+/.DS_Store
+skill.md
+CLAUDE.md
+AGENTS.md
+.claude/scheduled_tasks.lock
+*.skill.md
+tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# openspec workfiles
+openspec*
+!openspec/
+!openspec/**
+opsx*
+!/scripts/openspec
+!.agent/skills/openspec-*/
+!.agent/skills/openspec-*/SKILL.md
+!.agent/skills/impl-release/
+!.agent/skills/impl-release/SKILL.md
+!.agent/workflows/opsx-*.md
+!.claude/commands/opsx/*.md
+!.claude/skills/openspec-*/
+!.claude/skills/openspec-*/SKILL.md
+!.codex/skills/openspec-*/
+!.codex/skills/openspec-*/SKILL.md
+!.github/prompts/opsx-*.prompt.md
+!.github/skills/openspec-*/
+!.github/skills/openspec-*/SKILL.md
+
+# Editors
 .idea/
 .vscode/
 *.swp

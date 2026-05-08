@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/kdv-icon.png" width="128" alt="katana-document-viewer icon">
+</p>
+
 <h1 align="center">katana-document-viewer</h1>
 
 <p align="center">
@@ -7,6 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/HiroyukiFuruno/katana-document-viewer/actions/workflows/test-and-build.yml"><img src="https://github.com/HiroyukiFuruno/katana-document-viewer/actions/workflows/test-and-build.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/status-scaffolding-orange" alt="Status: scaffolding">
 </p>
 

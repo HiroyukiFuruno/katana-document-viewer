@@ -2,7 +2,17 @@ name: release-preflight
 
 on:
   pull_request:
-    branches: [main, master]
+    branches: [master]
+    paths:
+      - '**.rs'
+      - 'README.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Justfile'
+      - '.github/workflows/**'
+      - 'docs/**'
+      - 'openspec/**'
+      - 'scripts/**'
   workflow_dispatch:
 
 permissions:
@@ -13,25 +23,33 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release-preflight:
+  preflight:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
+          toolchain: stable
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@just
-      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-preflight-ubuntu-stable-all-features
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
       - name: Resolve version
         id: version
         shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            version="${GITHUB_HEAD_REF#release/}"
-          else
-            version="$(awk -F '"' '/^version = / { print "v" $2; exit }' Cargo.toml)"
-          fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+        run: bash scripts/release/resolve-release-version.sh "${{ github.event_name }}" "" "${{ github.head_ref }}"
+
       - run: just VERSION="${{ steps.version.outputs.version }}" release-check

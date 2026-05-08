@@ -88,7 +88,7 @@ v0-2-0-multi-format-preview
 
 - [ ] x.1 `/lint-and-ast-lint` を実行し、静的検査（lint）と抽象構文木検査（AST lint）の結果を記録する
 - [ ] x.2 `/self-review` を実行し、差分範囲の設計、テスト、検証の妥当性を確認する
-- [ ] x.3 `npx -y @fission-ai/openspec validate "<change-id>" --strict` を実行する
+- [ ] x.3 `scripts/openspec validate "<change-id>" --strict` を実行する
 - [ ] x.4 PR 作成が必要な場合は `/create_pull_request` を使う
 - [ ] x.5 統合後に `/openspec-archive-change` を実行する
 ```

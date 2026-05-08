@@ -22,6 +22,17 @@ use pub_free_fn::PublicFreeFunctionRule;
 
 type RuleCheck = fn(&WorkspaceModel) -> Result<Vec<Violation>, KdpLintError>;
 
+const RULE_CHECKS: &[RuleCheck] = &[
+    FileLengthRule::check,
+    FunctionLengthRule::check,
+    NestingDepthRule::check,
+    PublicFreeFunctionRule::check,
+    ProhibitedMethodRule::check,
+    LazyCodeRule::check,
+    ProhibitedAttributeRule::check,
+    ArchitectureRule::check,
+];
+
 pub struct RuleRunner;
 
 impl RuleRunner {
@@ -33,16 +44,7 @@ impl RuleRunner {
         Ok(violations)
     }
 
-    fn rules() -> [RuleCheck; 8] {
-        [
-            FileLengthRule::check,
-            FunctionLengthRule::check,
-            NestingDepthRule::check,
-            PublicFreeFunctionRule::check,
-            ProhibitedMethodRule::check,
-            LazyCodeRule::check,
-            ProhibitedAttributeRule::check,
-            ArchitectureRule::check,
-        ]
+    fn rules() -> &'static [RuleCheck] {
+        RULE_CHECKS
     }
 }
