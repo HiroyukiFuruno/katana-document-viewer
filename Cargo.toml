@@ -20,5 +20,6 @@ thiserror = "2"
 egui = "0.34"
 ignore = "0.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
+katana-ast-lint = "0.5.1"
 syn = { version = "2", features = ["full", "visit"] }
 toml = "1.1"
