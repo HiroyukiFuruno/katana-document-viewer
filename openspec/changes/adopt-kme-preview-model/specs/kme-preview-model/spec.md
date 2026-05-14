@@ -1,44 +1,44 @@
 ## ADDED Requirements
 
-### Requirement: Viewer renders KME document models
+### Requirement: Viewer renders KMM document models
 
-The viewer system SHALL render KME document models through the Floem viewer implementation.
+The viewer system SHALL render KMM document models through the Floem viewer implementation.
 
-#### Scenario: Render canonical KME fixture
+#### Scenario: Render canonical KMM fixture
 
-- **WHEN** KDV receives a KME model for `sample.md`
+- **WHEN** KDV receives a KMM model for `sample.md`
 - **THEN** KDV renders supported nodes in the Floem viewer
 - **THEN** rendered nodes expose public hit-test metadata
 
 ### Requirement: Viewer adoption depends on P0, P1, and P2 contracts
 
-The viewer system SHALL treat KME viewer adoption as downstream work after shared AST lint, KME model, and shared widget boundaries are available.
+The viewer system SHALL treat KMM viewer adoption as downstream work after shared AST lint, KMM model, and shared widget boundaries are available.
 
-#### Scenario: Start KME viewer implementation
+#### Scenario: Start KMM viewer implementation
 
-- **WHEN** KDV starts KME viewer implementation
+- **WHEN** KDV starts KMM viewer implementation
 - **THEN** P0 `katana-ast-lint` governance is available
-- **THEN** P1 KME public DTOs are available
+- **THEN** P1 KMM public DTOs are available
 - **THEN** P2 widget boundaries for metadata UI are considered
 
 ### Requirement: Viewer exposes unresolved metadata
 
-The viewer system SHALL expose unresolved KME metadata targets to the user.
+The viewer system SHALL expose unresolved KMM metadata targets to the user.
 
 #### Scenario: Show unresolved target
 
-- **WHEN** KME or editor metadata sync returns an unresolved target
+- **WHEN** KMM or editor metadata sync returns an unresolved target
 - **THEN** the viewer can display that unresolved state
 - **THEN** the target is not silently hidden
 
 ### Requirement: Viewer avoids parser internals
 
-The viewer system MUST NOT depend on parser-private AST types for KME rendering.
+The viewer system MUST NOT depend on parser-private AST types for KMM rendering.
 
-#### Scenario: KME parser changes
+#### Scenario: KMM parser changes
 
-- **WHEN** KME changes its internal parser implementation
-- **THEN** KDV continues consuming KME-owned public DTOs
+- **WHEN** KMM changes its internal parser implementation
+- **THEN** KDV continues consuming KMM-owned public DTOs
 
 ### Requirement: KDV does not own editor-viewer synchronization control
 

@@ -22,23 +22,23 @@
 
 ### Definition of Ready
 
-- [ ] KME document model DTOが定義済みである
+- [ ] KMM document model DTOが定義済みである
 - [ ] P0 `katana-ast-lint` の共通品質ゲート方針が利用可能である
 - [ ] P2 `katana-ui-widget` のmetadata表示境界が整理されている
 - [ ] Floem viewer implementation方針が確定している
 
 ### Tasks
 
-- [ ] 1.1 KME model inputをviewer/export neutral interfaceへ追加する
-- [ ] 1.2 KME node id、source range、rendered rect identityをviewer metadataとして返す
+- [ ] 1.1 KMM model inputをviewer/export neutral interfaceへ追加する
+- [ ] 1.2 KMM node id、source range、rendered rect identityをviewer metadataとして返す
 - [ ] 1.3 parser/vendor internalsをviewer stateに入れない
 - [ ] 1.4 共通AST lintをviewer repository adapterで実行する方針を決める
 - [ ] 1.5 editor-viewer同期制御をKDVが持たないことをpublic contractへ明記する
 
 ### Definition of Done
 
-- [ ] KME public DTOだけでviewer/export inputが成立する
-- [ ] metadata schemaはKMEのpublic contractを使い、KDVで独自定義しない
+- [ ] KMM public DTOだけでviewer/export inputが成立する
+- [ ] metadata schemaはKMMのpublic contractを使い、KDVで独自定義しない
 - [ ] egui型がneutral interfaceに入っていない
 - [ ] viewer固有のlint driftを品質ゲートにしていない
 
@@ -56,7 +56,7 @@
 
 ### Definition of Done
 
-- [ ] `sample.md` とREADME badgeがKME model経由で表示できる
+- [ ] `sample.md` とREADME badgeがKMM model経由で表示できる
 - [ ] egui_commonmark vendor patchへ依存していない
 
 ## 3. Export Pipeline
@@ -73,18 +73,18 @@
 
 ### Definition of Done
 
-- [ ] viewer表示とexport出力が同じKME fixtureで検証できる
+- [ ] viewer表示とexport出力が同じKMM fixtureで検証できる
 - [ ] KCFに新規export責務を追加しない
 
 ## 4. Metadata and Interaction
 
 ### Definition of Ready
 
-- [ ] KME metadata target resolutionが利用可能である
+- [ ] KMM metadata target resolutionが利用可能である
 
 ### Tasks
 
-- [ ] 4.1 hoverと選択をKME node idへ対応させる
+- [ ] 4.1 hoverと選択をKMM node idへ対応させる
 - [ ] 4.2 AST単位コピーの入口を提供する
 - [ ] 4.3 unresolved metadata表示の入口を提供する
 
@@ -95,6 +95,6 @@
 
 ## 5. Final Verification
 
-- [ ] 5.1 KME fixture viewer/export testsを実行する
+- [ ] 5.1 KMM fixture viewer/export testsを実行する
 - [ ] 5.2 共通AST lintのviewer adapterで検査できることを確認する
 - [ ] 5.3 `npx -y @fission-ai/openspec validate "adopt-kme-preview-model" --strict` を実行する

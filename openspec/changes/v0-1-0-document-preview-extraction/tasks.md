@@ -18,8 +18,8 @@
 
 ## 2. KatanA viewer 実装を移管する
 
-- [ ] 2.1 KME public DTOをviewer inputとして受け取る
-- [ ] 2.2 `katana-document-viewer-floem` にKME node renderingの土台を追加する
+- [ ] 2.1 KMM public DTOをviewer inputとして受け取る
+- [ ] 2.2 `katana-document-viewer-floem` にKMM node renderingの土台を追加する
 - [ ] 2.3 ダイアグラム描画を `katana-canvas-forge` 経由に統一する（KDV内で独自 Mermaid renderer を持たない）
 - [ ] 2.4 `egui_commonmark` vendor patchを正規経路にしないことを確認する
 

@@ -1,17 +1,17 @@
 ## Why
 
-viewer実装を独立したcrateとして確立する。`katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名してからv0.1.0を切る。v0.1.0はMarkdown viewerとexport pipeline方針を中心にし、KME public DTOを正本入力にする。
+viewer実装を独立したcrateとして確立する。`katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名してからv0.1.0を切る。v0.1.0はMarkdown viewerとexport pipeline方針を中心にし、KMM public DTOを正本入力にする。
 
 ## What Changes
 
 - `katana-document-viewer`（neutral interface、egui非依存）に以下を定義する：
-  - `DocumentViewer` trait（KME DTOを入力にするviewer契約）
+  - `DocumentViewer` trait（KMM DTOを入力にするviewer契約）
   - `ViewerConfig`（テーマ・フォントサイズ等の注入）
-  - `ViewerSource`（KME document、画像、PDF、Binary等を統一的に扱うenum）
+  - `ViewerSource`（KMM document、画像、PDF、Binary等を統一的に扱うenum）
   - `ExportConfig`（HTML/PDF/PNG/JPG export設定）
   - KCFの外部描画結果をviewer/export pipelineへ組み込む契約
 - `katana-document-viewer-floem` に以下を実装する（v0.1.0 はMarkdown中心）：
-  - KME node rendering
+  - KMM node rendering
   - hit-test metadata
   - unresolved metadata表示
   - viewer/export共通render pipelineの土台
@@ -22,7 +22,7 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
 
 ### New Capabilities（v0.1.0）
 
-- `markdown-viewer-component`: KME DTOを入力にするneutral interface + Floem viewer実装
+- `markdown-viewer-component`: KMM DTOを入力にするneutral interface + Floem viewer実装
 - `markdown-viewer-export`: viewer表示と同じrender pipelineからHTML/PDF/PNG/JPG exportを行う方針
 - `diagram-rendering-delegation`: KCF経由のMermaid / Draw.io / PlantUML / math外部描画
 

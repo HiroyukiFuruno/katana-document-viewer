@@ -2,12 +2,12 @@
 
 ### Requirement: DocumentViewer trait でフォーマット非依存のviewer契約を提供しなければならない
 
-システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerSource`（KME document / 画像 / PDF / Binary 等を統一的に扱う enum）を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
+システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerSource`（KMM document / 画像 / PDF / Binary 等を統一的に扱う enum）を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
 
-#### Scenario: KME documentをviewerに渡す
+#### Scenario: KMM documentをviewerに渡す
 
 - **WHEN** ホストが `ViewerSource::KmeDocument` を `DocumentViewer::render` に渡す
-- **THEN** viewer はKME public DTOを描画する
+- **THEN** viewer はKMM public DTOを描画する
 - **THEN** ダイアグラムブロックはKCFの外部描画結果を組み込む
 
 #### Scenario: katana-document-viewer は egui / kcf 実装本体に依存しない
@@ -18,13 +18,13 @@
 
 ### Requirement: katana-document-viewer-floem がMarkdown viewerとexport pipelineを提供しなければならない
 
-システムは、KME node rendering、hit-test metadata、unresolved metadata表示、KCF経由の外部描画組み込み、HTML/PDF/PNG/JPG export pipelineを `katana-document-viewer-floem` impl crate として提供しなければならない（MUST）。
+システムは、KMM node rendering、hit-test metadata、unresolved metadata表示、KCF経由の外部描画組み込み、HTML/PDF/PNG/JPG export pipelineを `katana-document-viewer-floem` impl crate として提供しなければならない（MUST）。
 
 #### Scenario: MarkdownをFloem viewerで表示する
 
 - **WHEN** ホストが `FloemDocumentViewer` に `ViewerSource::KmeDocument` を渡す
 - **THEN** Markdown documentがFloem viewerに描画される
-- **THEN** rendered node はKME node idとsource rangeへ戻れる
+- **THEN** rendered node はKMM node idとsource rangeへ戻れる
 
 #### Scenario: 図形ブロックを kcf 経由で描画する
 
