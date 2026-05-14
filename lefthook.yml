@@ -11,7 +11,8 @@ pre-commit:
       run: just fmt
 
 pre-push:
+  files: git diff --name-only HEAD master
   commands:
     check-strict:
-      run: just JOBS=2 check
+      run: sh -c 'just JOBS=2 check' -- {files}
       glob: "*.{rs,toml,lock}"

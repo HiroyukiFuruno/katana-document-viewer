@@ -24,7 +24,6 @@ env:
 
 jobs:
   preflight:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -49,7 +48,14 @@ jobs:
 
       - name: Resolve version
         id: version
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
         shell: bash
         run: bash scripts/release/resolve-release-version.sh "${{ github.event_name }}" "" "${{ github.head_ref }}"
 
-      - run: just VERSION="${{ steps.version.outputs.version }}" release-check
+      - name: Quality gate
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/v')
+        run: just JOBS=2 check
+
+      - name: Release check
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
+        run: just VERSION="${{ steps.version.outputs.version }}" release-check
