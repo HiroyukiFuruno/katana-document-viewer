@@ -65,7 +65,8 @@ jobs:
       - name: Cache Rust build outputs
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ci-${{ matrix.os }}-stable-default
+          shared-key: ci-${{ matrix.os }}-stable-default-nobin
+          cache-bin: false
 
       - name: Install cargo-llvm-cov
         if: matrix.os == 'ubuntu-latest'
