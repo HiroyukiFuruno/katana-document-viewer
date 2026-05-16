@@ -44,15 +44,35 @@ hit-test metadataは画面上の座標またはrendered nodeからKMM node idと
 
 unresolved metadata表示は、KMM DTOに存在するがKDVが専用表示できないmetadataを本文から消さずに示す補助表示である。previewでは小さな警告表示、代表メッセージ、tooltip詳細を使い、色と文言は `ViewerTheme` / `ViewerI18n` から取得する。
 
-### 見た目テーマ（theme） / 多言語文言（i18n）を必須の境界型（interface）にする
+### 見た目テーマ（theme） / 多言語文言（i18n） / interaction設定を必須の境界型（interface）にする
 
-KDVは見た目テーマ（theme）と多言語文言（i18n）を `ViewerConfig` の必須入力として受け取る。`ViewerTheme` と `ViewerI18n` はnull不可とし、`Option` や未指定時の暗黙defaultにしない。KDVは呼び出し側がそのまま渡せるdefault theme presetと英語（en）i18n presetを用意するが、利用側は必ず具体値として `ViewerConfig` に渡す。KDVが同梱するi18n presetは英語（en）のみとし、日本語（ja）を含む他言語はKatanAなど呼び出し側が `ViewerI18n` として渡す。
+KDVは見た目テーマ（theme）、多言語文言（i18n）、interaction設定を `ViewerConfig` の必須入力として受け取る。`ViewerTheme`、`ViewerI18n`、`ViewerInteractionConfig` はnull不可とし、`Option` や未指定時の暗黙defaultにしない。KDVは呼び出し側がそのまま渡せるdefault theme preset、英語（en）i18n preset、default interaction presetを用意するが、利用側は必ず具体値として `ViewerConfig` に渡す。KDVが同梱するi18n presetは英語（en）のみとし、日本語（ja）を含む他言語はKatanAなど呼び出し側が `ViewerI18n` として渡す。
 
 全ての色表現は `ViewerTheme` 経由に限定する。本文、背景、code block、table、alert、selection、focus、hover、error icon、error message、error border などの色はrendering codeで直接指定しない。KDV側のAST lintを拡張し、preset定義とtest fixtureを除くhard-coded color literalを検出して失敗させる。
 
 KDV内の固定表示文言は `ViewerI18n` 経由に限定する。外部rendererから返る技術的な詳細エラーはtooltip本文に含めてよいが、代表メッセージやUI labelはi18n presetまたは呼び出し側が渡した文言を使う。
 
+`ViewerInteractionConfig` は、少なくとも `hover_highlight_enabled`、`image_controls_enabled`、`diagram_controls_enabled` を持つ。設定はrendering code内の条件分岐で直接定数化せず、必ず `ViewerConfig` から渡された値を参照する。hover highlight、画像制御群、図形制御群の色は `ViewerTheme`、labelやtooltipは `ViewerI18n` から取得する。
+
 KDV AST lintは既存の `kdp-linter` を拡張する。対象は `crates/katana-document-viewer-floem/src` と、neutral crate内で描画・preset参照に関わるmoduleである。preset定義module、test fixture、lint自身の違反fixtureだけは色literalを許容する。rendering code内のhex color、RGB/RGBA constructor、framework固有named color直指定、preset定義moduleへの直接依存は違反にする。透明色やalpha値も必要な場合は `ViewerTheme` fieldとして定義する。
+
+### Interaction API
+
+KDVはホストからのscroll制御を受ける公開APIを提供する。ホストはKMM node id、source range、heading anchor、またはscroll fractionを指定してviewerをscrollできる。KDVは要求を内部scroll stateへ反映し、対象が存在しない場合は失敗結果を返す。KDVはscroll同期の命令面だけを提供し、KatanA側の同期状態やeditor状態は持たない。
+
+KDVは画像と外部描画結果に、GitHub web上の画像・図形に近い制御群を表示できる。制御群は画像または図形のhover / focus時にoverlayとして表示し、最小操作は「拡大/fit」「元画像またはrendered assetを開く」「source参照をcopy」相当とする。実際のopen/copy/downloadなど副作用を伴う処理は、KDV内で完結させずviewer commandとしてホストへ渡す。
+
+hover highlightは、pointerが乗っているrendered nodeをtheme由来のhover背景またはborderで示す。`hover_highlight_enabled` がfalseの場合、KDVはhover highlightを描画しない。ただしhit-test metadataは維持し、ホスト側のselectionやscroll制御に影響させない。
+
+### 目次（TOC）の責務
+
+目次（TOC）は、Markdown本文の再parseではなくKMM AST解析結果から作る見出し構造を正本にする。KMMは見出しlevel、表示text、KMM node id、source range、heading anchor候補を公開データ型として渡す。
+
+KDVはKMM由来の見出し構造を受け取り、目次viewを描画する。KDVはプレビュー内で確定したrendered heading anchor mapを持ち、現在表示中のactive heading計算、TOC item hover、TOC click時のプレビューscrollを担当する。active headingは単純な行番号や固定offsetではなく、layout後に確定したrendered anchor mapを使って決定する。
+
+TOC item click時、KDVは自分が持つプレビューを対象headingへscrollし、同時にKMM node id、source range、heading anchorを含むviewer commandをホストへ通知する。KatanAはそのcommandを受けてeditor scrollを実行する。KDVはKLE、editor buffer、editor scroll stateを直接参照しない。
+
+KatanAは目次panelの配置、表示/非表示、初期表示、editor側active heading計算、preview-editor同期方針を持つ。KDVは目次componentと命令面を提供するが、KatanAのlayout policyやworkspace設定を持たない。
 
 ### KatanA現行互換の対象
 

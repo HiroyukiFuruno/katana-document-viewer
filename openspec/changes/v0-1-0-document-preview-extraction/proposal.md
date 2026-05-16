@@ -6,7 +6,7 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
 
 - `katana-document-viewer`（neutral interface、egui非依存）に以下を定義する：
   - `DocumentViewer` trait（KMM DTOを入力にするviewer契約）
-  - `ViewerConfig`（見た目テーマ（theme）・多言語文言（i18n）・フォントサイズ等の必須注入）
+  - `ViewerConfig`（見た目テーマ（theme）・多言語文言（i18n）・interaction設定・フォントサイズ等の必須注入）
   - `ViewerSource`（KMM document、画像、PDF、Binary等を統一的に扱うenum）
   - `ExportConfig`（HTML/PDF/PNG/JPG export設定）
   - katana-diagram-rendererの外部描画結果をviewer/export pipelineへ組み込む契約
@@ -17,6 +17,9 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
   - 見た目テーマ（theme） / 多言語文言（i18n）を呼び出し側からnull不可で受け取り、KDV側presetを明示引数として渡せる契約
   - 色のハードコードを禁止するKDV AST lint
   - hit-test metadata
+  - 外部からnode / source range / heading anchorへscrollできる公開API
+  - KMM AST由来の目次（TOC）表示、active heading metadata、TOC click command
+  - 画像・図形の制御群、hover highlight、これらの表示有無を切り替えるinteraction設定
   - unresolved metadata表示
   - viewer/export共通render pipelineの土台
 - `katana-document-preview-egui` と `egui_commonmark` vendor patchを正規経路にしない
@@ -37,6 +40,8 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
 ## Known Constraints
 
 KDVはeditor-viewer同期制御を持たない。同期制御はKatanAが持ち、KatanAがviewerまたはeditorへ命令する。
+
+目次（TOC）はKMM AST由来の見出し構造を正本にする。KDVは目次view、プレビュー側のheading anchor解決、TOC click commandを提供する。KatanAは目次panelの配置、表示/非表示、editor scroll、preview-editor同期方針を持つ。
 
 ## Impact
 

@@ -2,7 +2,7 @@
 
 ### Requirement: DocumentViewer trait でフォーマット非依存のviewer契約を提供しなければならない
 
-システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerTheme`、`ViewerI18n`、`ViewerSource`（KMM document / 画像 / PDF / Binary 等を統一的に扱う enum）、`ViewerOutput`、`ViewerDiagnostics` を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
+システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerTheme`、`ViewerI18n`、`ViewerInteractionConfig`、`ViewerSource`（KMM document / 画像 / PDF / Binary 等を統一的に扱う enum）、`ViewerOutput`、`ViewerDiagnostics` を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
 
 #### Scenario: KMM documentをviewerに渡す
 
@@ -10,17 +10,23 @@
 - **THEN** viewer はKMM public DTOを描画する
 - **THEN** ダイアグラムブロックはkatana-diagram-rendererの外部描画結果を組み込む
 
-#### Scenario: 見た目テーマ（theme）と多言語文言（i18n）を必須入力として渡す
+#### Scenario: 見た目テーマ（theme）と多言語文言（i18n）とinteraction設定を必須入力として渡す
 
 - **WHEN** ホストが `ViewerConfig` を構築する
-- **THEN** `ViewerTheme` と `ViewerI18n` はnull不可の必須fieldとして渡される
-- **THEN** KDVはdefault theme presetと英語（en）i18n presetを提供する
+- **THEN** `ViewerTheme`、`ViewerI18n`、`ViewerInteractionConfig` はnull不可の必須fieldとして渡される
+- **THEN** KDVはdefault theme preset、英語（en）i18n preset、default interaction presetを提供する
 - **THEN** presetを使う場合でも、ホストはpreset値を明示的に `ViewerConfig` へ渡す
 - **THEN** KDVは未指定時に内部defaultへ暗黙fallbackしない
 
+#### Scenario: interaction設定で表示機能を切り替える
+
+- **WHEN** ホストが `ViewerInteractionConfig` に `hover_highlight_enabled`、`image_controls_enabled`、`diagram_controls_enabled` を指定する
+- **THEN** KDVはhover highlight、画像制御群、図形制御群の表示有無をその値だけで決定する
+- **THEN** rendering code内にこれらの表示有無を固定するhard-coded conditionを持たない
+
 #### Scenario: 色と表示文言をinterfaceから解決する
 
-- **WHEN** Floem viewerが本文、背景、code block、table、alert、selection、focus、hover、error icon、error message、error borderを描画する
+- **WHEN** Floem viewerが本文、背景、code block、table、alert、selection、focus、hover、image controls、diagram controls、error icon、error message、error borderを描画する
 - **THEN** 全ての色は `ViewerTheme` から取得する
 - **THEN** rendering code内にhard-coded color literalを持たない
 - **THEN** 代表メッセージ、tooltip label、空状態などの固定表示文言は `ViewerI18n` から取得する
@@ -81,6 +87,64 @@
 - **THEN** KDVはhit-test metadataとviewer command surfaceを提供する
 - **THEN** KatanAがviewerまたはeditorへ命令する
 - **THEN** KDVはKLEやKatanA統合状態を知らない
+
+#### Scenario: 外部からscrollを制御する
+
+- **WHEN** ホストがKMM node id、source range、heading anchor、またはscroll fractionを指定してKDVへscroll commandを送る
+- **THEN** KDVは対象位置へviewerをscrollする
+- **THEN** 対象が存在しない場合は失敗結果を返し、viewer状態を壊さない
+- **THEN** KDVはscroll同期状態を保持せず、ホストが同期方針を管理する
+
+#### Scenario: hover highlightを表示する
+
+- **WHEN** `ViewerInteractionConfig.hover_highlight_enabled` がtrueで、pointerがrendered node上にある
+- **THEN** Floem viewerは対象nodeをtheme由来のhover背景またはborderでhighlightする
+- **THEN** hover highlightはKMM node idとsource rangeへ戻れる
+- **WHEN** `hover_highlight_enabled` がfalseである
+- **THEN** Floem viewerはhover highlightを描画しない
+
+#### Scenario: 画像と図形に制御群を表示する
+
+- **WHEN** `ViewerInteractionConfig.image_controls_enabled` がtrueで、pointerまたはfocusが画像上にある
+- **THEN** Floem viewerは画像上に制御群overlayを表示する
+- **WHEN** `ViewerInteractionConfig.diagram_controls_enabled` がtrueで、pointerまたはfocusが外部描画結果上にある
+- **THEN** Floem viewerは図形上に制御群overlayを表示する
+- **THEN** 制御群は拡大/fit、元画像またはrendered assetを開く、source参照をcopyする操作をviewer commandとしてホストへ渡せる
+- **THEN** 対応する設定がfalseの場合、制御群overlayを表示しない
+
+### Requirement: KMM AST由来の目次（TOC）をKDVが表示し、KatanAがeditor同期を制御しなければならない
+
+システムは、KMM AST解析結果から得た見出し構造を正本にして目次（TOC）を表示しなければならない（MUST）。KDVは目次view、プレビュー側anchor解決、TOC click commandを提供しなければならない（MUST）。KatanAは目次panel配置、表示/非表示、editor scroll、preview-editor同期方針を保持しなければならない（MUST）。
+
+#### Scenario: KMM AST由来の見出し構造から目次を構築する
+
+- **WHEN** KMM documentにheading nodeが含まれる
+- **THEN** KDVはKMM AST由来の見出しlevel、表示text、KMM node id、source range、heading anchor候補から目次itemを構築する
+- **THEN** KDVはMarkdown本文を再parseして目次の正本を作らない
+- **THEN** 目次itemはrendered heading anchor mapと対応できるmetadataを持つ
+
+#### Scenario: 目次clickでプレビューをscrollしホストへeditor命令を通知する
+
+- **WHEN** ユーザーが目次itemをclickする
+- **THEN** KDVは対応するrendered heading anchorへプレビューをscrollする
+- **THEN** KDVはKMM node id、source range、heading anchorを含むviewer commandをホストへ通知する
+- **THEN** KatanAはviewer commandを受けてeditor scrollを実行する
+- **THEN** KDVはKLE、editor buffer、editor scroll stateを直接参照しない
+
+#### Scenario: active headingをpreview/editorと連動する
+
+- **WHEN** プレビューのscroll位置が変わる
+- **THEN** KDVはlayout後に確定したrendered heading anchor mapからactive headingを決定する
+- **THEN** KDVは固定offsetや行番号だけの推測でactive headingを決定しない
+- **WHEN** editorのscroll位置が変わる
+- **THEN** KatanAはeditor側のactive headingをKMM node idまたはsource rangeとしてKDVへ渡す
+- **THEN** KDVは渡されたactive headingに対応する目次itemをhighlightできる
+
+#### Scenario: 目次panelの配置と表示状態はKatanAが管理する
+
+- **WHEN** KatanAがworkspace layoutを構築する
+- **THEN** KatanAは目次panelの表示位置、表示/非表示、初期表示を管理する
+- **THEN** KDVは目次componentと命令面を提供し、KatanAのlayout policyやworkspace設定を持たない
 
 ### Requirement: Markdown標準記法の描画対象を明示しなければならない
 

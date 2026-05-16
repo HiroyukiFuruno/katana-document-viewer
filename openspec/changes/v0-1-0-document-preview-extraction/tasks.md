@@ -12,7 +12,8 @@
 - [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace` が通る
 - [ ] KDV AST lintで色literal違反、preset直接参照違反、許容fixtureの正常系を検証している
 - [ ] CommonMark / GFM / KatanA互換fixtureのviewer回帰テストが、spec.mdのScenarioと対応している
-- [ ] KatanA統合側が `ViewerConfig` に `ViewerTheme` / `ViewerI18n` を明示して渡すことを確認している
+- [ ] KMM AST由来の目次（TOC）、TOC click scroll、preview/editor active heading連動の回帰テストがspec.mdのScenarioと対応している
+- [ ] KatanA統合側が `ViewerConfig` に `ViewerTheme` / `ViewerI18n` / `ViewerInteractionConfig` を明示して渡すことを確認している
 
 ---
 
@@ -25,12 +26,14 @@
 
 ## 1. neutral interface を確定する
 
-- [ ] 1.1 `DocumentViewer` trait と DTO（`ViewerSource` / `ViewerConfig` / `ViewerTheme` / `ViewerI18n` / `ViewerOutput` / `ViewerDiagnostics` / `ExportConfig`）を本実装向けに拡張する
+- [ ] 1.1 `DocumentViewer` trait と DTO（`ViewerSource` / `ViewerConfig` / `ViewerTheme` / `ViewerI18n` / `ViewerInteractionConfig` / `ViewerOutput` / `ViewerDiagnostics` / `ExportConfig`）を本実装向けに拡張する
 - [ ] 1.2 `katana-document-viewer` の `cargo tree` に `egui` が含まれないことを確認する
 - [ ] 1.3 KatanA が interface crate のみを依存しても型エラーが出ないことを確認する
 - [ ] 1.4 editor-viewer同期制御をKDVが持たず、KatanAがviewerまたはeditorへ命令する契約を明記する
-- [ ] 1.5 `ViewerConfig` で `ViewerTheme` と `ViewerI18n` をnull不可の必須入力にし、KDV提供のdefault theme presetと英語（en）i18n presetも呼び出し側が必ず明示引数として渡す制約を型で担保する
+- [ ] 1.5 `ViewerConfig` で `ViewerTheme`、`ViewerI18n`、`ViewerInteractionConfig` をnull不可の必須入力にし、KDV提供のdefault theme preset、英語（en）i18n preset、default interaction presetも呼び出し側が必ず明示引数として渡す制約を型で担保する
 - [ ] 1.6 `ViewerOutput` / `ViewerDiagnostics` / hit-test metadata / unresolved metadata表示の最小fieldとAPIを実装し、KMM node id と source range へ戻れることを単体テストで確認する
+- [ ] 1.7 KMM node id、source range、heading anchor、scroll fractionを受ける外部scroll制御APIを追加し、成功/失敗結果を返す単体テストを追加する
+- [ ] 1.8 KMM AST由来の見出し構造を `ViewerTocItem` 相当のDTOとして公開し、level、表示text、KMM node id、source range、heading anchor候補を保持する
 
 ---
 
@@ -52,6 +55,12 @@
 - [ ] 2.14 KDV AST lintを拡張し、preset定義、test fixture、lint違反fixtureを除くrendering code内のhard-coded color literalとpreset直接参照を禁止する
 - [ ] 2.15 CommonMark 0.31.2 examples と GFM 0.29-gfm examples のうちKMMがDTO化済みの範囲をviewer snapshot testへ追加し、KMM未対応範囲はraw保持テストで担保する
 - [ ] 2.16 relative link click、heading anchor、emoji shortcode未知値、raw HTML disallowed要素、prose長文折り返し、code block横スクロールの回帰テストを追加する
+- [ ] 2.17 hover highlightをtheme由来のhover色で表示し、`hover_highlight_enabled=false` で非表示になる回帰テストを追加する
+- [ ] 2.18 画像制御群と図形制御群をhover/focus時に表示し、`image_controls_enabled=false` / `diagram_controls_enabled=false` で非表示になる回帰テストを追加する
+- [ ] 2.19 画像・図形制御群の拡大/fit、open、copy操作がKDV内で副作用を起こさず、viewer commandとしてホストへ渡ることを確認する
+- [ ] 2.20 KMM AST由来の見出し構造から目次viewを描画し、Markdown本文を再parseして目次正本を作っていないことを単体テストで確認する
+- [ ] 2.21 目次item clickでKDVのプレビューがrendered heading anchorへscrollし、KMM node id、source range、heading anchorを含むviewer commandがホストへ通知されることを回帰テストで確認する
+- [ ] 2.22 preview scroll時はlayout後のrendered heading anchor mapからactive headingを決定し、editor scroll時はKatanAが渡したKMM node idまたはsource rangeで目次highlightできることを統合テストで確認する
 
 ---
 
