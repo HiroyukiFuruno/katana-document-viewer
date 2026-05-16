@@ -6,12 +6,16 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
 
 - `katana-document-viewer`（neutral interface、egui非依存）に以下を定義する：
   - `DocumentViewer` trait（KMM DTOを入力にするviewer契約）
-  - `ViewerConfig`（テーマ・フォントサイズ等の注入）
+  - `ViewerConfig`（見た目テーマ（theme）・多言語文言（i18n）・フォントサイズ等の必須注入）
   - `ViewerSource`（KMM document、画像、PDF、Binary等を統一的に扱うenum）
   - `ExportConfig`（HTML/PDF/PNG/JPG export設定）
-  - KCFの外部描画結果をviewer/export pipelineへ組み込む契約
+  - katana-diagram-rendererの外部描画結果をviewer/export pipelineへ組み込む契約
 - `katana-document-viewer-floem` に以下を実装する（v0.1.0 はMarkdown中心）：
   - KMM node rendering
+  - 標準Markdown（CommonMark）とGitHub風Markdown（GitHub Flavored Markdown / GFM）の描画対象棚卸し
+  - KatanA現行互換のMarkdown拡張表示（GitHub alert、寛容なmath、Draw.io拡張子判定、ZenUML、table alignment）
+  - 見た目テーマ（theme） / 多言語文言（i18n）を呼び出し側からnull不可で受け取り、KDV側presetを明示引数として渡せる契約
+  - 色のハードコードを禁止するKDV AST lint
   - hit-test metadata
   - unresolved metadata表示
   - viewer/export共通render pipelineの土台
@@ -24,7 +28,8 @@ viewer実装を独立したcrateとして確立する。`katana-document-preview
 
 - `markdown-viewer-component`: KMM DTOを入力にするneutral interface + Floem viewer実装
 - `markdown-viewer-export`: viewer表示と同じrender pipelineからHTML/PDF/PNG/JPG exportを行う方針
-- `diagram-rendering-delegation`: KCF経由のMermaid / Draw.io / PlantUML / math外部描画
+- `markdown-syntax-coverage`: CommonMark / GFM / KatanA現行互換のMarkdown表示対象を明文化する
+- `diagram-rendering-delegation`: katana-diagram-renderer経由のMermaid / Draw.io / ZenUML / PlantUML / math外部描画
 
 ### Planned（将来バージョン）
 
