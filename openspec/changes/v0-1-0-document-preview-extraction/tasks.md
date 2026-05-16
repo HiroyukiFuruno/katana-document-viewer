@@ -1,5 +1,21 @@
 # Tasks: katana-document-viewer v0.1.0
 
+## Definition of Ready (DoR)
+
+- [ ] proposal / design / spec / tasks の対象capability名が一致している
+- [ ] KMM / KDV / KDR / KatanA の責務境界がdesign.mdとspec.mdで明示されている
+- [ ] v0.1.0で実装する範囲と、後続versionへ送る範囲がtasks.mdから判定できる
+
+## Definition of Done (DoD)
+
+- [ ] `scripts/openspec validate v0-1-0-document-preview-extraction --strict` が通る
+- [ ] `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace` が通る
+- [ ] KDV AST lintで色literal違反、preset直接参照違反、許容fixtureの正常系を検証している
+- [ ] CommonMark / GFM / KatanA互換fixtureのviewer回帰テストが、spec.mdのScenarioと対応している
+- [ ] KatanA統合側が `ViewerConfig` に `ViewerTheme` / `ViewerI18n` を明示して渡すことを確認している
+
+---
+
 ## Branch Rule
 
 - **標準ブランチ**: `release/v0.1.0`
@@ -13,7 +29,8 @@
 - [ ] 1.2 `katana-document-viewer` の `cargo tree` に `egui` が含まれないことを確認する
 - [ ] 1.3 KatanA が interface crate のみを依存しても型エラーが出ないことを確認する
 - [ ] 1.4 editor-viewer同期制御をKDVが持たず、KatanAがviewerまたはeditorへ命令する契約を明記する
-- [ ] 1.5 `ViewerConfig` で `ViewerTheme` と `ViewerI18n` をnull不可の必須入力にし、KDV提供のdefault theme presetと英語（en）i18n presetを呼び出し側が明示引数として渡せるようにする
+- [ ] 1.5 `ViewerConfig` で `ViewerTheme` と `ViewerI18n` をnull不可の必須入力にし、KDV提供のdefault theme presetと英語（en）i18n presetも呼び出し側が必ず明示引数として渡す制約を型で担保する
+- [ ] 1.6 `ViewerOutput` / `ViewerDiagnostics` / hit-test metadata / unresolved metadata表示の最小fieldとAPIを実装し、KMM node id と source range へ戻れることを単体テストで確認する
 
 ---
 
@@ -28,24 +45,28 @@
 - [ ] 2.7 KMMが専用nodeを持たないlink、image、footnote、HTML inline、inline mathはraw snippetとsource rangeを保持し、未描画時もrawをそのまま表示する
 - [ ] 2.8 ダイアグラム描画を `katana-diagram-renderer` 経由に統一する（KDV内で独自 Mermaid / Draw.io / ZenUML / PlantUML / math renderer を持たない）
 - [ ] 2.9 `egui_commonmark` vendor patchを正規経路にしないことを確認する
-- [ ] 2.10 KMM canonical fixtures（`katana_sample.md` / `katana_sample_basic.md` / `katana_readme.md` / `description_list.md`）相当のviewer回帰テストを追加する
+- [ ] 2.10 KMM canonical fixtures（`katana_sample.md` / `katana_sample_basic.md` / `katana_readme.md` / `description_list.md`）相当のviewer回帰テストを追加し、対応するspec.md Scenario名をtest名またはtest commentに残す
 - [ ] 2.11 table alignment/width、GitHub alert、寛容なmath、Draw.io直接code block、`.drawio` / `.xml` 添付・参照先の先頭Draw.io判定とSVG化、ZenUMLのviewer回帰テストを追加する
 - [ ] 2.12 外部描画失敗時にrawをcode block枠でそのまま表示し、枠borderをtheme由来のerror系カラーにし、preview上でエラーアイコン、代表メッセージ、tooltip詳細を表示する回帰テストを追加する
-- [ ] 2.13 preview内の代表メッセージ、tooltip label、空状態など固定表示文言を `ViewerI18n` から取得し、KDV提供の英語（en）presetで表示できる回帰テストを追加する
-- [ ] 2.14 KDV AST lintを拡張し、preset定義とtest fixtureを除くrendering code内のhard-coded color literalを禁止する
+- [ ] 2.13 preview内の代表メッセージ、tooltip label、空状態など固定表示文言を `ViewerI18n` から取得し、KDV提供の英語（en）presetで表示できる回帰テストを追加する。日本語（ja）presetはKatanAなど呼び出し側責務として扱う
+- [ ] 2.14 KDV AST lintを拡張し、preset定義、test fixture、lint違反fixtureを除くrendering code内のhard-coded color literalとpreset直接参照を禁止する
+- [ ] 2.15 CommonMark 0.31.2 examples と GFM 0.29-gfm examples のうちKMMがDTO化済みの範囲をviewer snapshot testへ追加し、KMM未対応範囲はraw保持テストで担保する
+- [ ] 2.16 relative link click、heading anchor、emoji shortcode未知値、raw HTML disallowed要素、prose長文折り返し、code block横スクロールの回帰テストを追加する
 
 ---
 
 ## 3. Export pipeline
 
 - [ ] 3.1 HTML/PDF/PNG/JPG exportをKDV責務として定義する
-- [ ] 3.2 viewer表示とexportが同じrender pipelineを使う方針を固定する
-- [ ] 3.3 KCF既存exportの維持期間、移譲条件、削除条件を文書化する
+- [ ] 3.2 viewer表示とexportが同じrender tree、KDR結果、`ViewerTheme`、`ViewerI18n`、`ViewerDiagnostics` を使い、KMM DTOを再parseしないことをテストで確認する
+- [ ] 3.3 外部描画失敗時のraw code block、error border、代表メッセージがHTML/PDF/PNG/JPG exportで失われないことを形式別に確認する
+- [ ] 3.4 KCF既存exportの維持期間、移譲条件、削除条件を文書化する
 
 ---
 
-## 4. v0.1.0 release
+## 4. Final Verification & Release Work
 
 - [ ] 4.1 `cargo fmt` / `cargo clippy --workspace -- -D warnings` / `cargo test --workspace` が通る
-- [ ] 4.2 release tag `v0.1.0` を切り GitHub Release を作成する
-- [ ] 4.3 KatanA が `katana-document-viewer = { git = "...", tag = "v0.1.0" }` でビルドできることを確認する
+- [ ] 4.2 KDV AST lintを実行し、色literalとpreset直接参照の違反がないことを確認する
+- [ ] 4.3 release tag `v0.1.0` を切り GitHub Release を作成する
+- [ ] 4.4 KatanA が `katana-document-viewer = { git = "...", tag = "v0.1.0" }` でビルドできることを確認する

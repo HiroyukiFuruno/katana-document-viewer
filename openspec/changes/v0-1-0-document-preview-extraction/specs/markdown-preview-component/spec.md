@@ -2,7 +2,7 @@
 
 ### Requirement: DocumentViewer trait でフォーマット非依存のviewer契約を提供しなければならない
 
-システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerTheme`、`ViewerI18n`、`ViewerSource`（KMM document / 画像 / PDF / Binary 等を統一的に扱う enum）を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
+システムは、`DocumentViewer` trait、`ViewerConfig`、`ViewerTheme`、`ViewerI18n`、`ViewerSource`（KMM document / 画像 / PDF / Binary 等を統一的に扱う enum）、`ViewerOutput`、`ViewerDiagnostics` を `katana-document-viewer` neutral crate として提供しなければならない（MUST）。
 
 #### Scenario: KMM documentをviewerに渡す
 
@@ -26,15 +26,22 @@
 - **THEN** 代表メッセージ、tooltip label、空状態などの固定表示文言は `ViewerI18n` から取得する
 - **THEN** 外部renderer由来の詳細エラーはtooltip本文へ渡せるが、代表メッセージは `ViewerI18n` の文言を使う
 
+#### Scenario: ViewerOutputとViewerDiagnosticsを返す
+
+- **WHEN** viewerまたはexport pipelineがKMM documentを処理する
+- **THEN** `ViewerOutput` はrendered document handle、render tree metadata、export result、`ViewerDiagnostics` を返す
+- **THEN** `ViewerDiagnostics` はseverity、diagnostic code、KMM node id、source range、代表メッセージkey、詳細エラー本文を持つ
+- **THEN** 代表メッセージkeyは `ViewerI18n` で解決される
+
 #### Scenario: katana-document-viewer は egui / KDR 実装本体に依存しない
 
 - **WHEN** `cargo tree -p katana-document-viewer` を実行する
 - **THEN** `egui` は含まれない
 - **THEN** katana-diagram-renderer の公開契約のみ参照し、特定の Mermaid 実装に依存しない
 
-### Requirement: katana-document-viewer-floem がMarkdown viewerとexport pipelineを提供しなければならない
+### Requirement: katana-document-viewer-floem がMarkdown previewとexport pipeline土台を提供しなければならない
 
-システムは、KMM node rendering、hit-test metadata、unresolved metadata表示、katana-diagram-renderer経由の外部描画組み込み、HTML/PDF/PNG/JPG export pipelineを `katana-document-viewer-floem` impl crate として提供しなければならない（MUST）。
+システムは、KMM node rendering、hit-test metadata、unresolved metadata表示、katana-diagram-renderer経由の外部描画組み込み、HTML/PDF/PNG/JPG export pipeline契約と土台を `katana-document-viewer-floem` impl crate として提供しなければならない（MUST）。
 
 #### Scenario: MarkdownをFloem viewerで表示する
 
@@ -42,11 +49,31 @@
 - **THEN** Markdown documentがFloem viewerに描画される
 - **THEN** rendered node はKMM node idとsource rangeへ戻れる
 
+#### Scenario: hit-test metadataでKMM位置へ戻る
+
+- **WHEN** ホストがrendered nodeまたは画面座標に対してhit-testを行う
+- **THEN** KDVは対応するKMM node idとsource rangeを返す
+- **THEN** KDVはselectionやscroll同期の入力面を提供する
+- **THEN** editor-viewer同期状態はKatanAが保持する
+
+#### Scenario: unresolved metadataを補助表示する
+
+- **WHEN** KMM documentにKDVが専用表示できないmetadataが含まれる
+- **THEN** Floem viewerは本文を削除せず、小さな警告表示、代表メッセージ、tooltip詳細でmetadata未解決を示す
+- **THEN** warning colorと文言は `ViewerTheme` / `ViewerI18n` から取得する
+
 #### Scenario: 図形ブロックをKDR経由で描画する
 
 - **WHEN** viewer に Mermaid / Draw.io / ZenUML / PlantUML / math block が含まれる
 - **THEN** katana-diagram-rendererの外部描画結果をviewer/exportへ組み込む
 - **THEN** viewer crate 内に独自 Mermaid / Draw.io / ZenUML / PlantUML / math 描画は含まれない
+
+#### Scenario: viewerとexportが同じrender pipelineを使う
+
+- **WHEN** ホストがHTML/PDF/PNG/JPG exportを要求する
+- **THEN** exportはviewer表示と同じrender tree、KDR結果、`ViewerTheme`、`ViewerI18n`、`ViewerDiagnostics` を使う
+- **THEN** exportはKMM DTOを独自に再parseしない
+- **THEN** 外部描画失敗時もraw code block、error border、代表メッセージを失わない
 
 #### Scenario: KatanAがeditor-viewer同期を制御する
 
@@ -65,6 +92,7 @@
 - **THEN** Floem viewerは各要素を表示する
 - **THEN** rendered node はKMM node idまたはKMM source rangeへ戻れる
 - **THEN** KMMが専用nodeを持たない要素はrawをそのまま表示し、削除されない
+- **THEN** 表示用整形で得た構造はKMM公開データ型の代替正本にならない
 
 #### Scenario: CommonMarkのインライン要素を表示する
 
@@ -80,14 +108,19 @@
 #### Scenario: GFM主要要素を表示する
 
 - **WHEN** KMM documentにtable、task list item、strikethrough、GFM autolinkが含まれる
-- **THEN** Floem viewerはtableの左寄せ、中央寄せ、右寄せ、横幅100%固定、task marker、取り消し線、autolinkを表示する
-- **THEN** raw HTMLは安全な表示またはrawそのまま表示になり、script実行や危険属性実行を行わない
+- **THEN** Floem viewerはtableの列ごとの左寄せ、中央寄せ、右寄せ、本文領域の横幅100%固定、task marker、取り消し線、autolinkを表示する
+- **THEN** tableの最小幅が本文領域を超える場合はtable領域だけ横スクロールする
+- **THEN** raw HTMLはKatanA互換として明示した要素以外をinertなraw表示に倒し、script実行や危険属性実行を行わない
+- **THEN** 表示用整形で得た構造はKMM公開データ型の代替正本にならない
 
 #### Scenario: GitHub実運用拡張を表示する
 
 - **WHEN** KMM documentにfootnote、GFM alert `> [!NOTE]` / `> [!TIP]` / `> [!IMPORTANT]` / `> [!WARNING]` / `> [!CAUTION]`、emoji shortcode、relative link、heading anchorが含まれる
 - **THEN** Floem viewerはKatanA README互換の見え方を維持する
 - **THEN** KMMが専用nodeを持たないfootnoteやlinkはraw snippetとsource rangeを保持する
+- **THEN** emoji shortcodeはKDVの静的GitHub互換mapで解決し、未知shortcodeはrawのまま表示する
+- **THEN** heading anchorはKMM metadataがあればそれを使い、ない場合は表示用のGitHub互換slugを生成する
+- **THEN** relative link clickはhrefとsource rangeをviewer commandとしてホストへ渡す
 - **THEN** GitHubサービス側の通知、issue参照、自動補完はKDV責務にしない
 
 ### Requirement: KatanA独自のMarkdown表示仕様を取り込まなければならない
@@ -104,7 +137,7 @@
 
 - **WHEN** KMM documentに `[x]`、`[ ]`、`[-]`、`[/]` のtask marker、Unicode emoji、shortcode emoji、日本語、HTML entity、長い行が含まれる
 - **THEN** Floem viewerは各markerと文字を欠落させず表示する
-- **THEN** 長い行はlayoutを破壊せず、折り返しまたは横スクロール方針に従う
+- **THEN** proseの長い行は折り返し、code blockとraw code blockは横スクロールし、layoutを破壊しない
 
 #### Scenario: 寛容なmathを表示する
 
@@ -112,10 +145,18 @@
 - **THEN** Floem viewerは厳密エラー扱いにせず、KatanA現行preview互換で数式として表示する
 - **THEN** 元のraw snippetとsource rangeは保持する
 
+#### Scenario: inline mathを表示する
+
+- **WHEN** KMM documentに `$ E = mc^2 $` のようなinline mathが含まれる
+- **THEN** Floem viewerはKatanA現行preview互換でinline数式として表示する
+- **THEN** 誤判定を避けるため、KMMがmathとして構造化していない金額表記や通常textはKDVが独自にmath化しない
+- **THEN** 元のraw snippetとsource rangeは保持する
+
 #### Scenario: Draw.ioの直接入力と拡張子付き添付を図形として扱う
 
 - **WHEN** KMM documentに `drawio` / `draw.io` code block、または `.drawio` / `.xml` 拡張子の添付・Markdown画像参照・HTML `img`・local pathが含まれる
-- **THEN** KDVは参照先の内容がDraw.ioとして有効なXMLブロックで始まることを確認してからkatana-diagram-rendererへ渡す
+- **THEN** KDVはdocument root基準で参照先を解決し、root外参照やpath traversalを拒否する
+- **THEN** KDVはBOMと空白を除いた先頭がDraw.io XML候補（例: `<mxfile` または `<mxGraphModel`）で始まることを確認してからkatana-diagram-rendererへ渡す
 - **THEN** 有効なDraw.io入力はkatana-diagram-rendererでSVG化し、viewer/exportへ組み込む
 - **THEN** 拡張子だけ一致する入力、取得不能な入力、解析不能な入力はDraw.io図形として扱わず、rawをそのまま表示し、本文から削除しない
 
@@ -147,7 +188,7 @@
 
 #### Scenario: rendering codeに色literalがある
 
-- **WHEN** KDV rendering codeにhex color、RGB/RGBA literal、framework固有のnamed color直指定が含まれる
+- **WHEN** `crates/katana-document-viewer-floem/src` またはneutral crateの描画関連moduleにhex color、RGB/RGBA literal、framework固有のnamed color直指定が含まれる
 - **THEN** AST lintは違反として失敗する
 - **THEN** 修正は `ViewerTheme` field参照へ置き換える
 
@@ -156,3 +197,10 @@
 - **WHEN** KDVがdefault theme presetを定義する
 - **THEN** preset定義moduleは色値を持てる
 - **THEN** preset以外のrendering codeはpreset値へ直接依存せず、`ViewerConfig` で渡された `ViewerTheme` を参照する
+- **THEN** test fixtureとAST lint自身の違反fixtureは色literalを持てる
+
+#### Scenario: rendering codeがpresetへ直接依存する
+
+- **WHEN** rendering codeがdefault theme preset moduleや英語（en）i18n preset moduleを直接参照する
+- **THEN** AST lintは違反として失敗する
+- **THEN** rendering codeは `ViewerConfig` で渡された `ViewerTheme` / `ViewerI18n` のみを参照する
