@@ -13,6 +13,7 @@
 - [ ] KDV AST lintで色literal違反、preset直接参照違反、許容fixtureの正常系を検証している
 - [ ] CommonMark / GFM / KatanA互換fixtureのviewer回帰テストが、spec.mdのScenarioと対応している
 - [ ] KMM AST由来の目次（TOC）、TOC click scroll、preview/editor active heading連動の回帰テストがspec.mdのScenarioと対応している
+- [ ] `katana-document-viewer-floem` が `floem = { workspace = true }` を使い、workspaceの `floem` 依存が公式Git repository（GitHub上の公式ソース）由来であることを確認している
 - [ ] KatanA統合側が `ViewerConfig` に `ViewerTheme` / `ViewerI18n` / `ViewerInteractionConfig` を明示して渡すことを確認している
 
 ---
@@ -44,7 +45,7 @@
 - [ ] 2.3 GFM 0.29-gfm のtable、列の左寄せ・中央寄せ・右寄せ、横幅100%固定、task list、strikethrough、autolink、raw HTML safetyを描画対象表として固定する
 - [ ] 2.4 GitHub Docs互換のfootnote、alert、emoji shortcode、relative link、heading anchorをKatanA互換対象に含める
 - [ ] 2.5 KatanA独自仕様（中央寄せHTML、badge row、legacy note、description list、`[-]` / `[/]` task marker、details accordion、`$$` 内側の半角スペースを許容するmath、inline math、Draw.io直接code block、`.drawio` / `.xml` 添付・参照先の先頭Draw.io判定、ZenUML、長い行、日本語、HTML entity）をKMM canonical fixturesとKatanA現行previewから確認する
-- [ ] 2.6 `katana-document-viewer-floem` にKMM node renderingの土台を追加する
+- [ ] 2.6 `katana-document-viewer-floem` にKMM node renderingの土台を追加し、Floem依存はcrates.io版ではなくworkspaceの公式Git repository取り込みを使う
 - [ ] 2.7 KMMが専用nodeを持たないlink、image、footnote、HTML inline、inline mathはraw snippetとsource rangeを保持し、未描画時もrawをそのまま表示する
 - [ ] 2.8 ダイアグラム描画を `katana-diagram-renderer` 経由に統一する（KDV内で独自 Mermaid / Draw.io / ZenUML / PlantUML / math renderer を持たない）
 - [ ] 2.9 `egui_commonmark` vendor patchを正規経路にしないことを確認する

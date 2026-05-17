@@ -42,6 +42,8 @@ KDVは、KMM public DTOを入力にしたMarkdown viewer、hit-test、node選択
 
 React / TypeScript / WebView は使用しない。Rust 純正のみ。
 
+Floemはcrates.io公開版が古いため、公式Git repository（GitHub上の公式ソース）を直接取り込む。依存定義はworkspaceで一元管理し、`katana-document-viewer-floem` は `floem = { workspace = true }` だけを使う。
+
 ### eguiから脱却する理由（要約）
 
 - カラー絵文字：epaint が SBIX/CBTF 非対応 → cosmic-text で解決

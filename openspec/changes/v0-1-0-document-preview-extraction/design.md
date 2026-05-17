@@ -26,6 +26,10 @@ KDV v0.1.0 はKMM公開データ型（public DTO）を正本入力にする。KD
 
 標準MarkdownはCommonMark 0.31.2を基準にする。対象は、thematic break、ATX/setext heading、indented/fenced code block、HTML block、link reference definition、paragraph、blank line、blockquote、list item、list、backslash escape、entity/numeric character reference、code span、emphasis/strong、link、image、autolink、raw HTML、hard/soft line break、textual content。
 
+### Floem依存の取り込み元
+
+Floemはcrates.io公開版が古いため、crates.ioのversion指定ではなく、公式Git repository（GitHub上の公式ソース）を直接取り込む。workspace dependencyを正本にし、`katana-document-viewer-floem` 側では `floem = { workspace = true }` だけを記述する。これにより、取り込み元の差し替えや固定commit更新をworkspaceの1か所で管理する。
+
 ### GFMとGitHub実運用拡張
 
 GFM仕様のtable、task list item、strikethrough、autolink extension、disallowed raw HTMLを表示対象に含める。tableはviewer本文領域の横幅100%で表示し、列ごとの左寄せ、中央寄せ、右寄せを保持する。列幅はcontent-fitを基本にし、最小幅が本文領域を超える場合はtable領域だけ横スクロールにする。加えて、KatanA READMEとKMM fixtureが前提にしているfootnote、alert、emoji、relative link、heading anchorもKatanA互換対象として扱う。
