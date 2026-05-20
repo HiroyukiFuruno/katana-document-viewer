@@ -1,5 +1,7 @@
 ## Context
 
+> Status: このchangeは初期構想の整理用。実装順序は `v0-1-0-render-export-foundation`、`v0-2-0-markdown-viewer-kuc-integration`、`v0-3-0-pdf-export-pagination`、`v0-4-0-multi-format-viewer` を正とする。
+
 `katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名する。
 
 KDVはMarkdown以外のdocument viewerも担うが、KMM採用ではMarkdown viewerの文書構造、hit-test、metadata表示、HTML/PDF/PNG/JPG exportが中心になる。表示はFloem/velloを前提にし、egui_commonmarkのvendor patchへ戻らない。
@@ -28,7 +30,7 @@ KDVはKMM public DTOをviewer/export inputとして受け取る。KMM内部parse
 
 ### P3 Consumer Order
 
-KDVのKMM採用はP3作業とする。P0 `katana-ast-lint`、P1 KMM文書モデル、P2 `katana-ui-widget` の境界を受け、viewer固有のUI部品をKatanA本体へ増やしすぎない。
+KDVのKMM採用はP3作業とする。P0 `katana-ast-lint`、P1 KMM文書モデル、P2 `katana-ui-core` の境界を受け、viewer固有のUI部品をKatanA本体へ増やしすぎない。
 
 ### Hit-test Metadata
 

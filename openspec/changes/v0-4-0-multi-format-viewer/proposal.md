@@ -1,6 +1,6 @@
 ## Why
 
-v0.1.0 で確立した neutral interface（`ViewerSource`）の上に、Markdown 以外のドキュメント形式への対応を追加する。PDF・CSV・Office（DOCX / XLSX / PPTX）・画像拡張（SVG / WebP 等）のviewerを `katana-document-viewer-floem` に実装し、`ViewerSource` variant として追加する。
+`v0.1.0` のrender/export foundation、`v0.2.0` のMarkdown viewer、`v0.3.0` のPDF改ページ書き出し（export）の後に、Markdown以外のドキュメント形式へ対応する。PDF・CSV・Office（DOCX / XLSX / PPTX）・画像拡張（SVG / WebP 等）のviewerを `katana-document-viewer-floem` に実装し、`ViewerSource` variant として追加する。
 
 ## What Changes
 

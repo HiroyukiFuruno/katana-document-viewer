@@ -1,5 +1,7 @@
 # Tasks: adopt-kme-viewer-model
 
+> Status: このchangeは初期構想の整理用。実装順序は `v0-1-0-render-export-foundation`、`v0-2-0-markdown-viewer-kuc-integration`、`v0-3-0-pdf-export-pagination`、`v0-4-0-multi-format-viewer` を正とする。
+
 ## 0. Repository Rename
 
 ### Definition of Ready
@@ -24,7 +26,7 @@
 
 - [ ] KMM document model DTOが定義済みである
 - [ ] P0 `katana-ast-lint` の共通品質ゲート方針が利用可能である
-- [ ] P2 `katana-ui-widget` のmetadata表示境界が整理されている
+- [ ] P2 `katana-ui-core` のmetadata表示境界が整理されている
 - [ ] Floem viewer implementation方針が確定している
 
 ### Tasks
