@@ -27,7 +27,7 @@
 - [ ] KMM document model DTOが定義済みである
 - [ ] P0 `katana-ast-lint` の共通品質ゲート方針が利用可能である
 - [ ] P2 `katana-ui-core` のmetadata表示境界が整理されている
-- [ ] Floem viewer implementation方針が確定している
+- [ ] KUC viewer implementation方針が確定している
 
 ### Tasks
 
@@ -44,7 +44,7 @@
 - [ ] egui型がneutral interfaceに入っていない
 - [ ] viewer固有のlint driftを品質ゲートにしていない
 
-## 2. Floem Viewer
+## 2. KUC Viewer
 
 ### Definition of Ready
 
@@ -52,8 +52,8 @@
 
 ### Tasks
 
-- [ ] 2.1 見出し、段落、引用、リスト、table、code、HTML badgeをFloemで表示する
-- [ ] 2.2 Mermaid/draw.io/PlantUML/math nodeをKCF renderer resultまたはraw fallbackで表示する
+- [ ] 2.1 見出し、段落、引用、リスト、table、code、HTML badgeをKUCで表示する
+- [ ] 2.2 Mermaid/draw.io nodeをKDR renderer resultで表示し、PlantUML/math nodeはraw fallbackで表示する
 - [ ] 2.3 emojiを削除せず表示側rendererへ渡す
 
 ### Definition of Done
@@ -71,12 +71,12 @@
 
 - [ ] 3.1 HTML/PDF/PNG/JPG exportをKDV責務として設計する
 - [ ] 3.2 viewer表示とexportが同じrender pipelineを使う方針を固定する
-- [ ] 3.3 KCF既存exportからKDVへ移譲する対象と削除条件を定義する
+- [ ] 3.3 KDV export契約へ集約する対象と完了条件を定義する
 
 ### Definition of Done
 
 - [ ] viewer表示とexport出力が同じKMM fixtureで検証できる
-- [ ] KCFに新規export責務を追加しない
+- [ ] 削除予定crateに新規export責務を追加しない
 
 ## 4. Metadata and Interaction
 

@@ -2,12 +2,12 @@
 
 ### Requirement: Viewer renders KMM document models
 
-The viewer system SHALL render KMM document models through the Floem viewer implementation.
+The viewer system SHALL render KMM document models through the KUC viewer implementation.
 
 #### Scenario: Render canonical KMM fixture
 
 - **WHEN** KDV receives a KMM model for `sample.md`
-- **THEN** KDV renders supported nodes in the Floem viewer
+- **THEN** KDV renders supported nodes in the KUC viewer
 - **THEN** rendered nodes expose public hit-test metadata
 
 ### Requirement: Viewer adoption depends on P0, P1, and P2 contracts

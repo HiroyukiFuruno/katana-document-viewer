@@ -1,27 +1,29 @@
 use crate::diagnostics::{KdpLintError, Violation};
 use std::path::Path;
 
-use super::architecture::{EGUI_CRATE, LIB_CRATE};
+use super::architecture::{EGUI_CRATE, LIB_CRATE, VIEWER_CRATE};
 
 pub(super) struct ManifestBoundaryRule;
 
 impl ManifestBoundaryRule {
     pub(super) fn check(root: &Path) -> Result<Vec<Violation>, KdpLintError> {
         let mut violations = Vec::new();
+        let viewer_manifest = root.join(VIEWER_CRATE).join("Cargo.toml");
         let lib_manifest = root.join(LIB_CRATE).join("Cargo.toml");
         let egui_manifest = root.join(EGUI_CRATE).join("Cargo.toml");
-        Self::check_preview_manifest(&lib_manifest, &mut violations)?;
+        Self::check_neutral_manifest(&viewer_manifest, &mut violations)?;
+        Self::check_neutral_manifest(&lib_manifest, &mut violations)?;
         Self::check_egui_manifest(&egui_manifest, &mut violations)?;
         Ok(violations)
     }
 
-    fn check_preview_manifest(
+    fn check_neutral_manifest(
         path: &Path,
         violations: &mut Vec<Violation>,
     ) -> Result<(), KdpLintError> {
         let manifest = ManifestReader::read(path)?;
         for dependency in ManifestReader::dependency_names(&manifest) {
-            if !Self::is_preview_boundary_violation(&dependency) {
+            if !Self::is_neutral_boundary_violation(&dependency) {
                 continue;
             }
             violations.push(Self::manifest_violation(path, dependency));
@@ -51,7 +53,7 @@ impl ManifestBoundaryRule {
         Ok(())
     }
 
-    fn is_preview_boundary_violation(dependency: &str) -> bool {
+    fn is_neutral_boundary_violation(dependency: &str) -> bool {
         UiDependencyPolicy::is_ui_dependency(dependency)
             || dependency == "katana-document-preview-egui"
     }
@@ -62,7 +64,7 @@ impl ManifestBoundaryRule {
             1,
             1,
             "preview-boundary",
-            format!("document preview crate must not depend on UI or egui crate `{dependency}`."),
+            format!("neutral document crate must not depend on UI crate `{dependency}`."),
         )
     }
 }
@@ -111,7 +113,16 @@ impl UiDependencyPolicy {
             || lower.ends_with("_ui")
             || matches!(
                 lower.as_str(),
-                "dioxus" | "eframe" | "egui" | "iced" | "leptos" | "tauri" | "yew"
+                "dioxus"
+                    | "eframe"
+                    | "egui"
+                    | "iced"
+                    | "leptos"
+                    | "tauri"
+                    | "yew"
+                    | "floem"
+                    | "vello"
+                    | "winit"
             )
     }
 }

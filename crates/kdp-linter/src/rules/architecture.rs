@@ -4,6 +4,7 @@ use crate::workspace::WorkspaceModel;
 use super::egui_duplication::EguiDuplicationRule;
 use super::manifest_boundary::ManifestBoundaryRule;
 
+pub const VIEWER_CRATE: &str = "crates/katana-document-viewer";
 pub const LIB_CRATE: &str = "crates/katana-document-preview";
 pub const EGUI_CRATE: &str = "crates/katana-document-preview-egui";
 

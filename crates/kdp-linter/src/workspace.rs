@@ -56,6 +56,7 @@ impl WorkspaceModel {
         vec![
             root.join("crates/kdp-linter/src"),
             root.join("crates/kdp-linter/tests"),
+            root.join("crates/katana-document-viewer/src"),
             root.join("crates/katana-document-preview/src"),
             root.join("crates/katana-document-preview-egui/src"),
         ]

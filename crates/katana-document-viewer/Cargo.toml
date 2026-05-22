@@ -1,0 +1,28 @@
+[package]
+name = "katana-document-viewer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "UI-independent document artifact, render evaluation, and export foundation for KatanA."
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+cosmic-text = { workspace = true }
+flate2 = { workspace = true }
+image = { workspace = true }
+katana-diagram-renderer = { workspace = true }
+katana-markdown-model = { workspace = true }
+rquickjs = { workspace = true }
+resvg = { workspace = true }
+serde = { workspace = true }
+syntect = { workspace = true }
+thiserror = { workspace = true }
+tiny-skia = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/kdp-linter",
+    "crates/katana-document-viewer",
     "crates/katana-document-preview",
     "crates/katana-document-preview-egui",
 ]
@@ -17,8 +18,16 @@ authors = ["Hiroyuki Furuno"]
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+katana-markdown-model = "0.2.1"
+katana-diagram-renderer = "0.2.0"
+rquickjs = "0.11"
+syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
+cosmic-text = "0.19"
+flate2 = "1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+resvg = "0.47"
+tiny-skia = "0.12"
 egui = "0.34"
-floem = { git = "https://github.com/lapce/floem", branch = "main", default-features = false, features = ["vello"] }
 ignore = "0.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 katana-ast-lint = "0.5.1"

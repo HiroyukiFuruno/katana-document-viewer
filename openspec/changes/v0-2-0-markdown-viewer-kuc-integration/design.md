@@ -8,7 +8,7 @@
 
 **Goals:**
 
-- KUC / Floem上でKMM documentを表示する。
+- KUC上でKMM documentを表示する。
 - rendered nodeからKMM node idとsource rangeへ戻るhit-test metadataを提供する。
 - 目次（TOC）をKMM AST由来の見出し構造から表示する。
 - hover、選択、画像・図形操作をhost commandへ変換する。

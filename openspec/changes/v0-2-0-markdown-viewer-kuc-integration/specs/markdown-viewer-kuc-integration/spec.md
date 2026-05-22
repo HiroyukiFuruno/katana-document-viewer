@@ -1,13 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: KUC / Floem viewerでMarkdownを表示しなければならない
+### Requirement: KUC viewerでMarkdownを表示しなければならない
 
-システムは、`v0.1.0` の `DocumentSnapshot` とartifact / diagnosticsを入力にして、KUC / Floem上でMarkdown viewerを表示しなければならない（MUST）。
+システムは、`v0.1.0` の `DocumentSnapshot` とartifact / diagnosticsを入力にして、KUC上でMarkdown viewerを表示しなければならない（MUST）。
 
 #### Scenario: Markdown本文を表示する
 
 - **WHEN** ホストがKMM documentのsnapshotをviewerへ渡す
-- **THEN** KDVはKUC / Floem viewerにMarkdown本文を表示する
+- **THEN** KDVはKUC viewerにMarkdown本文を表示する
 - **THEN** KDVはKMM DTOを独自に再parseしない
 - **THEN** `egui_commonmark` vendor patchを正規経路として使わない
 

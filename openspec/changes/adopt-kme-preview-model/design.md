@@ -4,11 +4,11 @@
 
 `katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名する。
 
-KDVはMarkdown以外のdocument viewerも担うが、KMM採用ではMarkdown viewerの文書構造、hit-test、metadata表示、HTML/PDF/PNG/JPG exportが中心になる。表示はFloem/velloを前提にし、egui_commonmarkのvendor patchへ戻らない。
+KDVはMarkdown以外のdocument viewerも担うが、KMM採用ではMarkdown viewerの文書構造、hit-test、metadata表示、HTML/PDF/PNG/JPG exportが中心になる。表示はKUCを前提にし、egui_commonmarkのvendor patchへ戻らない。
 
 ## Goals
 
-- KMM文書モデルをFloemで高速表示する。
+- KMM文書モデルをKUCで表示する。
 - viewer表示とHTML/PDF/PNG/JPG exportを同じrender pipelineに寄せる。
 - KMM node idとsource rangeをhit-testに使う。
 - hover、選択、AST単位コピーの入口を提供する。
@@ -42,10 +42,10 @@ KDVは同期制御を持たない。KatanAがKMMの位置情報を使い、viewe
 
 KMMまたはeditorがunresolved targetを返した場合、kdpは該当箇所またはdocument-level noticeとして表示できる入口を持つ。
 
-### Floem Baseline
+### KUC Baseline
 
-KMM viewer modelはFloem実装を前提にする。egui実装は移行前MVPとして扱い、KMM adoptionの完了条件にしない。
+KMM viewer modelはKUC実装を前提にする。egui実装は移行前MVPとして扱い、KMM adoptionの完了条件にしない。
 
 ### Export Responsibility
 
-KDVはHTML/PDF/PNG/JPG exportを担う。KCFの既存exportは、KDV側に同等機能が入るまで維持され、KDV実装後に移譲・削除する。
+KDVはHTML/PDF/PNG/JPG exportを担う。書き出し（export）はKDV内部のartifact/export契約へ集約する。
