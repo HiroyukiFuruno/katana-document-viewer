@@ -21,9 +21,9 @@ fn export_contract_records_kmm_v0_2_owned_features_as_implemented() {
         "math-inline",
         "math-dollar-block",
         "katana-html-entity",
-        "kdr-mermaid",
-        "kdr-drawio",
-        "kdr-plantuml",
+        "krr-mermaid",
+        "krr-drawio",
+        "krr-plantuml",
     ] {
         assert!(matrix.contains_feature(feature, HtmlExportReadiness::Implemented));
     }
@@ -39,10 +39,10 @@ fn export_contract_records_kdv_owned_gaps() {
 }
 
 #[test]
-fn export_contract_records_kdr_and_backend_gaps() {
+fn export_contract_records_krr_backend_gaps() {
     let matrix = HtmlExportContractMatrix::v0_1();
 
-    assert!(matrix.contains_feature("kdr-zenuml", HtmlExportReadiness::RequiresKdrRender));
+    assert!(matrix.contains_feature("krr-zenuml", HtmlExportReadiness::RequiresKrrRender));
 }
 
 #[test]
@@ -56,6 +56,6 @@ fn v0_1_html_export_gate_rejects_remaining_gaps() {
 
     assert!(
         matrix.is_kdv_owned_complete(),
-        "v0.1.0 HTML export must not leave KDV-owned gaps while KDR intake remains pending: {gaps:?}"
+        "v0.1.0 HTML export must not leave KDV-owned gaps while KRR intake remains pending: {gaps:?}"
     );
 }

@@ -21,8 +21,8 @@ pub enum FixtureCategory {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CoverageStatus {
     KmmDto,
-    KdrDirect,
-    KdrMermaidCompatibility,
+    KrrDirect,
+    KrrMermaidCompatibility,
     KdvExportContract,
     MissingImplementation,
     ExternalBackendRequired,
@@ -58,8 +58,8 @@ pub struct EvaluationCoverageMatrix {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BackendCapability {
-    KdrDirect,
-    KdrMermaidCompatibility,
+    KrrDirect,
+    KrrMermaidCompatibility,
     KdvManifestExport,
     ExternalBackendRequired,
 }
@@ -131,10 +131,10 @@ impl BackendCapabilityMatrix {
     pub fn v0_1() -> Self {
         Self {
             capabilities: vec![
-                capability("mermaid", BackendCapability::KdrDirect, "kdr"),
-                capability("drawio", BackendCapability::KdrDirect, "kdr"),
-                capability("zenuml", BackendCapability::KdrMermaidCompatibility, "kdr"),
-                capability("plantuml", BackendCapability::KdrDirect, "kdr"),
+                capability("mermaid", BackendCapability::KrrDirect, "krr"),
+                capability("drawio", BackendCapability::KrrDirect, "krr"),
+                capability("zenuml", BackendCapability::KrrMermaidCompatibility, "krr"),
+                capability("plantuml", BackendCapability::KrrDirect, "krr"),
                 capability("html-export", BackendCapability::KdvManifestExport, "kdv"),
                 capability("pdf-export", BackendCapability::KdvManifestExport, "kdv"),
                 capability("png-export", BackendCapability::KdvManifestExport, "kdv"),

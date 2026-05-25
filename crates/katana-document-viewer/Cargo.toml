@@ -15,14 +15,15 @@ path = "src/lib.rs"
 cosmic-text = { workspace = true }
 flate2 = { workspace = true }
 image = { workspace = true }
-katana-diagram-renderer = { workspace = true }
 katana-markdown-model = { workspace = true }
-rquickjs = { workspace = true }
+katana-render-runtime = { workspace = true }
 resvg = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 syntect = { workspace = true }
 thiserror = { workspace = true }
 tiny-skia = { workspace = true }
+v8 = { workspace = true }
 
 [dev-dependencies]
 toml = { workspace = true }

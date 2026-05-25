@@ -1,11 +1,11 @@
-use crate::backend::diagram::KdrDiagramInputFactory;
+use crate::backend::diagram::KrrDiagramInputFactory;
 use crate::forge::{
     BuildGraph, BuildProfile, BuildRequest, ExportFormat, ExportOutput, ExportRequest,
     ForgeBackend, ForgeError, ForgePipeline,
 };
 use crate::{DocumentSnapshot, KdvThemeSnapshot};
-use katana_diagram_renderer::{RenderContext, RenderInput};
 use katana_markdown_model::DiagramKind;
+use katana_render_runtime::{RenderContext, RenderInput};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,7 +151,7 @@ impl<B: ForgeBackend> CliApi<B> {
         source: String,
         context: RenderContext,
     ) -> Result<CliOutput, ForgeError> {
-        let input = KdrDiagramInputFactory::create(kind, source, context);
+        let input = KrrDiagramInputFactory::create(kind, source, context);
         Ok(CliOutput::Diagram {
             input: Box::new(input),
             diagnostics: CliDiagnostics {

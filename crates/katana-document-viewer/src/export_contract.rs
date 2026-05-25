@@ -7,7 +7,7 @@ pub enum HtmlExportReadiness {
     Implemented,
     RequiresKmmDto,
     RequiresKdvImplementation,
-    RequiresKdrRender,
+    RequiresKrrRender,
     ExternalBackendRequired,
 }
 

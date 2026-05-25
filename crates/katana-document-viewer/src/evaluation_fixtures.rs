@@ -87,8 +87,8 @@ impl V01EvaluationFixtureFactory {
                 "external-failure",
                 "fixtures/rendering/external-failure.md",
                 FixtureCategory::ExternalRendering,
-                "KDR v0.2.0のPlantUML direct renderingを評価する",
-                CoverageStatus::KdrDirect,
+                "KRRのPlantUML direct renderingを評価する",
+                CoverageStatus::KrrDirect,
             ),
         ]
     }

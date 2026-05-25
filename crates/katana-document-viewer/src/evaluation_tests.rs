@@ -36,17 +36,17 @@ fn fixture_matrix_paths_exist() {
 }
 
 #[test]
-fn backend_matrix_keeps_kdr_and_kdv_export_roles_separate() {
+fn backend_matrix_keeps_krr_and_kdv_export_roles_separate() {
     let matrix = BackendCapabilityMatrix::v0_1();
 
     assert!(matrix.capabilities.iter().any(|entry| {
-        entry.feature == "mermaid" && entry.capability == BackendCapability::KdrDirect
+        entry.feature == "mermaid" && entry.capability == BackendCapability::KrrDirect
     }));
     assert!(matrix.capabilities.iter().any(|entry| {
         entry.feature == "html-export" && entry.capability == BackendCapability::KdvManifestExport
     }));
     assert!(matrix.capabilities.iter().any(|entry| {
-        entry.feature == "plantuml" && entry.capability == BackendCapability::KdrDirect
+        entry.feature == "plantuml" && entry.capability == BackendCapability::KrrDirect
     }));
     assert!(matrix.capabilities.iter().any(|entry| {
         entry.feature == "math" && entry.capability == BackendCapability::KdvManifestExport
@@ -54,7 +54,7 @@ fn backend_matrix_keeps_kdr_and_kdv_export_roles_separate() {
 }
 
 #[test]
-fn coverage_matrix_marks_kdr_v0_2_adoption_as_complete() {
+fn coverage_matrix_marks_krr_adoption_as_complete() {
     let matrix = EvaluationCoverageMatrix::v0_1();
 
     assert!(matrix.is_complete());
@@ -62,9 +62,9 @@ fn coverage_matrix_marks_kdr_v0_2_adoption_as_complete() {
     assert!(matrix.contains_feature("github-alert-note", CoverageStatus::KmmDto));
     assert!(matrix.contains_feature(
         "zenuml-mermaid-compat",
-        CoverageStatus::KdrMermaidCompatibility
+        CoverageStatus::KrrMermaidCompatibility
     ));
-    assert!(matrix.contains_feature("plantuml-render", CoverageStatus::KdrDirect));
+    assert!(matrix.contains_feature("plantuml-render", CoverageStatus::KrrDirect));
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn v0_1_release_gate_rejects_remaining_markdown_coverage_gaps() {
 
     assert!(
         matrix.is_kdv_owned_complete(),
-        "v0.1.0 must not leave KDV-owned coverage gaps while KDR intake remains pending: {:?}",
+        "v0.1.0 must not leave KDV-owned coverage gaps while KRR intake remains pending: {:?}",
         kdv_owned_incomplete_features(&matrix)
     );
 }

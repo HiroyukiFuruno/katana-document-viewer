@@ -3,18 +3,18 @@ use crate::artifact::{
     ArtifactFormat, DiagnosticSeverity,
 };
 use crate::document::{DocumentId, SourceRevision};
-use katana_diagram_renderer::{
-    DiagramKind as KdrDiagramKind, RenderConfig, RenderContext, RenderInput,
-    RenderOutput as KdrRenderOutput, RenderPolicy,
-};
 use katana_markdown_model::DiagramKind as KmmDiagramKind;
+use katana_render_runtime::{
+    DiagramKind as KrrDiagramKind, RenderConfig, RenderContext, RenderInput,
+    RenderOutput as KrrRenderOutput, RenderPolicy,
+};
 
-const KDR_BACKEND: &str = "katana-diagram-renderer";
+const KRR_BACKEND: &str = "katana-render-runtime";
 
-pub struct KdrDiagramInputFactory;
-pub struct KdrRenderOutputFactory;
+pub struct KrrDiagramInputFactory;
+pub struct KrrRenderOutputFactory;
 
-impl KdrDiagramInputFactory {
+impl KrrDiagramInputFactory {
     pub fn create(kind: KmmDiagramKind, source: String, context: RenderContext) -> RenderInput {
         RenderInput {
             kind: Self::diagram_kind(kind),
@@ -25,18 +25,18 @@ impl KdrDiagramInputFactory {
         }
     }
 
-    fn diagram_kind(kind: KmmDiagramKind) -> KdrDiagramKind {
+    fn diagram_kind(kind: KmmDiagramKind) -> KrrDiagramKind {
         match kind {
-            KmmDiagramKind::Mermaid => KdrDiagramKind::Mermaid,
-            KmmDiagramKind::DrawIo => KdrDiagramKind::Drawio,
-            KmmDiagramKind::PlantUml => KdrDiagramKind::PlantUml,
+            KmmDiagramKind::Mermaid => KrrDiagramKind::Mermaid,
+            KmmDiagramKind::DrawIo => KrrDiagramKind::Drawio,
+            KmmDiagramKind::PlantUml => KrrDiagramKind::PlantUml,
         }
     }
 }
 
-impl KdrRenderOutputFactory {
+impl KrrRenderOutputFactory {
     pub fn artifact_from_render(
-        output: &KdrRenderOutput,
+        output: &KrrRenderOutput,
         document_id: DocumentId,
         source_revision: SourceRevision,
     ) -> Artifact {
@@ -47,12 +47,12 @@ impl KdrRenderOutputFactory {
             ArtifactBytes {
                 bytes: output.svg.as_bytes().to_vec(),
             },
-            KDR_BACKEND,
+            KRR_BACKEND,
             Self::diagnostics(output),
         )
     }
 
-    fn diagnostics(output: &KdrRenderOutput) -> ArtifactDiagnostics {
+    fn diagnostics(output: &KrrRenderOutput) -> ArtifactDiagnostics {
         let warning_entries = output
             .diagnostics
             .warnings
@@ -71,7 +71,7 @@ impl KdrRenderOutputFactory {
     fn diagnostic(severity: DiagnosticSeverity, message: &str) -> ArtifactDiagnostic {
         ArtifactDiagnostic {
             severity,
-            code: "kdr-render-diagnostic".to_string(),
+            code: "krr-render-diagnostic".to_string(),
             message: message.to_string(),
         }
     }
@@ -81,46 +81,46 @@ impl KdrRenderOutputFactory {
 mod tests {
     use super::*;
     use crate::artifact::ArtifactKind;
-    use katana_diagram_renderer::{RenderDiagnostics, RendererProfile, RuntimeVersion};
+    use katana_render_runtime::{RenderDiagnostics, RendererProfile, RuntimeVersion};
 
     #[test]
-    fn maps_kmm_drawio_to_kdr_drawio() {
-        let input = KdrDiagramInputFactory::create(
+    fn maps_kmm_drawio_to_krr_drawio() {
+        let input = KrrDiagramInputFactory::create(
             KmmDiagramKind::DrawIo,
             "<mxfile />".to_string(),
             RenderContext::default(),
         );
 
-        assert_eq!(input.kind, KdrDiagramKind::Drawio);
+        assert_eq!(input.kind, KrrDiagramKind::Drawio);
     }
 
     #[test]
-    fn maps_kmm_plantuml_to_kdr_plantuml() {
-        let input = KdrDiagramInputFactory::create(
+    fn maps_kmm_plantuml_to_krr_plantuml() {
+        let input = KrrDiagramInputFactory::create(
             KmmDiagramKind::PlantUml,
             "@startuml".to_string(),
             RenderContext::default(),
         );
 
-        assert_eq!(input.kind, KdrDiagramKind::PlantUml);
+        assert_eq!(input.kind, KrrDiagramKind::PlantUml);
     }
 
     #[test]
-    fn converts_kdr_render_output_to_svg_image_artifact() {
-        let artifact = KdrRenderOutputFactory::artifact_from_render(
+    fn converts_krr_render_output_to_svg_image_artifact() {
+        let artifact = KrrRenderOutputFactory::artifact_from_render(
             &render_output(),
             DocumentId("doc".to_string()),
             SourceRevision("rev".to_string()),
         );
 
-        assert_eq!(artifact.manifest.backend, KDR_BACKEND);
+        assert_eq!(artifact.manifest.backend, KRR_BACKEND);
         assert_eq!(artifact.manifest.kind, ArtifactKind::Image);
         assert_eq!(artifact.manifest.format, ArtifactFormat::Svg);
         assert_eq!(artifact.manifest.diagnostics.entries.len(), 2);
     }
 
-    fn render_output() -> KdrRenderOutput {
-        KdrRenderOutput {
+    fn render_output() -> KrrRenderOutput {
+        KrrRenderOutput {
             svg: "<svg />".to_string(),
             width: 1.0,
             height: 1.0,

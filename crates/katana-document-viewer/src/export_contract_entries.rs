@@ -8,7 +8,7 @@ pub(crate) type EntrySeed = (
 );
 
 const IMPLEMENTED: HtmlExportReadiness = HtmlExportReadiness::Implemented;
-const KDR_RENDER: HtmlExportReadiness = HtmlExportReadiness::RequiresKdrRender;
+const KRR_RENDER: HtmlExportReadiness = HtmlExportReadiness::RequiresKrrRender;
 
 pub(crate) const ENTRIES: [EntrySeed; 31] = [
     (
@@ -162,27 +162,27 @@ pub(crate) const ENTRIES: [EntrySeed; 31] = [
         IMPLEMENTED,
     ),
     (
-        "kdr-mermaid",
+        "krr-mermaid",
         "```mermaid",
-        "KDR SVG結果をfigureへ埋め込める",
+        "KRR SVG結果をfigureへ埋め込める",
         IMPLEMENTED,
     ),
     (
-        "kdr-drawio",
+        "krr-drawio",
         "```drawio",
-        "KDR SVG結果をfigureへ埋め込める",
+        "KRR SVG結果をfigureへ埋め込める",
         IMPLEMENTED,
     ),
     (
-        "kdr-zenuml",
+        "krr-zenuml",
         "zenuml",
         "Mermaid互換入力として接続が必要",
-        KDR_RENDER,
+        KRR_RENDER,
     ),
     (
-        "kdr-plantuml",
+        "krr-plantuml",
         "```plantuml",
-        "KDR v0.2.0のPlantUML rendererへ接続できる",
+        "KRRのPlantUML rendererへ接続できる",
         IMPLEMENTED,
     ),
     (

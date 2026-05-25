@@ -60,7 +60,7 @@ fn required_arg(
     args.next().ok_or_else(|| invalid_input(message))
 }
 
-pub(crate) fn invalid_input(message: &'static str) -> std::io::Error {
+fn invalid_input(message: &'static str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
 }
 

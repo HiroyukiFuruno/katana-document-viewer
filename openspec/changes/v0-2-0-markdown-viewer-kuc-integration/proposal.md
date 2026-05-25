@@ -11,7 +11,7 @@
 - KMM node id、source range、rendered rect identityをhit-test metadataへ接続する。
 - 目次（TOC）はKMM AST由来の見出し構造を正本にし、本文再parseで作らない。
 - hover highlight、選択、画像・図形操作を `ViewerInteractionConfig` で切り替える。
-- Mermaid、Draw.io、ZenUML、PlantUML、mathは、`v0.1.0` のKDR委譲結果またはraw保持diagnosticsを画面へ表示する。
+- Mermaid、Draw.io、ZenUML、PlantUML、mathは、`v0.1.0` のKRR委譲結果またはraw保持diagnosticsを画面へ表示する。
 - unresolved metadataは本文を消さず、警告表示、代表メッセージ、詳細確認へ接続する。
 
 ## Capabilities

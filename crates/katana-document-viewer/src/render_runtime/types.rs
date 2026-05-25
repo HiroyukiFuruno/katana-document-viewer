@@ -1,4 +1,4 @@
-pub(crate) const KRR_STUB_RUNTIME_ID: &str = "katana-render-runtime-stub";
+pub(crate) const KRR_RENDER_RUNTIME_ID: &str = "katana-render-runtime";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum KrrMathMode {
@@ -11,11 +11,14 @@ pub(crate) enum KrrRenderKind {
     MathTex,
 }
 
+use katana_render_runtime::RenderThemeSnapshot;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct KrrRenderRequest {
     pub(crate) kind: KrrRenderKind,
     pub(crate) source: String,
     pub(crate) math_mode: KrrMathMode,
+    pub(crate) theme: Option<RenderThemeSnapshot>,
 }
 
 impl KrrRenderRequest {
@@ -24,7 +27,13 @@ impl KrrRenderRequest {
             kind: KrrRenderKind::MathTex,
             source: source.to_string(),
             math_mode,
+            theme: None,
         }
+    }
+
+    pub(crate) fn with_theme(mut self, theme: Option<RenderThemeSnapshot>) -> Self {
+        self.theme = theme;
+        self
     }
 }
 

@@ -1,5 +1,8 @@
-use katana_diagram_renderer::{RenderThemeMode, RenderThemeSnapshot};
+use katana_render_runtime::{RenderThemeMode, RenderThemeSnapshot};
 use serde::{Deserialize, Serialize};
+
+#[path = "theme_presets.rs"]
+mod theme_presets;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KdvThemeMode {
@@ -44,75 +47,11 @@ pub struct KdvThemeSnapshot {
 
 impl KdvThemeSnapshot {
     pub fn katana_light() -> Self {
-        Self {
-            name: "katana-light".to_string(),
-            mode: KdvThemeMode::Light,
-            background: "#ffffff".to_string(),
-            text: "#24292f".to_string(),
-            table_border: "#d0d7de".to_string(),
-            table_header_background: "#eaf5ff".to_string(),
-            table_even_row_background: "#f7fbff".to_string(),
-            quote_border: "#d0d7de".to_string(),
-            quote_text: "#57606a".to_string(),
-            alert_background: "#f6f8fa".to_string(),
-            code_background: "#f6f8fa".to_string(),
-            code_border: "#d0d7de".to_string(),
-            task_active_background: "#add6ff".to_string(),
-            task_empty_background: "#f3f3f3".to_string(),
-            task_done_accent: "#0078d4".to_string(),
-            task_in_progress_accent: "#0078d4".to_string(),
-            footnote_border: "#d0d7de".to_string(),
-            footnote_text: "#57606a".to_string(),
-            alert_note: "#0969da".to_string(),
-            alert_tip: "#1a7f37".to_string(),
-            alert_important: "#8250df".to_string(),
-            alert_warning: "#d1242f".to_string(),
-            alert_caution: "#bf8700".to_string(),
-            diagram_background: "transparent".to_string(),
-            diagram_text: "#333333".to_string(),
-            diagram_fill: "#fff2cc".to_string(),
-            diagram_stroke: "#d6b656".to_string(),
-            diagram_arrow: "#555555".to_string(),
-            mermaid_theme: "default".to_string(),
-            syntax_theme_dark: "base16-ocean.dark".to_string(),
-            syntax_theme_light: "InspiredGitHub".to_string(),
-        }
+        theme_presets::katana_light()
     }
 
     pub fn katana_dark() -> Self {
-        Self {
-            name: "katana-dark".to_string(),
-            mode: KdvThemeMode::Dark,
-            background: "#0d1117".to_string(),
-            text: "#f0f6fc".to_string(),
-            table_border: "#30363d".to_string(),
-            table_header_background: "#161b22".to_string(),
-            table_even_row_background: "#111820".to_string(),
-            quote_border: "#484f58".to_string(),
-            quote_text: "#8b949e".to_string(),
-            alert_background: "#161b22".to_string(),
-            code_background: "#161b22".to_string(),
-            code_border: "#30363d".to_string(),
-            task_active_background: "#264f78".to_string(),
-            task_empty_background: "#252526".to_string(),
-            task_done_accent: "#569cd6".to_string(),
-            task_in_progress_accent: "#569cd6".to_string(),
-            footnote_border: "#30363d".to_string(),
-            footnote_text: "#8b949e".to_string(),
-            alert_note: "#58a6ff".to_string(),
-            alert_tip: "#3fb950".to_string(),
-            alert_important: "#a371f7".to_string(),
-            alert_warning: "#f85149".to_string(),
-            alert_caution: "#d29922".to_string(),
-            diagram_background: "transparent".to_string(),
-            diagram_text: "#f0f6fc".to_string(),
-            diagram_fill: "#1f2937".to_string(),
-            diagram_stroke: "#8b949e".to_string(),
-            diagram_arrow: "#8b949e".to_string(),
-            mermaid_theme: "dark".to_string(),
-            syntax_theme_dark: "base16-ocean.dark".to_string(),
-            syntax_theme_light: "InspiredGitHub".to_string(),
-        }
+        theme_presets::katana_dark()
     }
 
     pub(crate) fn diagram_theme_label(&self) -> &'static str {
@@ -122,7 +61,7 @@ impl KdvThemeSnapshot {
         }
     }
 
-    pub(crate) fn kdr_theme(&self) -> RenderThemeSnapshot {
+    pub(crate) fn krr_theme(&self) -> RenderThemeSnapshot {
         RenderThemeSnapshot {
             mode: match self.mode {
                 KdvThemeMode::Light => RenderThemeMode::Light,
@@ -142,5 +81,17 @@ impl KdvThemeSnapshot {
             syntax_theme_light: self.syntax_theme_light.clone(),
             preview_text: self.diagram_text.clone(),
         }
+    }
+
+    pub(crate) fn krr_math_theme(&self) -> RenderThemeSnapshot {
+        let text = self.text.clone();
+        let mut snapshot = self.krr_theme();
+        snapshot.text = text.clone();
+        snapshot.fill = text.clone();
+        snapshot.stroke = text.clone();
+        snapshot.drawio_label_color = text.clone();
+        snapshot.plantuml_note_text = text.clone();
+        snapshot.preview_text = text;
+        snapshot
     }
 }

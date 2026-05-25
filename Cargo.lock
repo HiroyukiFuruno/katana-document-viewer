@@ -39,12 +39,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "allocator-api2"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
-
-[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -664,8 +658,6 @@ version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 dependencies = [
- "allocator-api2",
- "equivalent",
  "foldhash",
 ]
 
@@ -955,27 +947,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "katana-diagram-renderer"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "307b53467e62aacb3184a94a4814218de6b82432ee37323412068ab17ded9166"
-dependencies = [
- "base64",
- "include_dir",
- "jni",
- "resvg",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tiny-skia",
- "tracing",
- "ureq",
- "v8",
- "xmltree",
-]
-
-[[package]]
 name = "katana-document-preview"
 version = "0.1.0"
 dependencies = [
@@ -999,15 +970,16 @@ dependencies = [
  "cosmic-text",
  "flate2",
  "image",
- "katana-diagram-renderer",
  "katana-markdown-model",
+ "katana-render-runtime",
  "resvg",
- "rquickjs",
  "serde",
+ "serde_json",
  "syntect",
  "thiserror",
  "tiny-skia",
  "toml",
+ "v8",
 ]
 
 [[package]]
@@ -1020,6 +992,27 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+]
+
+[[package]]
+name = "katana-render-runtime"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2850dfdda59cac52dc48f25b64a1b2fb8c6c7b3aa737ece032e0daf533c9b65"
+dependencies = [
+ "base64",
+ "include_dir",
+ "jni",
+ "resvg",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tiny-skia",
+ "tracing",
+ "ureq",
+ "v8",
+ "xmltree",
 ]
 
 [[package]]
@@ -1407,15 +1400,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
-name = "relative-path"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bca40a312222d8ba74837cb474edef44b37f561da5f773981007a10bbaa992b0"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "resb"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1478,35 +1462,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "rquickjs"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c50dc6d6c587c339edb4769cf705867497a2baf0eca8b4645fa6ecd22f02c77a"
-dependencies = [
- "rquickjs-core",
-]
-
-[[package]]
-name = "rquickjs-core"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8bf7840285c321c3ab20e752a9afb95548c75cd7f4632a0627cea3507e310c1"
-dependencies = [
- "hashbrown 0.16.1",
- "relative-path",
- "rquickjs-sys",
-]
-
-[[package]]
-name = "rquickjs-sys"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27344601ef27460e82d6a4e1ecb9e7e99f518122095f3c51296da8e9be2b9d83"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -2227,9 +2182,9 @@ checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 
 [[package]]
 name = "v8"
-version = "147.4.0"
+version = "149.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2df8fffd507fb18ed000673a83d937f58e60fb07f3306b2274284125b15137cd"
+checksum = "55897294cf631f99d5ff57c6a0611648861645ed7c8f251579161e0768812840"
 dependencies = [
  "bindgen",
  "bitflags",

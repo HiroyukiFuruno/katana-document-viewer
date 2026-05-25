@@ -1,9 +1,8 @@
-mod mathjax_svg;
-mod stub;
+mod adapter;
 mod types;
 
-pub(crate) use stub::StubKrrRenderRuntime;
-pub(crate) use types::{KRR_STUB_RUNTIME_ID, KrrMathMode, KrrRenderOutput, KrrRenderPayload};
+pub(crate) use adapter::KrrRenderRuntimeAdapter;
+pub(crate) use types::{KRR_RENDER_RUNTIME_ID, KrrMathMode, KrrRenderOutput, KrrRenderPayload};
 #[cfg(test)]
 pub(crate) use types::{KrrRenderRequest, KrrRenderRuntime};
 

@@ -146,12 +146,19 @@ fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
 }
 
 fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
+    const PNG_DIMENSION_CHUNK_END: usize = 24;
+    const PNG_HEIGHT_END: usize = 24;
+    const PNG_HEIGHT_START: usize = 20;
+    const PNG_SIGNATURE_LEN: usize = 8;
+    const PNG_WIDTH_END: usize = 20;
+    const PNG_WIDTH_START: usize = 16;
+
     let signature = b"\x89PNG\r\n\x1a\n";
-    if bytes.len() < 24 || &bytes[..8] != signature {
+    if bytes.len() < PNG_DIMENSION_CHUNK_END || &bytes[..PNG_SIGNATURE_LEN] != signature {
         return None;
     }
-    let width = u32::from_be_bytes(bytes[16..20].try_into().ok()?);
-    let height = u32::from_be_bytes(bytes[20..24].try_into().ok()?);
+    let width = u32::from_be_bytes(bytes[PNG_WIDTH_START..PNG_WIDTH_END].try_into().ok()?);
+    let height = u32::from_be_bytes(bytes[PNG_HEIGHT_START..PNG_HEIGHT_END].try_into().ok()?);
     Some((width, height))
 }
 

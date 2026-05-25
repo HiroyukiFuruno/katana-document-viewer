@@ -8,8 +8,8 @@ const ALERT: FixtureCategory = FixtureCategory::GitHubAlert;
 const KATANA: FixtureCategory = FixtureCategory::KatanaCompatibility;
 const EXTERNAL: FixtureCategory = FixtureCategory::ExternalRendering;
 const DTO: CoverageStatus = CoverageStatus::KmmDto;
-const KDR: CoverageStatus = CoverageStatus::KdrDirect;
-const ZENUML: CoverageStatus = CoverageStatus::KdrMermaidCompatibility;
+const KRR: CoverageStatus = CoverageStatus::KrrDirect;
+const ZENUML: CoverageStatus = CoverageStatus::KrrMermaidCompatibility;
 
 type FeatureSeed = (&'static str, &'static str, FixtureCategory, CoverageStatus);
 
@@ -78,15 +78,15 @@ const FEATURES: [FeatureSeed; FEATURE_COUNT] = [
     ("katana-html-entity", "katana-compat", KATANA, DTO),
     ("katana-drawio-file-ref", "katana-compat", KATANA, DTO),
     ("katana-xml-file-ref", "katana-compat", KATANA, DTO),
-    ("mermaid-render", "external-success", EXTERNAL, KDR),
-    ("drawio-render", "external-success", EXTERNAL, KDR),
+    ("mermaid-render", "external-success", EXTERNAL, KRR),
+    ("drawio-render", "external-success", EXTERNAL, KRR),
     (
         "zenuml-mermaid-compat",
         "external-success",
         EXTERNAL,
         ZENUML,
     ),
-    ("plantuml-render", "external-failure", EXTERNAL, KDR),
+    ("plantuml-render", "external-failure", EXTERNAL, KRR),
 ];
 
 pub(crate) struct V01EvaluationCoverageFactory;
@@ -114,7 +114,7 @@ impl V01EvaluationCoverageFactory {
             FixtureCategory::Math => "数式とGitHub alertを評価対象に含める",
             FixtureCategory::GitHubAlert => "数式とGitHub alertを評価対象に含める",
             FixtureCategory::KatanaCompatibility => "KatanA独自解釈を評価対象に含める",
-            FixtureCategory::ExternalRendering => "KDR direct renderingの対象を限定する",
+            FixtureCategory::ExternalRendering => "KRR direct renderingの対象を限定する",
         }
     }
 }

@@ -3,6 +3,7 @@ use katana_document_viewer::{
     DocumentSnapshotFactory, DocumentSource, ExportFormat, ExportRequest, ForgePipeline,
     KdvThemeSnapshot, RenderedDiagram, SourceKind, SourceRevision, SourceUri,
 };
+use katana_document_viewer::{ExportQualityArtifacts, ExportQualityGate};
 use katana_markdown_model::{DiagramKind, KatanaMarkdownModel, MarkdownInput};
 use std::error::Error;
 use std::fs;
@@ -10,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
-fn e2e_export_writes_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Result<(), Box<dyn Error>>
+fn e2e_export_scores_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Result<(), Box<dyn Error>>
 {
     let pipeline = ForgePipeline::new(DiagramRenderingBackend::new(StaticDiagramEngine));
     let theme = KdvThemeSnapshot::katana_light();
@@ -27,10 +28,21 @@ fn e2e_export_writes_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Resul
     let png = write_export(&pipeline, &graph, &theme, &exports_dir, ExportFormat::Png)?;
     let jpeg = write_export(&pipeline, &graph, &theme, &exports_dir, ExportFormat::Jpeg)?;
 
-    assert_evaluated_html(&String::from_utf8(fs::read(html)?)?);
-    assert!(fs::read(pdf)?.starts_with(b"%PDF-1.4"));
-    assert!(fs::read(png)?.starts_with(b"\x89PNG\r\n\x1a\n"));
-    assert!(fs::read(jpeg)?.starts_with(b"\xff\xd8\xff"));
+    let html_bytes = fs::read(&html)?;
+    assert_evaluated_html(std::str::from_utf8(&html_bytes)?);
+    let pdf_bytes = fs::read(pdf)?;
+    let png_bytes = fs::read(png)?;
+    let jpeg_bytes = fs::read(jpeg)?;
+    let quality = ExportQualityGate::evaluate(&ExportQualityArtifacts {
+        html: &html_bytes,
+        pdf: &pdf_bytes,
+        png: &png_bytes,
+        jpeg: &jpeg_bytes,
+    });
+    assert!(
+        quality.is_pass(),
+        "export quality score failed: {quality:#?}"
+    );
     assert_eq!(sidecar_count(&exports_dir)?, 0);
     Ok(())
 }
@@ -72,7 +84,7 @@ fn assert_evaluated_html(html: &str) {
         "<strong>太字</strong>",
         r#"data-kdv-blockquote="alert""#,
         r#"data-kdv-task-state="in-progress""#,
-        r#"data-kdv-render-runtime="katana-render-runtime-stub""#,
+        r#"data-kdv-render-runtime="katana-render-runtime""#,
         r#"data-kdv-diagram="mermaid""#,
     ] {
         assert!(
@@ -125,6 +137,8 @@ fn contract_markdown() -> String {
         "# 契約",
         "",
         "**太字**",
+        "",
+        "[リンク](https://example.com)",
         "",
         "> [!WARNING]",
         "> 危険です。",

@@ -1,7 +1,7 @@
 use katana_document_viewer::{
     BuildProfile, BuildRequest, DiagramRenderingBackend, DocumentSnapshotFactory, DocumentSource,
     EvaluationCoverageMatrix, ExportFormat, ExportOutput, ExportRequest, ForgePipeline,
-    KdrDiagramRenderEngine, KdvThemeSnapshot, SourceKind, SourceRevision, SourceUri,
+    KdvThemeSnapshot, KrrDiagramRenderEngine, SourceKind, SourceRevision, SourceUri,
 };
 use katana_markdown_model::{KatanaMarkdownModel, MarkdownInput};
 use serde::Serialize;
@@ -11,7 +11,7 @@ use std::path::Path;
 
 #[path = "export_debug/args.rs"]
 mod args;
-use args::{CommandArgs, CommandArgsParser, EXPORT_FORMATS, invalid_input};
+use args::{CommandArgs, CommandArgsParser, EXPORT_FORMATS};
 
 #[derive(Debug, Serialize)]
 struct ExportDebugSummary {
@@ -49,7 +49,7 @@ impl ExportDebugCommand {
             profile: BuildProfile::markdown_export(),
             theme: args.theme.clone(),
         };
-        let pipeline = ForgePipeline::new(DiagramRenderingBackend::new(KdrDiagramRenderEngine));
+        let pipeline = ForgePipeline::new(DiagramRenderingBackend::new(KrrDiagramRenderEngine));
         let graph = pipeline.build(&request)?;
         let coverage = EvaluationCoverageMatrix::v0_1();
         prepare_output_dir(&args.output_dir)?;
@@ -82,7 +82,7 @@ impl ExportDebugCommand {
 
     fn write_exports(
         output_dir: &Path,
-        pipeline: &ForgePipeline<DiagramRenderingBackend<KdrDiagramRenderEngine>>,
+        pipeline: &ForgePipeline<DiagramRenderingBackend<KrrDiagramRenderEngine>>,
         graph: &katana_document_viewer::BuildGraph,
         theme: &KdvThemeSnapshot,
     ) -> Result<Vec<ExportDebugFile>, Box<dyn Error>> {
@@ -138,6 +138,10 @@ fn format_label(format: ExportFormat) -> &'static str {
 fn write_toml<T: Serialize>(path: &Path, value: &T) -> Result<(), Box<dyn Error>> {
     fs::write(path, toml::to_string_pretty(value)?)?;
     Ok(())
+}
+
+fn invalid_input(message: &'static str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
 }
 
 fn prepare_output_dir(output_dir: &Path) -> Result<(), Box<dyn Error>> {

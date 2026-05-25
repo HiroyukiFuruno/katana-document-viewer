@@ -36,7 +36,7 @@ fn export_entry_returns_artifact() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn diagram_entry_returns_kdr_input() -> Result<(), Box<dyn std::error::Error>> {
+fn diagram_entry_returns_krr_input() -> Result<(), Box<dyn std::error::Error>> {
     let api = CliApi::new(ManifestOnlyBackend);
     let output = api.handle(CliRequest::Diagram {
         kind: DiagramKind::Mermaid,
