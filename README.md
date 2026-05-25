@@ -23,14 +23,23 @@ Two-crate structure separates interface from implementation:
 
 ```
 katana-document-viewer         ← neutral trait + DTO (no egui, no framework)
-katana-document-viewer-floem   ← Floem viewer/export implementation
+katana-document-viewer-kuc     ← katana-ui-core based viewer/export implementation
 ```
 
-KatanA depends on the neutral interface and the Floem implementation. KDV does
+KatanA depends on the neutral interface and the KUC implementation. KDV does
 not own editor-viewer synchronization control; KatanA commands viewer or editor.
 
 HTML/PDF/PNG/JPG export belongs to KDV so viewer display and export share the
-same render pipeline. Diagram and math rendering is delegated to KCF.
+same render pipeline. Diagram and math rendering are delegated through KRR
+(katana-render-runtime). Unsupported diagram or Markdown semantics stay in KDV
+as diagnostics and raw source until KMM or KRR exposes the needed public
+contract.
+
+`v0.1.0` starts with the UI-independent artifact/forge/export foundation. It
+depends on KMM for Markdown structure and KRR for direct render runtime
+boundaries. KDV does not fill KMM parser gaps by reparsing Markdown; unsupported
+or not-yet-structured Markdown semantics are carried as diagnostics and raw
+source until KMM/KRR provide the needed public contract.
 
 ## Status
 

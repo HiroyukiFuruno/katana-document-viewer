@@ -1,12 +1,12 @@
 ## Why
 
-`v0.1.0` のrender/export foundation、`v0.2.0` のMarkdown viewer、`v0.3.0` のPDF改ページ書き出し（export）の後に、Markdown以外のドキュメント形式へ対応する。PDF・CSV・Office（DOCX / XLSX / PPTX）・画像拡張（SVG / WebP 等）のviewerを `katana-document-viewer-floem` に実装し、`ViewerSource` variant として追加する。
+`v0.1.0` のrender/export foundation、`v0.2.0` のMarkdown viewer、`v0.3.0` のPDF改ページ書き出し（export）の後に、Markdown以外のドキュメント形式へ対応する。PDF・CSV・Office（DOCX / XLSX / PPTX）・画像拡張（SVG / WebP 等）のviewerを `katana-document-viewer-kuc` に実装し、`ViewerSource` variant として追加する。
 
 ## What Changes
 
 ### PDF viewer
 
-- Rust ネイティブの PDF ライブラリ（`pdf` / `pdf-extract` 等）でページ画像を生成しFloem viewerで表示する
+- Rust ネイティブの PDF ライブラリ（`pdf` / `pdf-extract` 等）でページ画像を生成しKUC viewerで表示する
 - ページナビゲーション（前後・ページ番号入力）を提供する
 - テキストレイヤー抽出（コピー可能なテキスト選択）は将来対応として扱う
 
@@ -36,5 +36,5 @@
 
 ## Impact
 
-- `crates/katana-document-viewer-floem/` — 各フォーマットのviewer実装追加
+- `crates/katana-document-viewer-kuc/` — 各フォーマットのviewer実装追加
 - `crates/katana-document-viewer/src/` — `ViewerSource` enum に variant 追加

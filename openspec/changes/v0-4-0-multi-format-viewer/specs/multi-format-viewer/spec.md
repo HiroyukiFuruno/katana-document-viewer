@@ -2,7 +2,7 @@
 
 ### Requirement: ViewerSource を拡張して PDF / CSV / Office / SVG viewerを提供しなければならない
 
-システムは、`ViewerSource` enum に `Pdf` / `Csv` / `Office`（DOCX / XLSX / PPTX）/ `Svg` の variant を追加し、各フォーマットのviewerを `katana-document-viewer-floem` で提供しなければならない（MUST）。
+システムは、`ViewerSource` enum に `Pdf` / `Csv` / `Office`（DOCX / XLSX / PPTX）/ `Svg` の variant を追加し、各フォーマットのviewerを `katana-document-viewer-kuc` で提供しなければならない（MUST）。
 
 #### Scenario: PDF を preview する
 

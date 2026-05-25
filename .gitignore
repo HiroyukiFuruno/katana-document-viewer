@@ -1,5 +1,5 @@
 /target
-/.DS_Store
+.DS_Store
 skill.md
 CLAUDE.md
 AGENTS.md
@@ -31,6 +31,7 @@ opsx*
 !.github/prompts/opsx-*.prompt.md
 !.github/skills/openspec-*/
 !.github/skills/openspec-*/SKILL.md
+.DS_Store
 
 # Editors
 .idea/

@@ -16,10 +16,10 @@
 
 ---
 
-## 1. KUC / Floem viewer crate を追加する
+## 1. KUC viewer crate を追加する
 
-- [ ] 1.1 `crates/katana-document-viewer-floem` を追加する
-- [ ] 1.2 `floem = { workspace = true }` だけでFloemへ依存する
+- [ ] 1.1 `crates/katana-document-viewer-kuc` を追加する
+- [ ] 1.2 `katana-ui-core = { workspace = true }` だけでKUCへ依存する
 - [ ] 1.3 KUC theme / font / state契約をviewer configへ接続する
 - [ ] 1.4 `egui_commonmark` vendor patchを正規経路にしないことを検査する
 

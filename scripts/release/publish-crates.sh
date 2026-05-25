@@ -35,6 +35,7 @@ wait_for_crate() {
 }
 
 require_token CARGO_REGISTRY_TOKEN
+publish_if_needed katana-document-viewer "${CARGO_REGISTRY_TOKEN}"
 publish_if_needed katana-document-preview "${CARGO_REGISTRY_TOKEN}"
 wait_for_crate katana-document-preview
 publish_if_needed katana-document-preview-egui "${CARGO_REGISTRY_TOKEN}"
