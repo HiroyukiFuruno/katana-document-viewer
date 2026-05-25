@@ -38,6 +38,7 @@ impl SurfaceTestSupport {
         path: &str,
         markdown: String,
     ) -> Result<BuildGraph, Box<dyn std::error::Error>> {
+        let markdown = markdown.replace("\r\n", "\n").replace('\r', "\n");
         let source = DocumentSource {
             uri: SourceUri(format!("file://{path}")),
             kind: SourceKind::Markdown,

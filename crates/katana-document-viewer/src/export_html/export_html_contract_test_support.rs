@@ -83,16 +83,15 @@ impl HtmlContractTestSupport {
         markdown: &str,
         theme: crate::KdvThemeSnapshot,
     ) -> Result<crate::BuildGraph, Box<dyn std::error::Error>> {
+        let markdown = markdown.replace("\r\n", "\n").replace('\r', "\n");
         let source = DocumentSource {
             uri: SourceUri("file:///red-contract.md".to_string()),
             kind: SourceKind::Markdown,
             revision: SourceRevision("red-contract".to_string()),
-            content: markdown.to_string(),
+            content: markdown.clone(),
         };
-        let document = KatanaMarkdownModel::parse(MarkdownInput::from_content(
-            "red-contract.md",
-            markdown.to_string(),
-        ))?;
+        let document =
+            KatanaMarkdownModel::parse(MarkdownInput::from_content("red-contract.md", markdown))?;
         let snapshot = DocumentSnapshotFactory::from_kmm(source, document);
         let request = BuildRequest {
             snapshot,

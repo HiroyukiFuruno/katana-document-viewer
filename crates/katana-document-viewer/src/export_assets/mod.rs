@@ -5,6 +5,12 @@ pub(crate) struct ExportAssetResolver;
 
 impl ExportAssetResolver {
     pub(crate) fn resolve_src(source_uri: &SourceUri, src: &str) -> String {
+        if Self::is_non_file_reference(src) {
+            return src.to_string();
+        }
+        if let Some(url) = Self::resolve_file_url(source_uri, src) {
+            return url;
+        }
         let Some(path) = Self::resolve_file_path(source_uri, src) else {
             return src.to_string();
         };
@@ -63,8 +69,28 @@ impl ExportAssetResolver {
             || src.starts_with("file://")
     }
 
+    fn resolve_file_url(source_uri: &SourceUri, src: &str) -> Option<String> {
+        let path = Path::new(src);
+        if path.is_absolute() {
+            return Some(Self::file_url(path));
+        }
+        let source_path = source_uri.0.strip_prefix("file://")?;
+        let source_path = source_path.replace('\\', "/");
+        let (base_dir, _) = source_path.rsplit_once('/')?;
+        let src = src.replace('\\', "/");
+        let src = src.trim_start_matches("./");
+        if base_dir.is_empty() {
+            return Some(format!("file:///{src}"));
+        }
+        Some(format!("file://{}/{}", base_dir.trim_end_matches('/'), src))
+    }
+
     fn file_url(path: &Path) -> String {
-        format!("file://{}", path.display())
+        let path = path.to_string_lossy().replace('\\', "/");
+        if path.starts_with('/') {
+            return format!("file://{path}");
+        }
+        format!("file:///{path}")
     }
 }
 
@@ -77,6 +103,15 @@ mod tests {
         let source_uri = SourceUri("file:///workspace/docs/README.md".to_string());
 
         let resolved = ExportAssetResolver::resolve_src(&source_uri, "assets/icon.png");
+
+        assert_eq!(resolved, "file:///workspace/docs/assets/icon.png");
+    }
+
+    #[test]
+    fn resolves_windows_style_relative_image_as_file_url() {
+        let source_uri = SourceUri("file:///workspace/docs/README.md".to_string());
+
+        let resolved = ExportAssetResolver::resolve_src(&source_uri, r"assets\icon.png");
 
         assert_eq!(resolved, "file:///workspace/docs/assets/icon.png");
     }

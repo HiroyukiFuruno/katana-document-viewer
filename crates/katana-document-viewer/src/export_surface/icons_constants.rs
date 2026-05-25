@@ -1,6 +1,6 @@
 use image::Rgba;
 
-pub(super) const ALERT_TITLE_TEXT_TOP_MARGIN: u32 = 2;
+pub(super) const ALERT_TITLE_TEXT_TOP_MARGIN: u32 = 0;
 pub(super) const CHECK_MARK_DOT_SIZE: u32 = 2;
 pub(super) const CHECK_MARK_DOT_COUNT: u32 = 4;
 pub(super) const CHECK_MARK_DOT_OFFSET1: u32 = 4;
