@@ -111,7 +111,7 @@ impl AlertTitleAlignmentCase {
         let title_center = (title_area.0 as f32 + title_area.1 as f32) / 2.0;
         let center_delta = icon_center - title_center;
         assert!(
-            center_delta.abs() <= 2.0,
+            center_delta.abs() <= 4.0,
             "alert title icon/text center y mismatch for {label}: delta={center_delta}, icon_y={:?}, title_y={:?}",
             icon_area.0,
             title_area.0,

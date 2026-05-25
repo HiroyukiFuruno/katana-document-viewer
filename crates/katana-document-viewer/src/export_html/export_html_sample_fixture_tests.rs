@@ -14,7 +14,10 @@ fn sample_ja_fixture_is_exported_from_repo_local_copy() -> Result<(), Box<dyn st
 #[test]
 fn sample_ja_fixture_with_crlf_is_exported_from_repo_local_copy()
 -> Result<(), Box<dyn std::error::Error>> {
-    let markdown = SAMPLE_JA_MD.replace('\n', "\r\n");
+    let markdown = SAMPLE_JA_MD
+        .replace("\r\n", "\n")
+        .replace('\r', "\n")
+        .replace('\n', "\r\n");
     let html = HtmlContractTestSupport::export_html(&markdown)?;
     assert_sample_fixture_contains_inline_contracts(&html);
     assert_sample_fixture_contains_export_contracts(&html);
