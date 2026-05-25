@@ -2,7 +2,7 @@
 set -euo pipefail
 
 version="$(bash "$(dirname "$0")/verify-version.sh" "${1:-}" | awk -F= '$1 == "version_bare" { print $2 }')"
-packages=(katana-document-viewer katana-document-preview katana-document-preview-egui)
+packages=(katana-document-preview katana-document-preview-egui)
 
 for package in "${packages[@]}"; do
   if cargo info "${package}@${version}" --registry crates-io >/dev/null 2>&1; then

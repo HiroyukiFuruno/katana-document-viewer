@@ -31,7 +31,8 @@ opsx*
 !.github/prompts/opsx-*.prompt.md
 !.github/skills/openspec-*/
 !.github/skills/openspec-*/SKILL.md
-.DS_Store
+# openspec の再 include 後でも macOS メタデータは常に除外する。
+**/.DS_Store
 
 # Editors
 .idea/

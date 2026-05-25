@@ -62,10 +62,8 @@ release-target-check:
 release-verify: check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
     bash scripts/release/verify-internal-dependencies.sh "{{VERSION}}"
-    {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} package -p katana-document-preview --locked --allow-dirty
     {{CARGO}} package -p katana-document-preview-egui --locked --allow-dirty --list >/dev/null
-    {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty
     {{CARGO}} publish -p katana-document-preview --dry-run --locked --allow-dirty
 
 # Verify release branch readiness before merging
