@@ -16,11 +16,22 @@ yank_if_exists() {
     echo "${package} ${version} is not published; skipping."
     return
   fi
-  cargo yank "${package}" --version "${version}" --registry crates-io --token "${CARGO_REGISTRY_TOKEN}"
+  if cargo yank "${package}" --version "${version}" --registry crates-io --token "${CARGO_REGISTRY_TOKEN}"; then
+    echo "${package} ${version} yanked."
+    return
+  fi
+  echo "failed to yank ${package} ${version}" >&2
+  failures=$((failures + 1))
 }
 
 require_token
-yank_if_exists katana-document-viewer 0.1.0
-yank_if_exists katana-document-viewer-cli 0.1.0
+failures=0
 yank_if_exists katana-document-preview 0.1.1
 yank_if_exists katana-document-preview-egui 0.1.1
+yank_if_exists katana-document-viewer 0.1.0
+yank_if_exists katana-document-viewer-cli 0.1.0
+
+if [[ "${failures}" != "0" ]]; then
+  echo "${failures} yank operation(s) failed." >&2
+  exit 1
+fi
