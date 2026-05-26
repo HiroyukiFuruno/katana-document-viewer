@@ -4,7 +4,7 @@
 
 `release/vX.Y.Z` ブランチから `master` へ取り込み依頼（Pull Request）を作る。
 その取り込み依頼（Pull Request）では通常の品質ゲート（quality gate）とリリース前検査を必須にする。
-取り込み（merge）後は自動実行基盤（GitHub Actions）がタグ（tag）、GitHub リリース（GitHub Release）、crates.io 公開を実行する。
+取り込み（merge）後は自動実行基盤（GitHub Actions）がタグ（tag）とGitHub リリース（GitHub Release）を作成する。
 
 ## 必須検査
 
@@ -39,14 +39,16 @@ crate 名の整理が完了するまで、自動リリースはGitHub Releaseま
 3. GitHub リリース（GitHub Release）作成
 4. crates.io 公開は実行しない
 
-## 必要な秘匿値
+## crates.io の取り消し
 
-自動実行基盤（GitHub Actions）には次の秘匿値（secret）が必要。
-値は crates.io の API トークン（API token）を使う。
+誤って crates.io に公開した版は、GitHub Actions ではなくローカルの `cargo yank` で取り消す。
+この操作は一度きりの管理作業であり、workflow 化しない。
 
 ```bash
 cd /Users/hiroyuki_furuno/works/private/katana-document-viewer
-gh secret set CARGO_REGISTRY_TOKEN
+cargo yank katana-document-preview --version 0.1.1 --registry crates-io
+cargo yank katana-document-preview-egui --version 0.1.1 --registry crates-io
+cargo yank katana-document-viewer --version 0.1.0 --registry crates-io
 ```
 
-トークン（token）は秘匿値として扱い、リポジトリ（repository）に保存しない。
+`katana-document-viewer-cli` は未公開なら取り消し対象にしない。
