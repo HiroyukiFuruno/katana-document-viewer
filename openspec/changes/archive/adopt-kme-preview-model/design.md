@@ -1,6 +1,6 @@
 ## Context
 
-> Status: このchangeは初期構想の整理用としてarchive済み。実装順序は `v0-1-0-render-export-foundation`、`v0-1-1-complete-theme-contract`、`v0-1-2-cli-theme-json-entry`、`v0-2-0-markdown-viewer-kuc-integration`、`v0-3-0-pdf-export-pagination`、`v0-4-0-multi-format-viewer` を正とする。
+> Status: このchangeは初期構想の整理用としてarchive済み。現在の実装順序とactive/archive状態は `openspec list` と `openspec/changes/archive/` を正とする。
 
 `katana-document-preview` は未リリース・未取り込みのため、`katana-document-viewer`（KDV）へ改名する。
 

@@ -94,11 +94,12 @@ KDV v0.1.0 のUI非依存render/export foundation、KMM/KRR境界、HTML/PDF/PNG
 
 #### Scenario: export requestを処理する
 
-- **WHEN** ホストが `ExportRequest` と `ExportFormat` を渡す
+- **WHEN** ホストが complete theme object を含む `ExportRequest` と `ExportFormat` を渡す
 - **THEN** KDVは `BuildGraph` から `ExportOutput` を生成する
 - **THEN** formatごとの `ArtifactManifest` を返す
 - **THEN** export artifact のbytesは0 byteであってはならない
 - **THEN** export処理はKMM DTOを独自に再parseしない
+- **THEN** HTML exportはcomplete theme objectからCSS変数を生成する
 
 #### Scenario: HTML/PDF/PNG/JPGの互換性を維持する
 

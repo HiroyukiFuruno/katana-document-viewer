@@ -1,6 +1,6 @@
 ## Why
 
-> Status: このchangeは初期構想の整理用としてarchive済み。実装順序は `v0-1-0-render-export-foundation`、`v0-1-1-complete-theme-contract`、`v0-1-2-cli-theme-json-entry`、`v0-2-0-markdown-viewer-kuc-integration`、`v0-3-0-pdf-export-pagination`、`v0-4-0-multi-format-viewer` を正とする。
+> Status: このchangeは初期構想の整理用としてarchive済み。現在の実装順序とactive/archive状態は `openspec list` と `openspec/changes/archive/` を正とする。
 
 KMMが文書モデルを所有しても、viewer側が別parserや別metadata解釈で表示すると、editor、export、viewerの仕様が再び分かれる。
 

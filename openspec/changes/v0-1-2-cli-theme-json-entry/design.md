@@ -1,6 +1,6 @@
 ## Context
 
-`v0-1-1-complete-theme-contract` ではCLIの主導線を `--light` / `--dark` にする。完全テーマJSONは必要になる可能性があるが、v0.1.1の最短経路ではない。
+`v0-1-1-complete-theme-contract` ではCLIの主導線を `--light` / `--dark` にした。完全テーマJSONはこのchangeで扱う。
 
 ## Goals / Non-Goals
 
