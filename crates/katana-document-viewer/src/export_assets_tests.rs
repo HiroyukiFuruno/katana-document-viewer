@@ -55,11 +55,11 @@ fn keeps_remote_and_data_images_unchanged() {
 fn resolves_source_file_path_with_absolute_source_as_file_url() {
     let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
 
-    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, "/tmp/assets/icon.png");
+    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, absolute_asset_path());
 
     assert_eq!(
         resolved,
-        Some(std::path::PathBuf::from("/tmp/assets/icon.png"))
+        Some(std::path::PathBuf::from(absolute_asset_path()))
     );
 }
 
@@ -67,9 +67,9 @@ fn resolves_source_file_path_with_absolute_source_as_file_url() {
 fn resolves_file_url_with_absolute_src() {
     let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
 
-    let url = ExportAssetResolver::resolve_file_url(&source_uri, "/tmp/assets/icon.png");
+    let url = ExportAssetResolver::resolve_file_url(&source_uri, absolute_asset_path());
 
-    assert_eq!(url, Some("file:///tmp/assets/icon.png".to_string()));
+    assert_eq!(url, Some(absolute_asset_file_url().to_string()));
 }
 
 #[test]
@@ -97,4 +97,24 @@ fn file_url_normalizes_windows_backslashes() {
     let normalized = ExportAssetResolver::file_url(path);
 
     assert_eq!(normalized, "file:///c:/tmp/assets/icon.png");
+}
+
+#[cfg(unix)]
+fn absolute_asset_path() -> &'static str {
+    "/tmp/assets/icon.png"
+}
+
+#[cfg(windows)]
+fn absolute_asset_path() -> &'static str {
+    r"C:\tmp\assets\icon.png"
+}
+
+#[cfg(unix)]
+fn absolute_asset_file_url() -> &'static str {
+    "file:///tmp/assets/icon.png"
+}
+
+#[cfg(windows)]
+fn absolute_asset_file_url() -> &'static str {
+    "file:///C:/tmp/assets/icon.png"
 }
