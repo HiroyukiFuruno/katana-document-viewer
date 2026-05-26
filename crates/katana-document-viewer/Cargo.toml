@@ -1,12 +1,12 @@
 [package]
-name = "katana-document-viewer"
+name = "kdv"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 authors.workspace = true
-description = "UI-independent document artifact, render evaluation, and export foundation for KatanA."
+description = "KatanA document viewer artifact, render evaluation, and export foundation."
 
 [lib]
 path = "src/lib.rs"

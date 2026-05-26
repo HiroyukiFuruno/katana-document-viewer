@@ -1,4 +1,4 @@
-use katana_document_viewer::{ExportFormat, KdvThemeSnapshot};
+use kdv::{ExportFormat, KdvThemeSnapshot};
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;

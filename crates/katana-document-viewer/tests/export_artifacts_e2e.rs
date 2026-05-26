@@ -1,10 +1,10 @@
-use katana_document_viewer::{
+use katana_markdown_model::{DiagramKind, KatanaMarkdownModel, MarkdownInput};
+use kdv::{
     BuildProfile, BuildRequest, DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend,
     DocumentSnapshotFactory, DocumentSource, ExportFormat, ExportRequest, ForgePipeline,
     KdvThemeSnapshot, RenderedDiagram, SourceKind, SourceRevision, SourceUri,
 };
-use katana_document_viewer::{ExportQualityArtifacts, ExportQualityGate};
-use katana_markdown_model::{DiagramKind, KatanaMarkdownModel, MarkdownInput};
+use kdv::{ExportQualityArtifacts, ExportQualityGate};
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -47,9 +47,7 @@ fn e2e_export_scores_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Resul
     Ok(())
 }
 
-fn snapshot_from_markdown(
-    markdown: String,
-) -> Result<katana_document_viewer::DocumentSnapshot, Box<dyn Error>> {
+fn snapshot_from_markdown(markdown: String) -> Result<kdv::DocumentSnapshot, Box<dyn Error>> {
     let source = DocumentSource {
         uri: SourceUri("file://e2e-export.md".to_string()),
         kind: SourceKind::Markdown,
@@ -63,7 +61,7 @@ fn snapshot_from_markdown(
 
 fn write_export(
     pipeline: &ForgePipeline<DiagramRenderingBackend<StaticDiagramEngine>>,
-    graph: &katana_document_viewer::BuildGraph,
+    graph: &kdv::BuildGraph,
     theme: &KdvThemeSnapshot,
     exports_dir: &Path,
     format: ExportFormat,

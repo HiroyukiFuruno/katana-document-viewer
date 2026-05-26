@@ -964,25 +964,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "katana-document-viewer"
-version = "0.1.1"
-dependencies = [
- "cosmic-text",
- "flate2",
- "image",
- "katana-markdown-model",
- "katana-render-runtime",
- "resvg",
- "serde",
- "serde_json",
- "syntect",
- "thiserror",
- "tiny-skia",
- "toml",
- "v8",
-]
-
-[[package]]
 name = "katana-markdown-model"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1024,6 +1005,25 @@ dependencies = [
  "syn",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "kdv"
+version = "0.1.1"
+dependencies = [
+ "cosmic-text",
+ "flate2",
+ "image",
+ "katana-markdown-model",
+ "katana-render-runtime",
+ "resvg",
+ "serde",
+ "serde_json",
+ "syntect",
+ "thiserror",
+ "tiny-skia",
+ "toml",
+ "v8",
 ]
 
 [[package]]

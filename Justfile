@@ -62,10 +62,11 @@ release-target-check:
     bash scripts/release/verify-version.sh "{{VERSION}}"
     python3 scripts/release/verify-release-target.py --target-version "{{TAG}}" --repo "{{RELEASE_REPO}}"
 
-# Verify package metadata. crates.io publish is disabled until crate naming is fixed.
+# Verify package metadata and dry-run the crates.io publish target.
 release-verify: check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
-    bash scripts/release/assert-no-crates-publish-target.sh
+    {{CARGO}} package -p kdv --locked --allow-dirty
+    {{CARGO}} publish -p kdv --dry-run --locked --allow-dirty
 
 # Verify release branch readiness before merging
 release-check: release-target-check release-verify

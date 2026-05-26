@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/kdv-icon.png" width="128" alt="katana-document-viewer icon">
+  <img src="assets/kdv-icon.png" width="128" alt="kdv icon">
 </p>
 
-<h1 align="center">katana-document-viewer</h1>
+<h1 align="center">kdv</h1>
 
 <p align="center">
   Vendor-neutral Markdown viewer and export library for
@@ -22,7 +22,7 @@
 Two-crate structure separates interface from implementation:
 
 ```
-katana-document-viewer         ← neutral trait + DTO (no egui, no framework)
+kdv                            ← neutral trait + DTO (no egui, no framework)
 katana-document-viewer-kuc     ← katana-ui-core based viewer/export implementation
 ```
 
@@ -43,8 +43,7 @@ source until KMM/KRR provide the needed public contract.
 
 ## Status
 
-Scaffolding. This repository is being renamed from `katana-document-preview`
-to `katana-document-viewer` before its first release.
+Scaffolding. The crates.io package is `kdv`.
 
 ## License
 

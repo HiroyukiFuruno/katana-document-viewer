@@ -7,6 +7,7 @@ repository.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 description = "egui implementation of the katana-document-preview trait. MVP backend; swap for custom UI without changing KatanA."
+publish = false
 
 [lib]
 path = "src/lib.rs"

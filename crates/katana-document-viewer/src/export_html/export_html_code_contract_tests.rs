@@ -17,7 +17,7 @@ fn main() {
 
 ```toml
 [package]
-name = "katana-document-viewer"
+name = "kdv"
 ```
 "#
 }

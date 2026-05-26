@@ -223,7 +223,7 @@ Phase 7 は backend 境界とCLI delegate方針を整理するフェーズ。本
   - KRRをMermaid / Draw.io / PlantUML / MathJax direct backendとする (P0-B-006)
 
 - **出力 (Phase 2 完了で他 Phase に提供するもの)**:
-  - KDV facade と viewer / forge / cli_api crate
+  - `kdv` package の viewer / forge / cli_api facade
   - `DocumentSource` / `DocumentSnapshot` / `Artifact*` / `ViewerState` / `BuildRequest` / `ExportRequest` 等の DTO
   - KRR backend adapter (Phase 7 で canonical 化される mapping の実装)
   - `katana-document-preview` compatibility facade
@@ -233,10 +233,10 @@ Phase 7 は backend 境界とCLI delegate方針を整理するフェーズ。本
 
 本 repo に関する master 9 章 Done criteria のうち、該当項目:
 
-- [ ] `katana-document-viewer::forge` が UI なしで compile できる (P2-J-001 で検査)
+- [ ] `kdv::forge` が UI なしで compile できる (P2-J-001 で検査)
 - [ ] forge は KDV subsystem として public API owner になる
 - [ ] 削除予定crateに依存しないことが README に記載されている
-- [ ] CLI API が `katana-document-viewer::cli_api` から呼べる
+- [ ] CLI API が `kdv::cli_api` から呼べる
 - [ ] preview facade (`katana-document-preview`) に deprecated notice が入っている
 
 ## drift 検出
