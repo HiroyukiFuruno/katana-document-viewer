@@ -2,7 +2,9 @@
 use super::*;
 
 const WORKSPACE_FIXTURE_NAME: &str = "kdp-linter-workspace";
+#[cfg(unix)]
 const READ_PERMISSION: u32 = 0o755;
+#[cfg(unix)]
 const NO_PERMISSION: u32 = 0o000;
 
 #[test]
