@@ -65,8 +65,8 @@ release-target-check:
 # Verify package metadata and dry-run the crates.io publish target.
 release-verify: check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
-    {{CARGO}} package -p kdv --locked --allow-dirty
-    {{CARGO}} publish -p kdv --dry-run --locked --allow-dirty
+    {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
+    {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty
 
 # Verify release branch readiness before merging
 release-check: release-target-check release-verify

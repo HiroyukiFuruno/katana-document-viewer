@@ -1,5 +1,5 @@
 [package]
-name = "kdv"
+name = "katana-document-viewer"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

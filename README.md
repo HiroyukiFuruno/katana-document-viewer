@@ -43,7 +43,7 @@ source until KMM/KRR provide the needed public contract.
 
 ## Status
 
-Scaffolding. The crates.io package is `kdv`.
+Scaffolding. The crates.io package is `katana-document-viewer`.
 
 ## License
 

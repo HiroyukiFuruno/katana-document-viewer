@@ -4,11 +4,11 @@
 
 `katana-document-preview` は未リリース・未取り込みのため、計画上は `katana-document-viewer`（KDV）へ改名する。
 
-KDVは、KMM公開データ型（public DTO）を入力にしたMarkdown viewer、hit-test、node選択、HTML/PDF/PNG/JPG書き出し（export）を担うlibraryである。crates.io package 名は `kdv` とし、KatanA はこれを dependency として consume する。
+KDVは、KMM公開データ型（public DTO）を入力にしたMarkdown viewer、hit-test、node選択、HTML/PDF/PNG/JPG書き出し（export）を担うlibraryである。crates.io package 名は `katana-document-viewer` とし、KatanA はこれを dependency として consume する。
 
 ## Design Principles
 
-- `kdv` package（neutral interface）は `egui` に依存しない。
+- `katana-document-viewer` package（neutral interface）は `egui` に依存しない。
 - `katana-document-viewer-kuc` crate がKUC実装を持つ。
 - KatanA は neutral interface とKUC実装の両方を dependency に取るが、interface 経由でしか呼ばない。
 - viewer表示とHTML/PDF/PNG/JPG書き出し（export）は同じ描画手順（render pipeline）を使う。
@@ -53,13 +53,13 @@ React / TypeScript / WebView は使用しない。KDVはKUC契約を消費する
 
 ### このrepoの責務
 
-`katana-document-preview` は未リリース・未取り込みのため、`-egui` implを正規路線にせず、`katana-document-viewer-kuc` を初期実装の前提にする。neutral interface package は `kdv` とする。
+`katana-document-preview` は未リリース・未取り込みのため、`-egui` implを正規路線にせず、`katana-document-viewer-kuc` を初期実装の前提にする。neutral interface package は `katana-document-viewer` とする。
 KatanA の `Cargo.toml` の impl crate 行を変えるだけで移行が完了する。
 
 ### katana-document-viewer の移行
 
 ```
-kdv                             neutral interface
+katana-document-viewer          neutral interface
 katana-document-viewer-kuc      KUC viewer/export実装
 ```
 

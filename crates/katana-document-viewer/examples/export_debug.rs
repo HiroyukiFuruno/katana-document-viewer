@@ -1,9 +1,9 @@
-use katana_markdown_model::{KatanaMarkdownModel, MarkdownInput};
-use kdv::{
+use katana_document_viewer::{
     BuildProfile, BuildRequest, DiagramRenderingBackend, DocumentSnapshotFactory, DocumentSource,
     EvaluationCoverageMatrix, ExportFormat, ExportOutput, ExportRequest, ForgePipeline,
     KdvThemeSnapshot, KrrDiagramRenderEngine, SourceKind, SourceRevision, SourceUri,
 };
+use katana_markdown_model::{KatanaMarkdownModel, MarkdownInput};
 use serde::Serialize;
 use std::error::Error;
 use std::fs;
@@ -63,9 +63,9 @@ impl ExportDebugCommand {
             document_id: graph.snapshot.id.0.clone(),
             node_count: graph.snapshot.document.nodes.len(),
             missing_implementation_count: coverage
-                .status_count(kdv::CoverageStatus::MissingImplementation),
+                .status_count(katana_document_viewer::CoverageStatus::MissingImplementation),
             external_backend_required_count: coverage
-                .status_count(kdv::CoverageStatus::ExternalBackendRequired),
+                .status_count(katana_document_viewer::CoverageStatus::ExternalBackendRequired),
             export_files,
         };
         write_toml(&args.output_dir.join("summary.toml"), &summary)?;
@@ -84,7 +84,7 @@ impl ExportDebugCommand {
     fn write_exports(
         output_dir: &Path,
         pipeline: &ForgePipeline<DiagramRenderingBackend<KrrDiagramRenderEngine>>,
-        graph: &kdv::BuildGraph,
+        graph: &katana_document_viewer::BuildGraph,
         theme: &KdvThemeSnapshot,
     ) -> Result<Vec<ExportDebugFile>, Box<dyn Error>> {
         let mut files = Vec::new();

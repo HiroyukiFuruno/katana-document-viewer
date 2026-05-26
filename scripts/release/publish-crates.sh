@@ -11,19 +11,19 @@ require_token() {
   exit 1
 }
 
-if cargo info "kdv@${version}" --registry crates-io >/dev/null 2>&1; then
-  echo "kdv ${version} already published; skipping."
+if cargo info "katana-document-viewer@${version}" --registry crates-io >/dev/null 2>&1; then
+  echo "katana-document-viewer ${version} already published; skipping."
   exit 0
 fi
 
 require_token
-cargo publish -p kdv --locked --token "${CARGO_REGISTRY_TOKEN}"
+cargo publish -p katana-document-viewer --locked --token "${CARGO_REGISTRY_TOKEN}"
 for _ in {1..30}; do
-  if cargo info "kdv@${version}" --registry crates-io >/dev/null 2>&1; then
+  if cargo info "katana-document-viewer@${version}" --registry crates-io >/dev/null 2>&1; then
     exit 0
   fi
   sleep 10
 done
 
-echo "kdv ${version} did not become visible on crates.io in time." >&2
+echo "katana-document-viewer ${version} did not become visible on crates.io in time." >&2
 exit 1
