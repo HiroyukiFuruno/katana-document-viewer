@@ -1,0 +1,24 @@
+name: crates-maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type YANK_STALE_KDV_CRATES to yank stale crates.io versions"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  yank-stale:
+    if: inputs.confirm == 'YANK_STALE_KDV_CRATES'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Yank stale crates.io versions
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: bash scripts/release/yank-stale-crates.sh

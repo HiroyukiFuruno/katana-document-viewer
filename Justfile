@@ -62,13 +62,10 @@ release-target-check:
     bash scripts/release/verify-version.sh "{{VERSION}}"
     python3 scripts/release/verify-release-target.py --target-version "{{TAG}}" --repo "{{RELEASE_REPO}}"
 
-# Verify package metadata and dry-run the first publishable crate
+# Verify package metadata. crates.io publish is disabled until crate naming is fixed.
 release-verify: check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
-    bash scripts/release/verify-internal-dependencies.sh "{{VERSION}}"
-    {{CARGO}} package -p katana-document-preview --locked --allow-dirty
-    {{CARGO}} package -p katana-document-preview-egui --locked --allow-dirty --list >/dev/null
-    {{CARGO}} publish -p katana-document-preview --dry-run --locked --allow-dirty
+    bash scripts/release/assert-no-crates-publish-target.sh
 
 # Verify release branch readiness before merging
 release-check: release-target-check release-verify
