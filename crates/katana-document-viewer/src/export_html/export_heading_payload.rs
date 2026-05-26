@@ -81,3 +81,7 @@ impl HeadingHtmlWriter {
         Some(after_marker.strip_prefix(' ').unwrap_or(after_marker))
     }
 }
+
+#[cfg(test)]
+#[path = "export_heading_payload_tests.rs"]
+mod tests;

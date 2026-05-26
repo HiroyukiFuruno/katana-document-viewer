@@ -108,6 +108,10 @@ pub(crate) struct SurfaceAlertBlock {
     pub(crate) quote_depth: u32,
 }
 
+#[cfg(test)]
+#[path = "export_surface_blocks_badge_alert_tests.rs"]
+mod tests;
+
 impl SurfaceAlertBlock {
     pub(crate) fn new(label: &str, body_lines: Vec<String>, quote_depth: u32) -> Self {
         let title = SurfaceLine::body_spans(

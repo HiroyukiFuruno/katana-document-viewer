@@ -2,9 +2,8 @@ use super::super::contract_test_support::HtmlContractTestSupport;
 
 #[test]
 fn red_detects_export_stylesheet_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "> 引用\n\n| 短い | 長い |\n| --- | --- |\n| ID | text |\n",
-    )?;
+    let markdown = "> 引用\n\n| 短い | 長い |\n| --- | --- |\n| ID | text |\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
     assert_export_table_base_styles(&html);
     assert_export_table_column_styles(&html);
     assert_export_block_styles(&html);
@@ -113,12 +112,11 @@ fn assert_export_task_visual_styles(html: &str) {
 
 #[test]
 fn red_detects_katana_table_layout_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        r##"| 短い | 長いカラムのテスト | 短い |
+    let markdown = r##"| 短い | 長いカラムのテスト | 短い |
 | --- | --- | --- |
 | ID | このテキストは非常に長い行です。ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 | 備考 |
-"##,
-    )?;
+"##;
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,
@@ -142,9 +140,8 @@ fn red_detects_katana_table_layout_contract_gaps() -> Result<(), Box<dyn std::er
 
 #[test]
 fn red_detects_malformed_pipe_sentence_table_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "↑ 「English | 日本語」が中央揃えの同一行に表示されること。\n",
-    )?;
+    let markdown = "↑ 「English | 日本語」が中央揃えの同一行に表示されること。\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,

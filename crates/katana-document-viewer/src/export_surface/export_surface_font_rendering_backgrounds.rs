@@ -89,3 +89,7 @@ impl PixelWriter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_font_rendering_backgrounds_tests.rs"]
+mod tests;

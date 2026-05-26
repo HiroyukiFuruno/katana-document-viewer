@@ -64,3 +64,7 @@ impl RemainingHtmlNodeWriter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_html_payload_nodes_tests.rs"]
+mod tests;

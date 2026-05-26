@@ -176,3 +176,7 @@ pub(super) fn legacy_note_children(children: &[KmmNode]) -> Option<(String, Stri
 fn is_legacy_note_title(title: &str) -> bool {
     matches!(title, "Note" | "Tip" | "Important" | "Warning" | "Caution")
 }
+
+#[cfg(test)]
+#[path = "markup_tests.rs"]
+mod tests;

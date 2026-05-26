@@ -146,3 +146,11 @@ impl SurfaceBlockFactory {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "html_image_tests.rs"]
+mod image_tests;
+
+#[cfg(test)]
+#[path = "html_tests.rs"]
+mod tests;

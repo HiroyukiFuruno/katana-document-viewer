@@ -86,3 +86,29 @@ impl ExportQualityGate {
         ImageQualityScore::score(format, bytes, decoded, signature)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn evaluate_reports_warnings_for_failed_formats() {
+        let artifacts = ExportQualityArtifacts {
+            html: b"",
+            pdf: b"",
+            png: b"",
+            jpeg: b"",
+        };
+
+        let report = ExportQualityGate::evaluate(&artifacts);
+
+        assert!(!report.is_pass());
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("Html"))
+        );
+        assert!(!report.fatal_failures.is_empty());
+    }
+}

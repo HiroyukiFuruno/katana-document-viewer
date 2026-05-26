@@ -119,3 +119,7 @@ pub(super) fn painted_x_range(image: &RgbaImage, color: Rgba<u8>) -> Option<(u32
     }
     Some((min_x?, max_x?))
 }
+
+#[cfg(test)]
+#[path = "export_surface_font_test_support_tests.rs"]
+mod tests;

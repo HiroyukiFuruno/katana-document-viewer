@@ -27,3 +27,7 @@ impl KdpLinter {
         rules::RuleRunner::check(&workspace)
     }
 }
+
+#[cfg(test)]
+#[path = "lib_tests.rs"]
+mod tests;

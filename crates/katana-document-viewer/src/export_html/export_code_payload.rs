@@ -41,6 +41,9 @@ impl CodeHtmlWriter {
     }
 
     fn highlighted_html(language: &str, body: &str) -> Option<String> {
+        if body.is_empty() {
+            return None;
+        }
         let syntax = Self::syntax(language);
         let mut highlighter = HighlightLines::new(syntax, theme());
         let mut html = String::new();
@@ -73,4 +76,44 @@ fn theme_set() -> &'static ThemeSet {
 
 fn theme() -> &'static Theme {
     &theme_set().themes[SYNTAX_THEME]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn append_plain_uses_plain_text_without_language() {
+        let mut html = String::new();
+        let language = Some(String::new());
+        CodeHtmlWriter::append_plain(&mut html, &language, "a & b");
+        assert!(html.contains("<pre data-kdv-code-role=\"plain\"><code>a &amp; b</code></pre>"));
+    }
+
+    #[test]
+    fn append_plain_uses_highlighted_code_when_language_specified() {
+        let mut html = String::new();
+        CodeHtmlWriter::append_plain(&mut html, &Some("rust".to_string()), "fn main() {}");
+        assert!(html.contains("data-kdv-code-language=\"rust\""));
+        assert!(html.contains("data-kdv-code-highlighter=\"syntect\""));
+    }
+
+    #[test]
+    fn append_plain_uses_plain_text_when_highlighted_code_is_empty() {
+        let mut html = String::new();
+        CodeHtmlWriter::append_highlighted(&mut html, "rust", "");
+        assert!(
+            html.starts_with(
+                "<pre data-kdv-code-role=\"plain\" data-kdv-code-language=\"rust\" data-kdv-code-highlighter=\"syntect\" data-kdv-syntax-theme=\"InspiredGitHub\"><code class=\"language-rust\">"
+            )
+        );
+        assert!(html.ends_with("</code></pre>\n"));
+    }
+
+    #[test]
+    fn fenced_body_still_supported() {
+        let fenced = "```rust\nfn main() {}\n```";
+        let body = ExportHtmlOps::fenced_body(fenced);
+        assert_eq!(body, "fn main() {}");
+    }
 }

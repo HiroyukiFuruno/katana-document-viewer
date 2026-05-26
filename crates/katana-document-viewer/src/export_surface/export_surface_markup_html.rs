@@ -83,6 +83,10 @@ pub(crate) struct SurfaceHtmlImageRef {
     pub(crate) link_target: Option<String>,
 }
 
+#[cfg(test)]
+#[path = "export_surface_markup_html_tests.rs"]
+mod tests;
+
 fn enclosing_link_target(prefix: &str) -> Option<String> {
     let link_start = prefix.rfind("<a")?;
     quoted_attribute_value(&prefix[link_start..], "href")

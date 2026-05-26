@@ -51,6 +51,26 @@ fn forge_pipeline_rejects_empty_export_artifact() -> Result<(), Box<dyn std::err
 }
 
 #[test]
+fn forge_pipeline_propagates_backend_export_error() -> Result<(), Box<dyn std::error::Error>> {
+    let pipeline = ForgePipeline::new(FailingBackend);
+    let graph = BuildGraph::from_request(&BuildRequest {
+        snapshot: SampleSnapshotFactory::create()?,
+        profile: BuildProfile::markdown_export(),
+        theme: crate::KdvThemeSnapshot::katana_light(),
+    });
+
+    for _ in 0..20 {
+        let result = pipeline.export(&ExportRequest {
+            graph: graph.clone(),
+            format: ExportFormat::Html,
+            theme: crate::KdvThemeSnapshot::katana_light(),
+        });
+        assert!(matches!(result, Err(ForgeError::Backend(message)) if message == "export failed"));
+    }
+    Ok(())
+}
+
+#[test]
 fn non_html_exports_do_not_claim_html_backed_rendering() -> Result<(), Box<dyn std::error::Error>> {
     let pipeline = ForgePipeline::new(ManifestOnlyBackend);
     let graph = BuildGraph::from_request(&BuildRequest {
@@ -122,6 +142,18 @@ impl ForgeBackend for EmptyBackend {
             artifact,
             diagnostics: request.graph.diagnostics.clone(),
         })
+    }
+}
+
+struct FailingBackend;
+
+impl ForgeBackend for FailingBackend {
+    fn build(&self, request: &BuildRequest) -> Result<BuildGraph, ForgeError> {
+        Ok(BuildGraph::from_request(request))
+    }
+
+    fn export(&self, _request: &ExportRequest) -> Result<ExportOutput, ForgeError> {
+        Err(ForgeError::Backend("export failed".to_string()))
     }
 }
 

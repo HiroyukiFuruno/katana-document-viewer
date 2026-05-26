@@ -65,6 +65,7 @@ mod export_table_payload;
 pub mod forge;
 mod forge_diagram_render;
 mod forge_diagram_render_types;
+mod forge_types;
 mod html_sanitizer;
 mod render_runtime;
 mod theme;

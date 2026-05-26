@@ -173,24 +173,5 @@ impl ArtifactFactory {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn artifact_manifest_serializes() -> Result<(), toml::ser::Error> {
-        let artifact = ArtifactFactory::export(
-            ArtifactFormat::Html,
-            DocumentId("doc".to_string()),
-            SourceRevision("rev".to_string()),
-            ArtifactBytes {
-                bytes: b"<h1>Title</h1>".to_vec(),
-            },
-        );
-
-        let serialized = toml::to_string(&artifact.manifest)?;
-
-        assert!(serialized.contains("format = \"Html\""));
-        assert!(serialized.contains("source_revision = \"rev\""));
-        Ok(())
-    }
-}
+#[path = "artifact_tests.rs"]
+mod tests;

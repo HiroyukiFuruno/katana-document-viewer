@@ -194,3 +194,7 @@ impl SurfaceBlockFactory {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "dispatch_tests.rs"]
+mod tests;

@@ -50,3 +50,7 @@ impl SurfaceBlockFactory {
         spans.extend(SurfaceInlineSpans::from_nodes(&node.children, theme));
     }
 }
+
+#[cfg(test)]
+#[path = "footnote_tests.rs"]
+mod tests;

@@ -48,3 +48,7 @@ impl SurfaceBlockFactory {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "table_tests.rs"]
+mod tests;

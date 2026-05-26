@@ -132,3 +132,7 @@ fn html_style(html: &str, style: SurfaceTextStyle) -> SurfaceTextStyle {
     }
     style
 }
+
+#[cfg(test)]
+#[path = "export_surface_span_nodes_helpers_tests.rs"]
+mod tests;

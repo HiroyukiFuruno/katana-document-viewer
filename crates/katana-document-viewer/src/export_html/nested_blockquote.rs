@@ -50,3 +50,51 @@ struct BlockquoteLine<'a> {
     depth: usize,
     text: &'a str,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::KdvThemeSnapshot;
+
+    #[test]
+    fn is_nested_detects_depth() {
+        assert!(NestedBlockquoteHtml::is_nested("> one\n> > two"));
+        assert!(!NestedBlockquoteHtml::is_nested("> one"));
+    }
+
+    #[test]
+    fn append_blocks_open_and_close_depths() {
+        let mut html = String::new();
+        NestedBlockquoteHtml::append(
+            &mut html,
+            &KdvThemeSnapshot::katana_light(),
+            "> one\n> > two",
+        );
+        assert!(html.contains("data-kdv-quote-depth=\"1\""));
+        assert!(html.contains("data-kdv-quote-depth=\"2\""));
+    }
+
+    #[test]
+    fn append_ignores_non_blockquote_lines() {
+        let mut html = String::new();
+        NestedBlockquoteHtml::append(&mut html, &KdvThemeSnapshot::katana_light(), "plain text");
+        assert_eq!(html, "");
+    }
+
+    #[test]
+    fn append_closes_quote_blocks_when_depth_decreases() {
+        let mut html = String::new();
+        NestedBlockquoteHtml::append(
+            &mut html,
+            &KdvThemeSnapshot::katana_light(),
+            "> > one\n> two",
+        );
+
+        assert!(html.contains("</blockquote>"));
+    }
+
+    #[test]
+    fn line_parts_ignores_trimming() {
+        assert!(NestedBlockquoteHtml::line_parts(" > x").is_some());
+    }
+}

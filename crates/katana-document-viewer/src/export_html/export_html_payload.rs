@@ -155,3 +155,7 @@ fn diagram_readiness_label(kind: &DiagramKind) -> &'static str {
 #[cfg(test)]
 #[path = "export_html_payload_test_modules.rs"]
 mod test_modules;
+
+#[cfg(test)]
+#[path = "export_html_payload_unit_tests.rs"]
+mod unit_tests;

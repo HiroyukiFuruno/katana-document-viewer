@@ -109,3 +109,13 @@ impl SurfaceTestSupport {
         Err("diagram node is required".into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SurfaceTestSupport;
+
+    #[test]
+    fn diagram_node_id_reports_missing_diagram_node() {
+        assert!(SurfaceTestSupport::diagram_node_id(&[]).is_err());
+    }
+}

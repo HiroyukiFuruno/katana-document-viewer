@@ -84,3 +84,21 @@ pub(super) fn check(name: &str, passed: bool, fatal: bool, points: u16) -> Expor
         points,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fatal_failures_list_failed_fatal_checks() {
+        let score = ExportFormatQualityScore::new(
+            ExportFormat::Html,
+            vec![check("required semantic", false, true, 20)],
+        );
+
+        assert_eq!(
+            score.fatal_failures(),
+            vec!["Html: required semantic".to_string()]
+        );
+    }
+}

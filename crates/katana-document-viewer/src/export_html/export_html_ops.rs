@@ -117,3 +117,48 @@ impl ExportHtmlOps {
         &line[removable..]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fenced_body_returns_plain_text_without_fence() {
+        assert_eq!(
+            ExportHtmlOps::fenced_body("not a fenced code block"),
+            "not a fenced code block"
+        );
+    }
+
+    #[test]
+    fn fenced_body_removes_fence_and_prefix_quotes() {
+        let input = "> ```rust\n>   fn main() {}\n> ```";
+        assert_eq!(ExportHtmlOps::fenced_body(input), "fn main() {}");
+    }
+
+    #[test]
+    fn alert_body_removes_gfm_marker_and_trim() {
+        let input = "> [!NOTE]\n> note body";
+        assert_eq!(ExportHtmlOps::alert_body(input), "note body");
+    }
+
+    #[test]
+    fn alert_body_removes_markdown_emphasis_marker() {
+        let input = "> *NOTE*\n> note body";
+        assert_eq!(ExportHtmlOps::alert_body(input), "note body");
+    }
+
+    #[test]
+    fn render_text_decodes_common_entities() {
+        assert_eq!(
+            ExportHtmlOps::render_text("a &quot;X&quot; &lt; Y &#62; Z &apos;W&apos; &amp; V"),
+            "a &quot;X&quot; &lt; Y &gt; Z &#39;W&#39; &amp; V"
+        );
+    }
+
+    #[test]
+    fn strip_indent_respects_indent_width() {
+        assert_eq!(ExportHtmlOps::strip_indent("  text", 2), "text");
+        assert_eq!(ExportHtmlOps::strip_indent(" text", 2), "text");
+    }
+}

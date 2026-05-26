@@ -180,3 +180,7 @@ impl InlineHtmlWriter {
         MathHtmlWriter::append_inline(html, expression, theme);
     }
 }
+
+#[cfg(test)]
+#[path = "export_inline_payload_tests.rs"]
+mod tests;

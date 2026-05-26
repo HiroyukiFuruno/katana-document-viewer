@@ -58,13 +58,14 @@ impl<'a> PdfImageDocument<'a> {
         let destinations =
             PdfDocumentHelpers::pdf_destinations(&self.surface.link_anchors, page_objects, pages);
         for (index, page) in pages.iter().enumerate() {
-            self.append_single_page_objects(
+            let page_result = self.append_single_page_objects(
                 objects,
                 page,
                 &page_annotations[index],
                 &page_objects[index],
                 &destinations,
-            )?;
+            );
+            page_result?;
         }
         Ok(())
     }
@@ -164,11 +165,19 @@ struct PdfPageObjects {
 
 fn compress(bytes: &[u8]) -> Result<Vec<u8>, String> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder
-        .write_all(bytes)
-        .map_err(|error| format!("PDF image stream compression failed: {error}"))?;
-    let compressed = encoder
-        .finish()
-        .map_err(|error| format!("PDF image stream compression finalization failed: {error}"))?;
+    encoder.write_all(bytes).map_err(pdf_compression_error)?;
+    let compressed = encoder.finish().map_err(pdf_compression_finish_error)?;
     Ok(compressed)
 }
+
+fn pdf_compression_error(error: std::io::Error) -> String {
+    format!("PDF image stream compression failed: {error}")
+}
+
+fn pdf_compression_finish_error(error: std::io::Error) -> String {
+    format!("PDF image stream compression finalization failed: {error}")
+}
+
+#[cfg(test)]
+#[path = "document_tests.rs"]
+mod tests;

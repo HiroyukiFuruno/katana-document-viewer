@@ -52,6 +52,10 @@ impl SurfaceHelpers {
     }
 }
 
+#[cfg(test)]
+#[path = "export_surface_helpers_wrapped_text_tests.rs"]
+mod tests;
+
 fn blockquote_line_parts(line: &str) -> Option<BlockquoteLine<'_>> {
     let mut rest = line.trim_start();
     let mut depth = 0;

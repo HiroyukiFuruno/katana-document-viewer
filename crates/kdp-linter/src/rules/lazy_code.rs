@@ -65,3 +65,7 @@ impl<'ast> Visit<'ast> for LazyCodeVisitor {
         syn::visit::visit_macro(self, node);
     }
 }
+
+#[cfg(test)]
+#[path = "lazy_code_tests.rs"]
+mod tests;

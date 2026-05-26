@@ -130,13 +130,13 @@ impl SurfaceBlockFactory {
         list_depth: u32,
     ) {
         let mut lines = SurfaceInlineLineWrapper::wrap(body_spans, available_width);
-        if lines.is_empty() {
-            return;
-        }
-        let first_line = Self::list_item_first_line(marker, std::mem::take(&mut lines[0]));
-        Self::append_list_line(blocks, first_line, quote_depth, list_depth);
-        for line_spans in lines.into_iter().skip(1) {
-            Self::append_list_line(blocks, line_spans, quote_depth, list_depth);
+        for (index, line_spans) in lines.drain(..).enumerate() {
+            let line = if index == 0 {
+                Self::list_item_first_line(marker.clone(), line_spans)
+            } else {
+                line_spans
+            };
+            Self::append_list_line(blocks, line, quote_depth, list_depth);
         }
     }
 
@@ -163,3 +163,7 @@ impl SurfaceBlockFactory {
         )));
     }
 }
+
+#[cfg(test)]
+#[path = "list_tests.rs"]
+mod tests;

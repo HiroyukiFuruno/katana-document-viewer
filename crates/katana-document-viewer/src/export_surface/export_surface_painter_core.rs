@@ -89,3 +89,7 @@ impl SurfacePainter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_core_tests.rs"]
+mod tests;

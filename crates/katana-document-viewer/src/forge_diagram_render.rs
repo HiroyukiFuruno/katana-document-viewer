@@ -11,11 +11,13 @@ use crate::forge_diagram_render_types::{
 };
 use katana_markdown_model::{CodeBlockRole, DiagramKind, KmmNode, KmmNodeKind};
 use katana_render_runtime::{
-    DiagramKind as KrrDiagramKind, DrawioRenderer, MermaidRenderer, PlantUmlRenderer,
-    RenderContext, Renderer, RuntimePathResolver,
+    DrawioRenderer, MermaidRenderer, PlantUmlRenderer, RenderContext, Renderer, RuntimePathResolver,
 };
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+#[cfg(test)]
+#[path = "forge_diagram_render_runtime_tests.rs"]
+mod forge_diagram_render_runtime_tests;
 #[cfg(test)]
 #[path = "forge_diagram_render_tests.rs"]
 mod forge_diagram_render_tests;
@@ -47,16 +49,17 @@ impl<E: DiagramRenderEngine> ForgeBackend for DiagramRenderingBackend<E> {
 
     fn export(&self, request: &ExportRequest) -> Result<ExportOutput, ForgeError> {
         let snapshot = &request.graph.snapshot;
-        let bytes = ExportPayloadFactory::create(&request.graph, request.format, &request.theme)?;
-        let artifact = ArtifactFactory::export(
-            request.format.artifact_format(),
-            snapshot.id.clone(),
-            snapshot.revision.clone(),
-            ArtifactBytes { bytes },
-        );
-        Ok(ExportOutput {
-            artifact,
-            diagnostics: request.graph.diagnostics.clone(),
+        ExportPayloadFactory::create(&request.graph, request.format, &request.theme).map(|bytes| {
+            let artifact = ArtifactFactory::export(
+                request.format.artifact_format(),
+                snapshot.id.clone(),
+                snapshot.revision.clone(),
+                ArtifactBytes { bytes },
+            );
+            ExportOutput {
+                artifact,
+                diagnostics: request.graph.diagnostics.clone(),
+            }
         })
     }
 }
@@ -108,20 +111,30 @@ impl<E: DiagramRenderEngine> DiagramRenderingBackend<E> {
             source: ExportHtmlOps::fenced_body(&node.source.raw.text),
             theme,
         };
-        match catch_diagram_render(|| self.engine.render(request)) {
-            Ok(Ok(diagram)) => rendered_diagrams.push(diagram),
-            Ok(Err(message)) => messages.push(message),
-            Err(_) => messages.push(format!("diagram renderer panicked for node {}", node.id.0)),
-        }
+        record_diagram_result(
+            &node.id.0,
+            catch_diagram_render(|| self.engine.render(request)),
+            rendered_diagrams,
+            messages,
+        );
+    }
+}
+
+fn record_diagram_result(
+    node_id: &str,
+    result: Result<Result<RenderedDiagram, String>, Box<dyn std::any::Any + Send>>,
+    rendered_diagrams: &mut Vec<RenderedDiagram>,
+    messages: &mut Vec<String>,
+) {
+    match result {
+        Ok(Ok(diagram)) => rendered_diagrams.push(diagram),
+        Ok(Err(message)) => messages.push(message),
+        Err(_) => messages.push(format!("diagram renderer panicked for node {node_id}")),
     }
 }
 
 fn catch_diagram_render<T>(render: impl FnOnce() -> T) -> Result<T, Box<dyn std::any::Any + Send>> {
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
-    let result = catch_unwind(AssertUnwindSafe(render));
-    std::panic::set_hook(previous_hook);
-    result
+    catch_unwind(AssertUnwindSafe(render))
 }
 
 impl DiagramRenderEngine for KrrDiagramRenderEngine {
@@ -131,27 +144,44 @@ impl DiagramRenderEngine for KrrDiagramRenderEngine {
             theme: Some(request.theme.krr_theme()),
             ..RenderContext::default()
         };
-        let input = KrrDiagramInputFactory::create(request.kind.clone(), request.source, context);
-        let runtime_path =
-            RuntimePathResolver::resolve(input.kind, None).map_err(|error| error.to_string())?;
-        let output = match input.kind {
-            KrrDiagramKind::Mermaid => MermaidRenderer::with_runtime_path(runtime_path)
-                .render(&input)
-                .map_err(|error| error.to_string())?,
-            KrrDiagramKind::Drawio => DrawioRenderer::with_runtime_path(runtime_path)
-                .render(&input)
-                .map_err(|error| error.to_string())?,
-            KrrDiagramKind::PlantUml => PlantUmlRenderer::with_runtime_path(runtime_path)
-                .render(&input)
-                .map_err(|error| error.to_string())?,
-            KrrDiagramKind::MathJax => {
-                return Err("MathJax is handled by KRR math runtime".to_string());
+        let input =
+            KrrDiagramInputFactory::create(request.kind.clone(), request.source.clone(), context);
+        match RuntimePathResolver::resolve(input.kind, None) {
+            Ok(runtime_path) => {
+                let rendered = match request.kind {
+                    DiagramKind::Mermaid => {
+                        MermaidRenderer::with_runtime_path(runtime_path).render(&input)
+                    }
+                    DiagramKind::DrawIo => {
+                        DrawioRenderer::with_runtime_path(runtime_path).render(&input)
+                    }
+                    DiagramKind::PlantUml => {
+                        PlantUmlRenderer::with_runtime_path(runtime_path).render(&input)
+                    }
+                };
+                Self::rendered_diagram_from_output(request, rendered)
             }
-        };
-        Ok(RenderedDiagram {
-            node_id: request.node_id.to_string(),
-            kind: ExportHtmlOps::diagram_kind_label(&request.kind).to_string(),
-            svg: output.svg,
-        })
+            Err(error) => Err(krr_error_message(error)),
+        }
     }
+}
+
+impl KrrDiagramRenderEngine {
+    fn rendered_diagram_from_output(
+        request: DiagramRenderRequest<'_>,
+        rendered: Result<katana_render_runtime::RenderOutput, katana_render_runtime::RenderError>,
+    ) -> Result<RenderedDiagram, String> {
+        match rendered {
+            Ok(output) => Ok(RenderedDiagram {
+                node_id: request.node_id.to_string(),
+                kind: ExportHtmlOps::diagram_kind_label(&request.kind).to_string(),
+                svg: output.svg,
+            }),
+            Err(error) => Err(krr_error_message(error)),
+        }
+    }
+}
+
+fn krr_error_message(error: impl std::fmt::Display) -> String {
+    error.to_string()
 }

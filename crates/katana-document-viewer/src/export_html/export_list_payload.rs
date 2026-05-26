@@ -124,3 +124,7 @@ struct TaskMarkerState {
     mixed: bool,
     visual_kind: &'static str,
 }
+
+#[cfg(test)]
+#[path = "export_list_payload_tests.rs"]
+mod tests;

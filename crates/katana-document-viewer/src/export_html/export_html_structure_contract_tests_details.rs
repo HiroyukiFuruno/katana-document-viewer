@@ -2,9 +2,8 @@ use super::super::contract_test_support::HtmlContractTestSupport;
 
 #[test]
 fn red_detects_details_markdown_body_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "<details><summary>詳細を見る</summary><div>\n\n- 刀\n  - 孫六兼元\n  - 菊一文字則宗\n  - 備前長船長義\n\n</div></details>\n",
-    )?;
+    let markdown = "<details><summary>詳細を見る</summary><div>\n\n- 刀\n  - 孫六兼元\n  - 菊一文字則宗\n  - 備前長船長義\n\n</div></details>\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,
@@ -80,9 +79,8 @@ fn assert_nested_list_marker_style(html: &str) -> Result<(), Box<dyn std::error:
 #[test]
 fn red_detects_html_exports_with_only_current_krr_naming() -> Result<(), Box<dyn std::error::Error>>
 {
-    let html = HtmlContractTestSupport::export_html(
-        "`E = mc^2` を使う。[^1]\n\n[^1]: KDV/ KRR のテスト\n",
-    )?;
+    let markdown = "`E = mc^2` を使う。[^1]\n\n[^1]: KDV/ KRR のテスト\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
     let lowered = html.to_lowercase();
 
     assert!(

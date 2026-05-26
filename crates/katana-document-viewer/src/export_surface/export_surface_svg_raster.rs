@@ -65,3 +65,7 @@ fn effective_scale(width: f32, height: f32, max_width: u32) -> f32 {
         .min(height_scale)
         .max(f32::MIN_POSITIVE)
 }
+
+#[cfg(test)]
+#[path = "export_surface_svg_raster_tests.rs"]
+mod tests;

@@ -134,3 +134,7 @@ fn self_paint_quote_bars(
 fn spans_text(spans: &[SurfaceTextSpan]) -> String {
     spans.iter().map(|span| span.text.as_str()).collect()
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_line_tests.rs"]
+mod tests;

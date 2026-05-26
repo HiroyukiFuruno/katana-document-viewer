@@ -1,0 +1,90 @@
+use super::{SurfaceHtmlMarkup, SurfaceTextStyle};
+
+#[test]
+fn normalize_text_compacts_spacing_and_normalizes_pipe_token() {
+    let text = "  left   right  ";
+    let normalized = SurfaceHtmlMarkup::normalize_text(text);
+    assert_eq!(normalized, "left right");
+
+    let with_pipe = "left|right";
+    assert_eq!(SurfaceHtmlMarkup::normalize_text(with_pipe), "left | right");
+}
+
+#[test]
+fn badge_row_badges_prefers_shields_badges_from_img_refs() {
+    let badges = SurfaceHtmlMarkup::badge_row_badges(
+        "<img src=\"https://img.shields.io/badge/foo-bar-blue\" alt=\"alt\" />",
+    );
+    assert_eq!(badges.len(), 1);
+    assert_eq!(badges[0].text(), "foo=bar");
+}
+
+#[test]
+fn badge_row_badges_falls_back_to_normalized_text() {
+    let badges = SurfaceHtmlMarkup::badge_row_badges("   just plain text   ");
+    assert_eq!(badges.len(), 1);
+    assert_eq!(badges[0].text(), "just plain text");
+}
+
+#[test]
+fn extract_img_refs_tracks_width_and_link_targets() {
+    let html = "<a href=\"/docs\"><img src=\"icon.png\" alt=\"Icon\" width=\"24\" /></a>";
+    let refs = SurfaceHtmlMarkup::extract_img_refs(html);
+
+    assert_eq!(refs.len(), 1);
+    assert_eq!(refs[0].src, "icon.png");
+    assert_eq!(refs[0].alt, "Icon");
+    assert_eq!(refs[0].width, Some(24));
+    assert_eq!(refs[0].link_target, Some("/docs".to_string()));
+}
+
+#[test]
+fn centered_html_spans_builds_mixed_text_and_link_spans() {
+    let spans =
+        SurfaceHtmlMarkup::centered_html_spans("A <a href=\"https://example.com\">go</a> B");
+    assert_eq!(spans.len(), 3);
+    assert_eq!(spans[0].text, "A");
+    assert_eq!(spans[0].link_target, None);
+    assert_eq!(spans[0].style, SurfaceTextStyle::default());
+    assert_eq!(spans[1].text, "go");
+    assert_eq!(
+        spans[1].link_target,
+        Some("https://example.com".to_string())
+    );
+    assert_eq!(spans[1].style, SurfaceTextStyle::default().link());
+    assert_eq!(spans[2].text, "B");
+    assert_eq!(spans[2].link_target, None);
+    assert_eq!(spans[2].style, SurfaceTextStyle::default());
+}
+
+#[test]
+fn badge_row_badges_returns_empty_for_blank_fragment() {
+    let badges = SurfaceHtmlMarkup::badge_row_badges(" \n\t ");
+
+    assert!(badges.is_empty());
+}
+
+#[test]
+fn extract_img_refs_stops_on_unclosed_img_and_defaults_empty_alt() {
+    let refs = SurfaceHtmlMarkup::extract_img_refs("<img src=\"icon.png\" alt=\"open\"");
+    assert!(refs.is_empty());
+
+    let complete_refs =
+        SurfaceHtmlMarkup::extract_img_refs("<img src=\"icon.png\" width=\"wide\">");
+    assert_eq!(complete_refs.len(), 1);
+    assert_eq!(complete_refs[0].alt, "");
+    assert_eq!(complete_refs[0].width, None);
+}
+
+#[test]
+fn centered_html_spans_stops_on_unclosed_or_empty_link() {
+    let unclosed = SurfaceHtmlMarkup::centered_html_spans("before <a href=\"/x\">missing");
+    let empty = SurfaceHtmlMarkup::centered_html_spans("before <a href=\"/x\"> </a> after");
+
+    assert_eq!(unclosed.len(), 2);
+    assert_eq!(unclosed[0].text, "before");
+    assert_eq!(unclosed[1].text, "before missing");
+    assert_eq!(empty.len(), 2);
+    assert_eq!(empty[0].text, "before");
+    assert_eq!(empty[1].text, "after");
+}

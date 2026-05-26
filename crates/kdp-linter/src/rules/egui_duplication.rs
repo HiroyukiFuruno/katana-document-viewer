@@ -105,3 +105,67 @@ impl<'ast> Visit<'ast> for EguiDuplicationVisitor {
         syn::visit::visit_item_mod(self, node);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::KdpLintError;
+    use crate::rules::test_helpers::FixtureWorkspace;
+
+    #[test]
+    fn egui_duplication_rule_flags_api_and_modules() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+pub struct MarkdownPreview {}
+pub enum PreviewError {}
+pub trait Renderer {}
+mod preview {}
+mod renderer {}
+mod runtime {}
+"#;
+        fixture.write_rust_file("crates/katana-document-preview-egui/src/lib.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = EguiDuplicationRule::check(&workspace);
+
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.message.contains("egui module `preview`"))
+        );
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.message.contains("`MarkdownPreview`"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn egui_duplication_rule_ignores_non_egui_files() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+pub struct MarkdownPreview {}
+mod preview {}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/lib.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = EguiDuplicationRule::check(&workspace);
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn egui_duplication_rule_keeps_non_boundary_modules() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+mod helper {}
+"#;
+        fixture.write_rust_file("crates/katana-document-preview-egui/src/lib.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = EguiDuplicationRule::check(&workspace);
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+}

@@ -36,7 +36,11 @@ impl MarkdownPreviewWidget {
     }
 
     pub fn show(&self, ui: &mut egui::Ui, source: &MarkdownSource, config: &PreviewConfig) {
-        match self.inner.render(source, config) {
+        Self::show_render_result(ui, self.inner.render(source, config));
+    }
+
+    fn show_render_result(ui: &mut egui::Ui, result: Result<PreviewOutput, PreviewError>) {
+        match result {
             Ok(_) => {
                 ui.label("[scaffold] katana-document-preview-egui");
             }
@@ -73,5 +77,39 @@ mod tests {
     #[test]
     fn widget_default_constructs_scaffold_backend() {
         let _widget = MarkdownPreviewWidget::default();
+    }
+
+    #[test]
+    fn widget_show_reports_preview_error_label() {
+        let context = egui::Context::default();
+        let widget = MarkdownPreviewWidget::new();
+        let source = MarkdownSource {
+            content: String::from("# Title"),
+            document_id: None,
+        };
+
+        context.begin_pass(egui::RawInput::default());
+        egui::Window::new("preview-test").show(&context, |ui| {
+            widget.show(ui, &source, &PreviewConfig::default());
+        });
+        let _output = context.end_pass();
+    }
+
+    #[test]
+    fn widget_render_result_draws_scaffold_label_on_success() {
+        let context = egui::Context::default();
+
+        context.begin_pass(egui::RawInput::default());
+        egui::Window::new("preview-success-test").show(&context, |ui| {
+            MarkdownPreviewWidget::show_render_result(
+                ui,
+                Ok(PreviewOutput {
+                    scroll_offset: 0.0,
+                    content_height: 0.0,
+                    diagnostics: Default::default(),
+                }),
+            );
+        });
+        let _output = context.end_pass();
     }
 }

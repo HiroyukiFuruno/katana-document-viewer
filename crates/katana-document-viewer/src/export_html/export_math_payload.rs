@@ -64,3 +64,25 @@ impl MathHtmlWriter {
         ));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::KdvThemeSnapshot;
+
+    #[test]
+    fn append_raw_path_is_used_for_empty_expression() {
+        let mut html = String::new();
+        MathHtmlWriter::append_block(&mut html, "inline", "", &KdvThemeSnapshot::katana_light());
+        assert!(html.contains("data-kdv-render-error=\""));
+        assert!(html.contains("empty-input"));
+    }
+
+    #[test]
+    fn append_svg_path_is_used_for_simple_expression() {
+        let mut html = String::new();
+        MathHtmlWriter::append_inline(&mut html, "a", &KdvThemeSnapshot::katana_light());
+        assert!(html.contains("data-kdv-math=\"inline\""));
+        assert!(html.contains("data-kdv-render-runtime=\"katana-render-runtime\""));
+    }
+}

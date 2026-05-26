@@ -16,7 +16,7 @@ impl ImageExportPayloadFactory {
                 surface.image.height(),
                 ColorType::Rgba8.into(),
             )
-            .map_err(|error| format!("PNG encoding failed: {error}"))?;
+            .map_err(png_encoding_error)?;
         Ok(bytes)
     }
 
@@ -36,10 +36,32 @@ impl ImageExportPayloadFactory {
                 surface.image.height(),
                 ColorType::Rgb8.into(),
             )
-            .map_err(|error| format!("JPEG encoding failed: {error}"))?;
+            .map_err(jpeg_encoding_error)?;
         Ok(bytes)
     }
 }
 
 const RGB_CHANNELS_PER_PIXEL: u32 = 3;
 const JPEG_QUALITY: u8 = 90;
+
+fn png_encoding_error(error: image::ImageError) -> String {
+    format!("PNG encoding failed: {error}")
+}
+
+fn jpeg_encoding_error(error: image::ImageError) -> String {
+    format!("JPEG encoding failed: {error}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn image_encoding_errors_include_format_name() {
+        let png = png_encoding_error(image::ImageError::IoError(std::io::Error::other("png")));
+        let jpeg = jpeg_encoding_error(image::ImageError::IoError(std::io::Error::other("jpeg")));
+
+        assert!(png.contains("PNG encoding failed"));
+        assert!(jpeg.contains("JPEG encoding failed"));
+    }
+}

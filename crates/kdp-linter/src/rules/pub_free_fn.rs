@@ -79,3 +79,105 @@ impl<'ast> Visit<'ast> for PublicFreeFunctionVisitor {
         syn::visit::visit_item_fn(self, node);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_helpers::FixtureWorkspace;
+    use super::*;
+
+    #[test]
+    fn public_free_function_rule_excludes_private_and_crate_fns() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn private() {}
+pub(crate) fn inside_crate() {}
+pub fn public() {}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/public_free.rs", source)?;
+
+        let workspace = fixture.workspace()?;
+        let violations = PublicFreeFunctionRule::check(&workspace)?;
+        let found = violations
+            .iter()
+            .any(|violation| violation.message.contains("public"));
+
+        assert!(found);
+        Ok(())
+    }
+
+    #[test]
+    fn public_free_function_rule_skips_test_and_main_contexts() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+pub fn visible() {}
+
+fn main() {}
+
+#[cfg(test)]
+mod tests {
+    pub fn test_fn() {}
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/main_and_test.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = PublicFreeFunctionRule::check(&workspace)?;
+        let count = violations
+            .iter()
+            .filter(|violation| violation.message.contains("visible"))
+            .count();
+
+        assert_eq!(count, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn public_free_function_rule_counts_egui_duplication_file() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+pub fn ui_entry() {}
+"#;
+        fixture.write_rust_file("crates/katana-document-preview-egui/src/lib.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = PublicFreeFunctionRule::check(&workspace)?;
+
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.message.contains("ui_entry"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn public_free_function_rule_flags_crate_visibility() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+pub(crate) fn crate_visible() {}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/visible.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = PublicFreeFunctionRule::check(&workspace)?;
+
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.message.contains("`crate_visible`"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn public_free_function_rule_skips_cfg_test_functions() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+#[cfg(test)]
+pub fn cfg_function() {}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/test_cfg.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = PublicFreeFunctionRule::check(&workspace)?;
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+}
