@@ -144,3 +144,7 @@ fn parse_light_dark_function(content: &str) -> Option<(usize, &str)> {
     }
     None
 }
+
+#[cfg(test)]
+#[path = "export_surface_svg_preprocess_tests.rs"]
+mod tests;

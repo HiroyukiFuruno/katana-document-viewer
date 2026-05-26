@@ -69,3 +69,7 @@ impl SurfaceBlockFactory {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "block_quote_tests.rs"]
+mod tests;

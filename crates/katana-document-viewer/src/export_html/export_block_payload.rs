@@ -171,3 +171,7 @@ impl BlockHtmlWriter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_block_payload_tests.rs"]
+mod tests;

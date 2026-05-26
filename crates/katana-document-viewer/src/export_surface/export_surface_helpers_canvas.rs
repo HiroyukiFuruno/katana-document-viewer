@@ -127,6 +127,10 @@ impl SurfaceHelpers {
     }
 }
 
+#[cfg(test)]
+#[path = "export_surface_helpers_canvas_tests.rs"]
+mod tests;
+
 const DEFAULT_WHITE: image::Rgba<u8> = Rgba([255, 255, 255, 255]);
 const DEFAULT_CHANNEL: u8 = 255;
 const MAX_ALPHA_U8: u8 = 255;

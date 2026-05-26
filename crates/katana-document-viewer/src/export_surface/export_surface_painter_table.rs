@@ -156,3 +156,7 @@ impl SurfacePainter {
         *next_text_y += TABLE_LINE_HEIGHT;
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_table_tests.rs"]
+mod tests;

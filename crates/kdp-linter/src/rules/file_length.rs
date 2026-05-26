@@ -25,3 +25,8 @@ impl FileLengthRule {
         Ok(violations)
     }
 }
+
+#[cfg(test)]
+#[path = "file_length_tests.rs"]
+#[cfg(test)]
+mod tests;

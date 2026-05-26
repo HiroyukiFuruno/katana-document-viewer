@@ -158,3 +158,11 @@ fn append_node_source_text(output: &mut String, node: &KmmNode) {
         append_node_source_text(output, child);
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_span_nodes_variant_tests.rs"]
+mod variant_tests;
+
+#[cfg(test)]
+#[path = "export_surface_span_nodes_tests.rs"]
+mod tests;

@@ -3,9 +3,8 @@ use super::super::contract_test_support::HtmlContractTestSupport;
 #[test]
 fn red_detects_unbounded_nested_blockquote_contract_gaps() -> Result<(), Box<dyn std::error::Error>>
 {
-    let html = HtmlContractTestSupport::export_html(
-        "> 外側の引用\n> > 内側の引用\n> > > さらに内側の引用\n> > > > 四段目\n",
-    )?;
+    let markdown = "> 外側の引用\n> > 内側の引用\n> > > さらに内側の引用\n> > > > 四段目\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
     assert_nested_blockquote_contract(&html);
     assert_nested_blockquote_markers_hidden(&html);
     Ok(())
@@ -48,9 +47,8 @@ fn assert_nested_blockquote_markers_hidden(html: &str) {
 
 #[test]
 fn red_detects_footnote_reference_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "本文です[^1]。追加です[^2]\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n",
-    )?;
+    let markdown = "本文です[^1]。追加です[^2]\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,
@@ -70,9 +68,9 @@ fn red_detects_footnote_reference_contract_gaps() -> Result<(), Box<dyn std::err
 
 #[test]
 fn red_detects_footnote_section_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "本文です[^1]。追加です[^2]\n\n# 後続見出し\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n",
-    )?;
+    let markdown =
+        "本文です[^1]。追加です[^2]\n\n# 後続見出し\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
     assert_footnote_section_contract(&html);
     assert_footnote_section_after_body(&html);
     Ok(())
@@ -112,9 +110,8 @@ fn assert_footnote_section_after_body(html: &str) {
 
 #[test]
 fn red_detects_footnote_target_highlight_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
-    let html = HtmlContractTestSupport::export_html(
-        "本文です[^1]。追加です[^2]\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n",
-    )?;
+    let markdown = "本文です[^1]。追加です[^2]\n\n[^1]: 脚注本文。\n[^2]: 二番目。\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,

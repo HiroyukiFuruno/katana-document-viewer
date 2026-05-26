@@ -140,3 +140,7 @@ fn inferred_link_anchor(
     }
     None
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_links_tests.rs"]
+mod tests;

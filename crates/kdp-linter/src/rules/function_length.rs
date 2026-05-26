@@ -66,3 +66,57 @@ impl<'ast> Visit<'ast> for FunctionLengthVisitor {
         syn::visit::visit_impl_item_fn(self, node);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_helpers::FixtureWorkspace;
+    use super::*;
+
+    #[test]
+    fn function_length_rule_ignores_short_functions() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = "fn short() {\n    let _ = 1;\n}\n";
+        fixture.write_rust_file("crates/katana-document-viewer/src/short.rs", source)?;
+
+        let workspace = fixture.workspace()?;
+        let violations = FunctionLengthRule::check(&workspace)?;
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn function_length_rule_flags_long_fn_item() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let body = "    let _ = 1;\n".repeat(33);
+        let source = format!("fn long_fn() {{\n{body}}}\n");
+        fixture.write_rust_file("crates/katana-document-viewer/src/long.rs", &source)?;
+
+        let workspace = fixture.workspace()?;
+        let violations = FunctionLengthRule::check(&workspace)?;
+        let found = violations.iter().any(|violation| {
+            violation.rule == "function-length" && violation.message.contains("long_fn")
+        });
+
+        assert!(found);
+        Ok(())
+    }
+
+    #[test]
+    fn function_length_rule_checks_impl_item_fn() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let body = "        let _ = 1;\n".repeat(33);
+        let source =
+            format!("struct Holder {{}}\nimpl Holder {{\n    fn long_fn() {{\n{body}    }}\n}}\n");
+        fixture.write_rust_file("crates/katana-document-viewer/src/impl_long.rs", &source)?;
+
+        let workspace = fixture.workspace()?;
+        let violations = FunctionLengthRule::check(&workspace)?;
+        let found = violations.iter().any(|violation| {
+            violation.rule == "function-length" && violation.message.contains("long_fn")
+        });
+
+        assert!(found);
+        Ok(())
+    }
+}

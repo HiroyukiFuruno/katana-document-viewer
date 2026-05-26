@@ -3,9 +3,8 @@ use super::super::contract_test_support::HtmlContractTestSupport;
 #[test]
 fn red_detects_katana_task_checkbox_visual_contract_gaps() -> Result<(), Box<dyn std::error::Error>>
 {
-    let html = HtmlContractTestSupport::export_html(
-        "- [x] 完了\n- [ ] 未完了\n- [-] 横棒\n- [/] 進行中\n",
-    )?;
+    let markdown = "- [x] 完了\n- [ ] 未完了\n- [-] 横棒\n- [/] 進行中\n";
+    let html = HtmlContractTestSupport::export_html(markdown)?;
 
     HtmlContractTestSupport::assert_contains_all(
         &html,

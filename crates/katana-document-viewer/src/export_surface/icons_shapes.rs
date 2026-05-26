@@ -24,3 +24,7 @@ pub(super) fn draw_warning_icon(image: &mut RgbaImage, x: u32, y: u32, color: im
 pub(super) fn draw_caution_icon(image: &mut RgbaImage, x: u32, y: u32, color: image::Rgba<u8>) {
     icons_shapes_risk::draw_caution_icon(image, x, y, color);
 }
+
+#[cfg(test)]
+#[path = "icons_shapes_tests.rs"]
+mod tests;

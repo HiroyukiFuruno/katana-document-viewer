@@ -4,7 +4,8 @@ use crate::{
 };
 use flate2::read::ZlibDecoder;
 use katana_markdown_model::{
-    CodeBlockRole, KatanaMarkdownModel, KmmNode, KmmNodeKind, MarkdownInput,
+    CodeBlockRole, KatanaMarkdownModel, KmmDocument, KmmNode, KmmNodeKind, MarkdownInput,
+    TextFingerprint,
 };
 use std::io::Read;
 
@@ -49,7 +50,9 @@ impl ExportPayloadContractTestSupport {
         let document = KatanaMarkdownModel::parse(MarkdownInput::from_content(
             "payload-contract.md",
             source.content.clone(),
-        ))?;
+        ));
+        assert!(document.is_ok());
+        let document = document.unwrap_or(fallback_document());
         let snapshot = DocumentSnapshotFactory::from_kmm(source, document);
         Ok(BuildGraph::from_request(&BuildRequest {
             snapshot,
@@ -100,8 +103,7 @@ impl ExportPayloadContractTestSupport {
         ] {
             assert!(
                 !bytes.windows(needle.len()).any(|window| window == needle),
-                "{format} payload still embeds raw marker {:?}",
-                String::from_utf8_lossy(needle)
+                "{format} payload still embeds raw marker"
             );
         }
     }
@@ -115,8 +117,7 @@ impl ExportPayloadContractTestSupport {
         ] {
             assert!(
                 !bytes.windows(needle.len()).any(|window| window == needle),
-                "{format} payload still embeds SVG source {:?}",
-                String::from_utf8_lossy(needle)
+                "{format} payload still embeds SVG source"
             );
         }
     }
@@ -146,7 +147,22 @@ impl ExportPayloadContractTestSupport {
     }
 }
 
+fn fallback_document() -> KmmDocument {
+    KmmDocument {
+        path: std::path::PathBuf::from("payload-contract.md"),
+        fingerprint: TextFingerprint {
+            algorithm: "manual".to_string(),
+            value: "fallback".to_string(),
+        },
+        nodes: Vec::new(),
+    }
+}
+
 const PDF_IMAGE_OBJECT_ID: &str = "5 0 obj";
 const STREAM_START_MARKER: &str = "stream\n";
 const STREAM_END_MARKER: &str = "\nendstream";
 const RGB_CHANNELS_PER_PIXEL: u32 = 3;
+
+#[cfg(test)]
+#[path = "export_payload_contract_tests_support_tests.rs"]
+mod tests;

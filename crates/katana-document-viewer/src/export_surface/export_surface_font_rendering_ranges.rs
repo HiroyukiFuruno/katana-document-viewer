@@ -36,3 +36,7 @@ impl SpanVisualRangeCollector {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_font_rendering_ranges_tests.rs"]
+mod tests;

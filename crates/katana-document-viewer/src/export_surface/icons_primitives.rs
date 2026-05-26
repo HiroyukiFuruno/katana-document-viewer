@@ -153,3 +153,7 @@ pub(super) fn draw_stroked_circle_arc(
         STROKE_ARC_COLOR,
     );
 }
+
+#[cfg(test)]
+#[path = "icons_primitives_tests.rs"]
+mod tests;

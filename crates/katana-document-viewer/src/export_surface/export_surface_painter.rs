@@ -177,5 +177,9 @@ mod line;
 mod links;
 #[path = "export_surface_painter_markers.rs"]
 mod markers;
+#[path = "export_surface_painter_rule.rs"]
+mod rule;
 #[path = "export_surface_painter_table.rs"]
 mod table;
+#[path = "export_surface_painter_task_markers.rs"]
+mod task_markers;

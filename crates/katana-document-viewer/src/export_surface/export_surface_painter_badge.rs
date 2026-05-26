@@ -147,3 +147,7 @@ impl SurfacePainter {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_badge_tests.rs"]
+mod tests;

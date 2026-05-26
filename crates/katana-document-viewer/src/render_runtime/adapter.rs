@@ -47,12 +47,20 @@ fn render_math_tex(
     let renderer = MathJaxRenderer::with_runtime_path(runtime_path);
     let mathjax_source = MathJaxSourceNormalizer::normalize(source, math_mode);
     let input = MathJaxRenderInputFactory::create(&mathjax_source, math_mode, theme);
-    match renderer.render(&input) {
+    render_math_tex_result(source, &mathjax_source, renderer.render(&input))
+}
+
+fn render_math_tex_result(
+    source: &str,
+    mathjax_source: &str,
+    result: Result<katana_render_runtime::RenderOutput, RenderError>,
+) -> KrrRenderOutput {
+    match result {
         Ok(output) if output.diagnostics.errors.is_empty() && is_svg(&output.svg) => {
             KrrRenderOutput::svg(MathJaxSourceNormalizer::restore_metadata(
                 &output.svg,
                 source,
-                &mathjax_source,
+                mathjax_source,
             ))
         }
         Ok(output) => KrrRenderOutput::raw(
@@ -157,3 +165,10 @@ fn render_error_code(error: &RenderError) -> &'static str {
         RenderError::UnsupportedKind => "unsupported-kind",
     }
 }
+
+#[cfg(test)]
+#[path = "adapter_result_tests.rs"]
+mod result_tests;
+#[cfg(test)]
+#[path = "adapter_tests.rs"]
+mod tests;

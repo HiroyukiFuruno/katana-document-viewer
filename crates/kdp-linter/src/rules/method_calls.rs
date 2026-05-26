@@ -64,3 +64,49 @@ impl<'ast> Visit<'ast> for ProhibitedMethodVisitor {
         syn::visit::visit_expr_method_call(self, node);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_helpers::FixtureWorkspace;
+    use super::*;
+
+    #[test]
+    fn prohibited_method_rule_flags_known_methods() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn check() {
+    let _ = Some("value").unwrap();
+    let _ = Some("value").unwrap_or_default();
+    let _ = "x".to_string();
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/method_calls.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = ProhibitedMethodRule::check(&workspace)?;
+
+        assert_eq!(
+            violations
+                .iter()
+                .filter(|violation| violation.rule == "prohibited-method")
+                .count(),
+            2
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn prohibited_method_rule_ignores_safe_method() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn check() {
+    let _ = Some("value").unwrap_or_defaulted();
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/method_calls.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = ProhibitedMethodRule::check(&workspace)?;
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+}

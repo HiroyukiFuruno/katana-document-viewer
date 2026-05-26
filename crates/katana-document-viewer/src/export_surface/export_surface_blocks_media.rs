@@ -96,6 +96,14 @@ impl SurfaceMathBlock {
     pub(crate) fn fallback_text(&self) -> &str {
         &self.fallback_text
     }
+
+    #[cfg(test)]
+    pub(crate) fn for_tests(image: Option<RgbaImage>, fallback_text: String) -> Self {
+        Self {
+            image: image.map(|image| SurfaceSvgImage { image }),
+            fallback_text,
+        }
+    }
 }
 
 fn math_fallback_text(expression: &str, output: &KrrRenderOutput) -> String {
@@ -134,8 +142,7 @@ impl SurfaceDiagramBlock {
 
 pub(crate) struct SurfaceImageBlock {
     pub(crate) image: RgbaImage,
-    #[cfg(test)]
-    alt: String,
+    _alt: String,
 }
 
 impl SurfaceImageBlock {
@@ -146,15 +153,7 @@ impl SurfaceImageBlock {
     ) -> Option<Self> {
         let image = image::open(path).ok()?.to_rgba8();
         let image = scaled_image(image, requested_width);
-        #[cfg(test)]
-        {
-            Some(Self { image, alt })
-        }
-        #[cfg(not(test))]
-        {
-            let _ = alt;
-            Some(Self { image })
-        }
+        Some(Self { image, _alt: alt })
     }
 
     pub(crate) fn height(&self) -> u32 {
@@ -163,7 +162,7 @@ impl SurfaceImageBlock {
 
     #[cfg(test)]
     pub(crate) fn alt_for_tests(&self) -> String {
-        self.alt.clone()
+        self._alt.clone()
     }
 }
 
@@ -192,3 +191,7 @@ impl SurfaceSpanMetrics {
         span.estimated_width(font_size)
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_blocks_media_tests.rs"]
+mod tests;

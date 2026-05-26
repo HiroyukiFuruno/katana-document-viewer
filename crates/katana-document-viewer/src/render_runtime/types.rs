@@ -105,3 +105,43 @@ impl KrrRenderOutput {
 pub(crate) trait KrrRenderRuntime {
     fn render(&self, request: KrrRenderRequest) -> KrrRenderOutput;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn request_builder_supports_kind_and_theme() {
+        let request = KrrRenderRequest::math_tex("a+b", KrrMathMode::Display).with_theme(None);
+
+        assert_eq!(request.kind, KrrRenderKind::MathTex);
+        assert_eq!(request.source, "a+b");
+        assert_eq!(request.math_mode, KrrMathMode::Display);
+        assert!(request.theme.is_none());
+    }
+
+    #[test]
+    fn output_payload_helpers_and_diagnostics_message() {
+        let svg = KrrRenderOutput::svg("<svg/>".to_string());
+        let raw = KrrRenderOutput::raw(
+            "source".to_string(),
+            KrrRenderDiagnostic::new("code", "msg"),
+        );
+        let diagnostic_output = KrrRenderOutput {
+            diagnostics: vec![
+                KrrRenderDiagnostic::new("a", "first"),
+                KrrRenderDiagnostic::new("b", "second"),
+            ],
+            ..KrrRenderOutput::raw("".to_string(), KrrRenderDiagnostic::new("x", "y"))
+        };
+
+        assert_eq!(svg.svg_payload(), Some("<svg/>"));
+        assert_eq!(svg.raw_payload(), "");
+        assert_eq!(raw.svg_payload(), None);
+        assert_eq!(raw.raw_payload(), "source");
+        assert_eq!(
+            diagnostic_output.diagnostic_message(),
+            "a: first; b: second"
+        );
+    }
+}

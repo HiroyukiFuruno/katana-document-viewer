@@ -56,3 +56,15 @@ fn node_contains_structured_inline(node: &KmmNode) -> bool {
         _ => node.children.iter().any(node_contains_structured_inline),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contains_structured_inline_returns_false_for_plain_text() {
+        let fragment = EvaluatedMarkdownFragment::evaluate("plain.md", "plain text");
+
+        assert!(!fragment.contains_structured_inline());
+    }
+}

@@ -58,3 +58,47 @@ impl<'ast> Visit<'ast> for ProhibitedAttributeVisitor {
         syn::visit::visit_attribute(self, node);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_helpers::FixtureWorkspace;
+    use super::*;
+
+    #[test]
+    fn prohibited_attribute_rule_skips_non_allow_attributes() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+#[derive(Clone)]
+pub struct Value;
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/attr.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = ProhibitedAttributeRule::check(&workspace)?;
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn prohibited_attribute_rule_flags_allow_and_cfg_attr() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+#[allow(dead_code)]
+pub fn old_fn() {}
+
+#[cfg_attr(feature = "legacy", allow(unused_variables))]
+fn cfg_attr_fn() {}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/attr.rs", source)?;
+
+        let workspace = fixture.workspace()?;
+        let violations = ProhibitedAttributeRule::check(&workspace)?;
+        let allow_count = violations
+            .iter()
+            .filter(|violation| violation.rule == "prohibited-attribute")
+            .count();
+
+        assert_eq!(allow_count, 2);
+        Ok(())
+    }
+}

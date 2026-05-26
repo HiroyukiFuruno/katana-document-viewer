@@ -1,96 +1,10 @@
-use crate::artifact::{Artifact, ArtifactBytes, ArtifactFactory, ArtifactFormat};
-use crate::document::DocumentSnapshot;
+use crate::artifact::{ArtifactBytes, ArtifactFactory};
 use crate::export_payload::ExportPayloadFactory;
-use crate::theme::KdvThemeSnapshot;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum MarkdownEvaluationTarget {
-    CommonMark,
-    Gfm,
-    Math,
-    GitHubAlert,
-    KatanaCompatibility,
-    ExternalRendering,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TransformStep {
-    EvaluateMarkdown,
-    RenderDiagrams,
-    BuildArtifactManifest,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BuildProfile {
-    pub evaluation_targets: Vec<MarkdownEvaluationTarget>,
-    pub transform_steps: Vec<TransformStep>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BuildRequest {
-    pub snapshot: DocumentSnapshot,
-    pub profile: BuildProfile,
-    pub theme: KdvThemeSnapshot,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BuildGraph {
-    pub snapshot: DocumentSnapshot,
-    pub profile: BuildProfile,
-    pub theme: KdvThemeSnapshot,
-    pub diagnostics: ForgeDiagnostics,
-    pub rendered_diagrams: Vec<RenderedDiagram>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RenderedDiagram {
-    pub node_id: String,
-    pub kind: String,
-    pub svg: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ExportFormat {
-    Html,
-    Pdf,
-    Png,
-    Jpeg,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ExportRequest {
-    pub graph: BuildGraph,
-    pub format: ExportFormat,
-    pub theme: KdvThemeSnapshot,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ExportOutput {
-    pub artifact: Artifact,
-    pub diagnostics: ForgeDiagnostics,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ForgeDiagnostics {
-    pub messages: Vec<String>,
-}
-
-#[derive(Debug, Error)]
-pub enum ForgeError {
-    #[error("backend failed: {0}")]
-    Backend(String),
-    #[error("export failed: {0}")]
-    Export(String),
-    #[error("export produced empty artifact bytes for {0:?}")]
-    EmptyExportArtifact(ExportFormat),
-}
-
-pub trait ForgeBackend {
-    fn build(&self, request: &BuildRequest) -> Result<BuildGraph, ForgeError>;
-    fn export(&self, request: &ExportRequest) -> Result<ExportOutput, ForgeError>;
-}
+pub use crate::forge_types::{
+    BuildGraph, BuildProfile, BuildRequest, ExportFormat, ExportOutput, ExportRequest,
+    ForgeBackend, ForgeDiagnostics, ForgeError, MarkdownEvaluationTarget, RenderedDiagram,
+    TransformStep,
+};
 
 pub struct ForgePipeline<B> {
     backend: B,
@@ -135,17 +49,6 @@ impl BuildGraph {
     }
 }
 
-impl ExportFormat {
-    pub fn artifact_format(self) -> ArtifactFormat {
-        match self {
-            Self::Html => ArtifactFormat::Html,
-            Self::Pdf => ArtifactFormat::Pdf,
-            Self::Png => ArtifactFormat::Png,
-            Self::Jpeg => ArtifactFormat::Jpeg,
-        }
-    }
-}
-
 impl<B: ForgeBackend> ForgePipeline<B> {
     pub fn new(backend: B) -> Self {
         Self { backend }
@@ -156,14 +59,30 @@ impl<B: ForgeBackend> ForgePipeline<B> {
     }
 
     pub fn export(&self, request: &ExportRequest) -> Result<ExportOutput, ForgeError> {
-        let output = self.backend.export(request)?;
-        if output.artifact.bytes.bytes.is_empty() {
-            return Err(ForgeError::EmptyExportArtifact(request.format));
-        }
-        Ok(output)
+        validate_export_output(self.backend.export(request), request.format)
     }
 }
 
+fn validate_export_output(
+    result: Result<ExportOutput, ForgeError>,
+    format: ExportFormat,
+) -> Result<ExportOutput, ForgeError> {
+    match result {
+        Ok(output) => reject_empty_export_output(output, format),
+        Err(error) => Err(error),
+    }
+}
+
+fn reject_empty_export_output(
+    output: ExportOutput,
+    format: ExportFormat,
+) -> Result<ExportOutput, ForgeError> {
+    if output.artifact.bytes.bytes.is_empty() {
+        Err(ForgeError::EmptyExportArtifact(format))
+    } else {
+        Ok(output)
+    }
+}
 pub struct ManifestOnlyBackend;
 
 impl ForgeBackend for ManifestOnlyBackend {
@@ -173,16 +92,17 @@ impl ForgeBackend for ManifestOnlyBackend {
 
     fn export(&self, request: &ExportRequest) -> Result<ExportOutput, ForgeError> {
         let snapshot = &request.graph.snapshot;
-        let bytes = ExportPayloadFactory::create(&request.graph, request.format, &request.theme)?;
-        let artifact = ArtifactFactory::export(
-            request.format.artifact_format(),
-            snapshot.id.clone(),
-            snapshot.revision.clone(),
-            ArtifactBytes { bytes },
-        );
-        Ok(ExportOutput {
-            artifact,
-            diagnostics: request.graph.diagnostics.clone(),
+        ExportPayloadFactory::create(&request.graph, request.format, &request.theme).map(|bytes| {
+            let artifact = ArtifactFactory::export(
+                request.format.artifact_format(),
+                snapshot.id.clone(),
+                snapshot.revision.clone(),
+                ArtifactBytes { bytes },
+            );
+            ExportOutput {
+                artifact,
+                diagnostics: request.graph.diagnostics.clone(),
+            }
         })
     }
 }

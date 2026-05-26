@@ -45,3 +45,7 @@ impl SurfaceLine {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_line_markers_tests.rs"]
+mod tests;

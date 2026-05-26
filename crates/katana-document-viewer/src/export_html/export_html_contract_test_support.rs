@@ -119,3 +119,68 @@ impl DiagramRenderEngine for StaticDiagramEngine {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_html_with_diagrams_uses_rendered_payload_when_present() {
+        let markdown = "# title";
+        let rendered = vec![RenderedDiagram {
+            node_id: "id1".to_string(),
+            kind: "mermaid".to_string(),
+            svg: "<svg></svg>".to_string(),
+        }];
+
+        let result = HtmlContractTestSupport::export_html_with_diagrams(markdown, rendered);
+        let failure = format!("{:?}", result.as_ref().err());
+        assert!(result.is_ok(), "html export failed: {failure}");
+        let html = result.as_ref().map_or("", String::as_str);
+
+        assert!(!html.is_empty());
+    }
+
+    #[test]
+    fn assert_contains_all_panics_with_missing_fragment() {
+        let html = "<html><body><p>ok</p></body></html>";
+
+        let result = std::panic::catch_unwind(|| {
+            HtmlContractTestSupport::assert_contains_all(html, &[("missing", "not found")]);
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn assert_not_contains_any_panics_with_forbidden_fragment() {
+        let html = "<html><body><p>ng</p></body></html>";
+
+        let result = std::panic::catch_unwind(|| {
+            HtmlContractTestSupport::assert_not_contains_any(html, &[("forbidden", "<p>ng</p>")]);
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn extract_export_style_extracts_style_block() {
+        let html = "<style data-kdv-export-style>body { color: red; }</style><p>ok</p>";
+        let style = HtmlContractTestSupport::extract_export_style(html);
+        assert_eq!(style, Some("body { color: red; }"));
+    }
+
+    #[test]
+    fn extract_export_style_reports_none_for_missing_markers() {
+        assert_eq!(
+            HtmlContractTestSupport::extract_export_style("<p>ok</p>"),
+            None
+        );
+        assert_eq!(
+            HtmlContractTestSupport::extract_export_style(
+                "<style data-kdv-export-style>body { color: red; }"
+            ),
+            None
+        );
+    }
+}

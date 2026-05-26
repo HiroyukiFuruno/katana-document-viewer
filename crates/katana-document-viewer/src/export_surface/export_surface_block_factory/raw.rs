@@ -13,3 +13,7 @@ impl SurfaceBlockFactory {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "raw_tests.rs"]
+mod tests;

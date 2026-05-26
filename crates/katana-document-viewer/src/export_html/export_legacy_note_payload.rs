@@ -55,3 +55,34 @@ fn strong_label(line: &str) -> Option<String> {
         .and_then(|value| value.strip_suffix("**"))
         .map(ToString::to_string)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::KdvThemeSnapshot;
+
+    #[test]
+    fn append_parses_title_and_body_from_legacy_note() {
+        let mut html = String::new();
+        let note = "> **Note**\n> body text";
+        LegacyNoteHtmlWriter::append(&mut html, note, &KdvThemeSnapshot::katana_light());
+        assert!(html.contains("<blockquote data-kdv-blockquote=\"quote\">"));
+        assert!(html.contains("<strong>Note</strong>"));
+        assert!(html.contains("body text"));
+    }
+
+    #[test]
+    fn append_fallback_raw_text_when_title_not_found() {
+        let mut html = String::new();
+        LegacyNoteHtmlWriter::append(&mut html, "not note", &KdvThemeSnapshot::katana_light());
+        assert_eq!(
+            html,
+            "<blockquote data-kdv-blockquote=\"quote\">not note</blockquote>\n"
+        );
+    }
+
+    #[test]
+    fn from_raw_handles_empty_body() {
+        assert!(LegacyNoteBlock::from_raw("> **Note**").is_some());
+    }
+}

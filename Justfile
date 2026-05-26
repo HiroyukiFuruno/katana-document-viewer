@@ -8,7 +8,7 @@ CARGO := env_var_or_default("CARGO", "cargo")
 VERSION := env_var_or_default("VERSION", `awk -F '"' '/^version = / { print $2; exit }' Cargo.toml`)
 VERSION_BARE := replace(VERSION, "v", "")
 TAG := "v" + VERSION_BARE
-COVERAGE_MIN_LINES := env_var_or_default("COVERAGE_MIN_LINES", "66")
+COVERAGE_MIN_LINES := "100"
 RELEASE_REPO := env_var_or_default("RELEASE_REPO", "HiroyukiFuruno/katana-document-viewer")
 KAL_VERSION := env_var_or_default("KAL_VERSION", "0.5.1")
 KAL_ROOT := env_var_or_default("KAL_ROOT", REPO_ROOT + "/target/kal")
@@ -47,7 +47,11 @@ unit-test: test
 
 # Run coverage as a required full-check gate
 coverage:
-    {{CARGO}} llvm-cov --workspace --all-features --locked --summary-only --fail-under-lines {{COVERAGE_MIN_LINES}}
+    {{CARGO}} llvm-cov --workspace --all-targets --all-features --locked --summary-only --fail-under-lines {{COVERAGE_MIN_LINES}}
+
+# Show missing coverage lines without relaxing the coverage gate
+coverage-missing:
+    {{CARGO}} llvm-cov --workspace --all-targets --all-features --locked --show-missing-lines --fail-under-lines {{COVERAGE_MIN_LINES}}
 
 # Run the local quality gate
 check: fmt-check lint ast-lint test

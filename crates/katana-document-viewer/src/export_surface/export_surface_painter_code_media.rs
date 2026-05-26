@@ -1,10 +1,10 @@
 use super::{
     CODE_BLOCK_MARGIN, CODE_HORIZONTAL_PADDING, CODE_VERTICAL_PADDING, DIAGRAM_VERTICAL_MARGIN,
     IMAGE_VERTICAL_MARGIN, LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH, LIST_MARKER_COLUMN_WIDTH,
-    MATH_FALLBACK_TEXT_SIZE, MATH_VERTICAL_MARGIN, PAGE_PADDING, QUOTE_INDENT, RULE_HEIGHT,
-    RULE_STROKE_WIDTH, SURFACE_CONTENT_WIDTH, SURFACE_WIDTH, SurfaceCodeBlock, SurfaceDiagramBlock,
-    SurfaceHelpers, SurfaceImageBlock, SurfaceLine, SurfaceMathBlock, SurfacePaintPalette,
-    SurfacePainter, SurfaceSvgImage, SurfaceTextLayout, SurfaceTextPainter,
+    MATH_FALLBACK_TEXT_SIZE, MATH_VERTICAL_MARGIN, PAGE_PADDING, QUOTE_INDENT,
+    SURFACE_CONTENT_WIDTH, SURFACE_WIDTH, SurfaceCodeBlock, SurfaceDiagramBlock, SurfaceHelpers,
+    SurfaceImageBlock, SurfaceLine, SurfaceMathBlock, SurfacePaintPalette, SurfacePainter,
+    SurfaceSvgImage, SurfaceTextLayout, SurfaceTextPainter,
 };
 use image::RgbaImage;
 
@@ -185,16 +185,8 @@ impl SurfacePainter {
         let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(block.image.width()) / 2;
         SurfaceHelpers::paste_rgba(image, &block.image, x, y + IMAGE_VERTICAL_MARGIN);
     }
-
-    pub(super) fn paint_rule(image: &mut RgbaImage, y: u32, palette: &SurfacePaintPalette) {
-        let line_y = y + RULE_HEIGHT / 2;
-        SurfaceHelpers::fill_rect(
-            image,
-            PAGE_PADDING,
-            line_y,
-            SURFACE_CONTENT_WIDTH,
-            RULE_STROKE_WIDTH,
-            palette.table_border,
-        );
-    }
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_code_media_tests.rs"]
+mod tests;

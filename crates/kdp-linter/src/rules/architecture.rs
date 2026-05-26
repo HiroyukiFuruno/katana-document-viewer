@@ -18,3 +18,7 @@ impl ArchitectureRule {
         Ok(violations)
     }
 }
+
+#[cfg(test)]
+#[path = "architecture_tests.rs"]
+mod tests;

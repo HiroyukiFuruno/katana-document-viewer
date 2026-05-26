@@ -153,3 +153,7 @@ impl SurfaceBlock {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_blocks_tests.rs"]
+mod tests;

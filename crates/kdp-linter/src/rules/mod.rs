@@ -8,6 +8,8 @@ mod manifest_boundary;
 mod method_calls;
 mod nesting_depth;
 mod pub_free_fn;
+#[cfg(test)]
+pub(crate) mod test_helpers;
 
 use crate::diagnostics::{KdpLintError, Violation};
 use crate::workspace::WorkspaceModel;
@@ -48,3 +50,7 @@ impl RuleRunner {
         RULE_CHECKS
     }
 }
+
+#[cfg(test)]
+#[path = "mod_tests.rs"]
+mod tests;

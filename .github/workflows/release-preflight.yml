@@ -54,7 +54,9 @@ jobs:
 
       - name: Quality gate
         if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/v')
-        run: just JOBS=2 check
+        run: |
+          just JOBS=2 check
+          just coverage
 
       - name: Release check
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')

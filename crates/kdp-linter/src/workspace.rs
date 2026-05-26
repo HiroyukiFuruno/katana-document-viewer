@@ -105,3 +105,6 @@ impl WorkspaceModel {
         })
     }
 }
+
+#[cfg(test)]
+mod tests;

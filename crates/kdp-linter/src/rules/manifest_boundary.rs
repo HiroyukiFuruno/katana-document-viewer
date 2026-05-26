@@ -126,3 +126,7 @@ impl UiDependencyPolicy {
             )
     }
 }
+
+#[cfg(test)]
+#[path = "manifest_boundary_tests.rs"]
+mod tests;

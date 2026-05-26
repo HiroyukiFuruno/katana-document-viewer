@@ -177,3 +177,7 @@ impl SurfaceLine {
         self.indent_depth
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_line_impl_tests.rs"]
+mod tests;

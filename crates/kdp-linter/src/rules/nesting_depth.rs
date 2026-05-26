@@ -93,3 +93,90 @@ impl<'ast> Visit<'ast> for NestingDepthVisitor {
         self.exit();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::test_helpers::FixtureWorkspace;
+    use super::*;
+
+    #[test]
+    fn nesting_depth_rule_reports_excessive_nesting() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn nested() {
+    if true {
+        if true {
+            if true {
+                if true {
+                    if true {
+                        println!("too deep");
+                    }
+                }
+            }
+        }
+    }
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/nested.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = NestingDepthRule::check(&workspace)?;
+
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.rule == "nesting-depth")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn nesting_depth_rule_allows_valid_depth() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn nested() {
+    if true {
+        if true {
+            if true {
+                println!("ok");
+            }
+        }
+    }
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/nested_ok.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = NestingDepthRule::check(&workspace)?;
+
+        assert!(violations.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn nesting_depth_rule_checks_loop_and_match_forms() -> Result<(), KdpLintError> {
+        let fixture = FixtureWorkspace::new().with_default_manifests()?;
+        let source = r#"
+fn nested() {
+    for _ in 0..2 {
+        while false {
+            loop {
+                match 0 {
+                    0 => {}
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+"#;
+        fixture.write_rust_file("crates/katana-document-viewer/src/nested_forms.rs", source)?;
+        let workspace = fixture.workspace()?;
+        let violations = NestingDepthRule::check(&workspace)?;
+
+        assert!(
+            violations
+                .iter()
+                .any(|violation| violation.message.contains("nesting depth"))
+        );
+        Ok(())
+    }
+}

@@ -149,3 +149,7 @@ impl ColumnSize {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_table_payload_tests.rs"]
+mod tests;

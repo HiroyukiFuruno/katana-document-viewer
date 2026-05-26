@@ -47,6 +47,9 @@ impl ExportAssetResolver {
     }
 
     fn source_base_dir(source_uri: &SourceUri) -> Option<PathBuf> {
+        if source_uri.0.is_empty() {
+            return None;
+        }
         let path = source_uri
             .0
             .strip_prefix("file://")
@@ -95,38 +98,5 @@ impl ExportAssetResolver {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn resolves_relative_image_from_source_markdown_directory() {
-        let source_uri = SourceUri("file:///workspace/docs/README.md".to_string());
-
-        let resolved = ExportAssetResolver::resolve_src(&source_uri, "assets/icon.png");
-
-        assert_eq!(resolved, "file:///workspace/docs/assets/icon.png");
-    }
-
-    #[test]
-    fn resolves_windows_style_relative_image_as_file_url() {
-        let source_uri = SourceUri("file:///workspace/docs/README.md".to_string());
-
-        let resolved = ExportAssetResolver::resolve_src(&source_uri, r"assets\icon.png");
-
-        assert_eq!(resolved, "file:///workspace/docs/assets/icon.png");
-    }
-
-    #[test]
-    fn keeps_remote_and_data_images_unchanged() {
-        let source_uri = SourceUri("file:///workspace/docs/README.md".to_string());
-
-        assert_eq!(
-            ExportAssetResolver::resolve_src(&source_uri, "https://example.com/icon.png"),
-            "https://example.com/icon.png"
-        );
-        assert_eq!(
-            ExportAssetResolver::resolve_src(&source_uri, "data:image/png;base64,AA=="),
-            "data:image/png;base64,AA=="
-        );
-    }
-}
+#[path = "../export_assets_tests.rs"]
+mod tests;

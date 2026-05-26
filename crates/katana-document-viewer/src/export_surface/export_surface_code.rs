@@ -28,9 +28,10 @@ impl SurfaceCodeHighlighter {
 
     fn highlight_line(highlighter: &mut HighlightLines<'_>, line: &str) -> Vec<SurfaceTextSpan> {
         let line = line.trim_end_matches(['\r', '\n']);
+        let fallback = vec![(Style::default(), line)];
         let ranges = highlighter
             .highlight_line(line, syntax_set())
-            .unwrap_or_else(|_| vec![(Style::default(), line)]);
+            .unwrap_or(fallback);
         ranges
             .into_iter()
             .map(|(style, text)| SurfaceTextSpan::styled(text, span_style(style)))
@@ -75,3 +76,7 @@ fn theme_set() -> &'static ThemeSet {
 fn theme() -> &'static Theme {
     &theme_set().themes[SYNTAX_THEME]
 }
+
+#[cfg(test)]
+#[path = "export_surface_code_tests.rs"]
+mod tests;

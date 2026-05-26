@@ -48,6 +48,10 @@ impl InlineImagePainter {
     }
 }
 
+#[cfg(test)]
+#[path = "export_surface_font_rendering_inline_images_tests.rs"]
+mod tests;
+
 fn paste_inline_rgba(target: &mut RgbaImage, source: &RgbaImage, x: u32, y: u32) {
     for (source_x, source_y, pixel) in source.enumerate_pixels() {
         blend_pixel(

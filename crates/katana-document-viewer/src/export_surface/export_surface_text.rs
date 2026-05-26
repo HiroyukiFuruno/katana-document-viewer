@@ -107,3 +107,14 @@ impl SurfaceTextParser {
         values
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_text_html_tests.rs"]
+mod html_tests;
+
+#[cfg(test)]
+#[path = "export_surface_text_tests.rs"]
+mod tests;
+#[cfg(test)]
+#[path = "export_surface_text_variant_tests.rs"]
+mod variant_tests;

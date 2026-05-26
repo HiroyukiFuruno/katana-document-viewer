@@ -71,3 +71,7 @@ fn badge_color(color: &str) -> image::Rgba<u8> {
         _ => BADGE_COLOR_DEFAULT,
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_markup_badge_tests.rs"]
+mod tests;

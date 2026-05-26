@@ -124,3 +124,7 @@ fn draw_vertical_stroke(
 ) {
     draw_stroked_line(image, x, start_y, x, end_y, color);
 }
+
+#[cfg(test)]
+#[path = "icons_shapes_info_tests.rs"]
+mod tests;
