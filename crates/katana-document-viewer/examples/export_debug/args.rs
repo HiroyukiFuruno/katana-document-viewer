@@ -35,6 +35,7 @@ impl CommandArgsParser {
 struct RawCommandArgsParser<I> {
     args: I,
     parsed: ParsedCommandArgs,
+    parses_options: bool,
 }
 
 impl<I> RawCommandArgsParser<I>
@@ -45,6 +46,7 @@ where
         Self {
             args,
             parsed: ParsedCommandArgs::new(),
+            parses_options: true,
         }
     }
 
@@ -56,15 +58,24 @@ where
     }
 
     fn accept(&mut self, arg: String) -> Result<(), Box<dyn Error>> {
+        if !self.parses_options {
+            self.parsed.push_positional(arg);
+            return Ok(());
+        }
         match arg.as_str() {
+            "--" => {
+                self.parses_options = false;
+                Ok(())
+            }
             "--light" => self.parsed.set_theme(KdvThemeSnapshot::katana_light()),
             "--dark" => self.parsed.set_theme(KdvThemeSnapshot::katana_dark()),
             "--theme" => {
                 let json = self.required_arg("missing theme JSON")?;
                 self.parsed.set_theme(serde_json::from_str(&json)?)
             }
-            value if value.starts_with("--") => Err(unknown_option(value).into()),
+            "--thema" => Err(unknown_option("--thema").into()),
             _ => {
+                self.parses_options = false;
                 self.parsed.push_positional(arg);
                 Ok(())
             }

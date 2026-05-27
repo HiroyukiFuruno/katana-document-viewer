@@ -30,6 +30,24 @@ fn dark_theme_is_katana_dark() -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
+fn positional_paths_can_start_with_option_prefix() -> Result<(), Box<dyn Error>> {
+    let args = parse_args(&["--input.md", "--out"])?;
+
+    assert_eq!(args.input_path, PathBuf::from("--input.md"));
+    assert_eq!(args.output_dir, PathBuf::from("--out"));
+    Ok(())
+}
+
+#[test]
+fn option_marker_stops_option_parsing() -> Result<(), Box<dyn Error>> {
+    let args = parse_args(&["--", "--theme", "--out"])?;
+
+    assert_eq!(args.input_path, PathBuf::from("--theme"));
+    assert_eq!(args.output_dir, PathBuf::from("--out"));
+    Ok(())
+}
+
+#[test]
 fn complete_theme_json_is_read() -> Result<(), Box<dyn Error>> {
     let theme_json = ThemeJsonFixture::complete_json()?;
     let args = parse_args(&["--theme", &theme_json, "input.md", "out"])?;
