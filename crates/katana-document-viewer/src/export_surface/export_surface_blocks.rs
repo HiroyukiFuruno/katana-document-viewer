@@ -2,6 +2,8 @@ use crate::export_surface_line::SurfaceLine;
 
 #[path = "export_surface_blocks_badge_alert.rs"]
 mod badge_alert;
+#[path = "export_surface_blocks_data_image.rs"]
+mod data_image;
 #[path = "export_surface_blocks_media.rs"]
 mod media;
 #[path = "export_surface_blocks_table.rs"]

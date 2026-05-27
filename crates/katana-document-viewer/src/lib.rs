@@ -41,6 +41,7 @@ mod export_math_payload;
 mod export_payload;
 #[path = "export_payload/export_pdf_payload.rs"]
 mod export_pdf_payload;
+mod export_postprocess;
 mod export_quality;
 mod export_semantics;
 mod export_surface;
@@ -89,6 +90,12 @@ pub use evaluation::{
     EvaluationFeatureCoverage, EvaluationFixture, EvaluationFixtureMatrix, FixtureCategory,
 };
 pub use export_contract::{HtmlExportContractEntry, HtmlExportContractMatrix, HtmlExportReadiness};
+pub use export_postprocess::{
+    ExportPostprocessEvaluationReport, ExportPostprocessEvaluationRequest,
+    ExportPostprocessEvaluationService, ExportPostprocessMode, ExportPostprocessPolicy,
+    ExportPostprocessStatus, KaruiPdfPostprocessAdapter, PdfPostprocessAdapter,
+    PdfPostprocessError, PdfPostprocessInput, PdfPostprocessOutput,
+};
 pub use export_quality::{
     ExportFormatQualityScore, ExportQualityArtifacts, ExportQualityCheck, ExportQualityGate,
     ExportQualityReport,

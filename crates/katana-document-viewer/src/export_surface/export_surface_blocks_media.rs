@@ -142,7 +142,7 @@ impl SurfaceDiagramBlock {
 
 pub(crate) struct SurfaceImageBlock {
     pub(crate) image: RgbaImage,
-    _alt: String,
+    pub(crate) _alt: String,
 }
 
 impl SurfaceImageBlock {

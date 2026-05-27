@@ -43,6 +43,15 @@ fn html_fragment_text_falls_back_to_stripped_text_without_alt_attribute() {
 }
 
 #[test]
+fn html_fragment_text_ignores_gt_inside_quoted_attributes() {
+    let text = SurfaceTextParser::html_fragment_text(
+        "<p><img src=\"data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%2216%22%3E\"></p>",
+    );
+
+    assert!(text.is_empty());
+}
+
+#[test]
 fn extract_attribute_values_stops_on_missing_end_quote() {
     let attrs =
         SurfaceTextParser::extract_attribute_values("<img src=\"https://example.com/>", "src");

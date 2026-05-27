@@ -54,10 +54,12 @@ impl SurfaceTextParser {
     fn strip_tags(fragment: &str) -> String {
         let mut text = String::new();
         let mut inside_tag = false;
+        let mut inside_quote = false;
         for character in fragment.chars() {
             match character {
-                '<' => inside_tag = true,
-                '>' => {
+                '<' if !inside_tag => inside_tag = true,
+                '"' if inside_tag => inside_quote = !inside_quote,
+                '>' if !inside_quote => {
                     inside_tag = false;
                     text.push(' ');
                 }

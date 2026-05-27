@@ -2,6 +2,7 @@ use crate::export_assets::ExportAssetResolver;
 use crate::export_semantics::EvaluatedMarkdownFragment;
 use crate::export_surface_text::SurfaceTextParser;
 use crate::forge::BuildGraph;
+use crate::html_sanitizer::HtmlFragmentNormalizer;
 use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::{HtmlBlockRole, KmmNode};
 
@@ -21,16 +22,17 @@ impl SurfaceBlockFactory {
         list_depth: u32,
         theme: &KdvThemeSnapshot,
     ) {
-        if Self::append_special_html(blocks, graph, node, quote_depth, list_depth, theme) {
+        let fragment = HtmlFragmentNormalizer::normalize(&node.source.raw.text);
+        if Self::append_special_html(blocks, graph, &fragment, quote_depth, list_depth, theme) {
             return;
         }
         if matches!(role, HtmlBlockRole::BadgeRow) {
-            Self::append_badge_row(blocks, &node.source.raw.text);
+            Self::append_badge_row(blocks, &fragment);
             return;
         }
-        let text = Self::normalized_html_text(&node.source.raw.text);
-        if matches!(role, HtmlBlockRole::Centered) {
-            Self::append_centered_html(blocks, &node.source.raw.text, text);
+        let text = Self::normalized_html_text(&fragment);
+        if Self::is_centered_html(role, &fragment) {
+            Self::append_centered_html(blocks, &fragment, text);
             return;
         }
         Self::append_wrapped(blocks, text, quote_depth, list_depth);
@@ -39,23 +41,20 @@ impl SurfaceBlockFactory {
     fn append_special_html(
         blocks: &mut Vec<SurfaceBlock>,
         graph: &BuildGraph,
-        node: &KmmNode,
+        fragment: &str,
         quote_depth: u32,
         list_depth: u32,
         theme: &KdvThemeSnapshot,
     ) -> bool {
-        if Self::append_details(
-            blocks,
-            graph,
-            &node.source.raw.text,
-            quote_depth,
-            list_depth,
-            theme,
-        ) {
+        if Self::append_details(blocks, graph, fragment, quote_depth, list_depth, theme) {
             return true;
         }
-        if let Some(local_image) = Self::local_html_image_block(graph, &node.source.raw.text) {
+        if let Some(local_image) = Self::local_html_image_block(graph, fragment) {
             blocks.push(SurfaceBlock::Image(local_image));
+            return true;
+        }
+        if let Some(data_image) = Self::data_html_image_block(fragment) {
+            blocks.push(SurfaceBlock::Image(data_image));
             return true;
         }
         false
@@ -68,7 +67,11 @@ impl SurfaceBlockFactory {
     }
 
     fn normalized_html_text(fragment: &str) -> String {
-        SurfaceHtmlMarkup::normalize_text(&SurfaceTextParser::inline_markdown_text(fragment))
+        SurfaceHtmlMarkup::normalize_text(&SurfaceTextParser::html_fragment_text(fragment))
+    }
+
+    fn is_centered_html(role: &HtmlBlockRole, fragment: &str) -> bool {
+        matches!(role, HtmlBlockRole::Centered) || SurfaceHtmlMarkup::has_center_alignment(fragment)
     }
 
     fn append_centered_html(blocks: &mut Vec<SurfaceBlock>, fragment: &str, text: String) {
@@ -91,6 +94,13 @@ impl SurfaceBlockFactory {
             })?;
         let path = ExportAssetResolver::resolve_file_path(&graph.snapshot.source_uri, &image.src)?;
         SurfaceImageBlock::from_path(&path, image.width, image.alt)
+    }
+
+    fn data_html_image_block(fragment: &str) -> Option<SurfaceImageBlock> {
+        let image = SurfaceHtmlMarkup::extract_img_refs(fragment)
+            .into_iter()
+            .find(|image| image.src.starts_with("data:image/"))?;
+        SurfaceImageBlock::from_data_uri(&image.src, image.width, image.alt)
     }
 
     fn append_details(

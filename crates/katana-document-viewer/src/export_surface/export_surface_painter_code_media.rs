@@ -27,7 +27,7 @@ impl SurfacePainter {
         }
         let (box_x, box_width, box_y) = Self::code_block_geometry(block, y);
         Self::paint_code_background(image, box_x, box_y, box_width, block.box_height(), palette);
-        Self::paint_code_lines(image, &block.lines, box_y, painter, palette);
+        Self::paint_code_lines(image, &block.lines, box_x, box_y, painter, palette);
     }
 
     pub(super) fn code_block_geometry(block: &SurfaceCodeBlock, y: u32) -> (u32, u32, u32) {
@@ -68,13 +68,14 @@ impl SurfacePainter {
     pub(super) fn paint_code_lines(
         image: &mut RgbaImage,
         lines: &[SurfaceLine],
+        box_x: u32,
         box_y: u32,
         painter: &mut Option<SurfaceTextPainter>,
         palette: &SurfacePaintPalette,
     ) {
         let mut line_y = box_y + CODE_VERTICAL_PADDING;
         for line in lines {
-            Self::paint_code_line(image, line, box_y, line_y, painter, palette);
+            Self::paint_code_line(image, line, box_x, line_y, painter, palette);
             line_y += line.line_height();
         }
     }
