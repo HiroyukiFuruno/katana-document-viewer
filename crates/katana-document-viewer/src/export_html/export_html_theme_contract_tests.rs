@@ -58,6 +58,22 @@ fn cli_export_uses_katana_dark_when_dark_mode_is_selected() -> Result<(), Box<dy
 }
 
 #[test]
+fn complete_theme_json_is_reflected_in_html_export() -> Result<(), Box<dyn std::error::Error>> {
+    let mut theme = KdvThemeSnapshot::katana_dark();
+    theme.name = "cli-json".to_string();
+    theme.background = "#010203".to_string();
+    let theme_json = serde_json::to_string(&theme)?;
+    let cli_theme = serde_json::from_str::<KdvThemeSnapshot>(&theme_json)?;
+    let graph = build_graph("# Theme\n", cli_theme.clone())?;
+
+    let html = HtmlContractTestSupport::export_html_with_graph(graph, cli_theme)?;
+
+    assert!(html.contains(r#"data-kdv-theme="cli-json""#));
+    assert!(html.contains("--kdv-background:#010203;"));
+    Ok(())
+}
+
+#[test]
 fn app_dark_theme_marks_rendered_diagram_as_dark() -> Result<(), Box<dyn std::error::Error>> {
     let mut graph = build_graph(
         "```mermaid\ngraph TD; A-->B\n```\n",

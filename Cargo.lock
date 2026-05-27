@@ -948,7 +948,7 @@ dependencies = [
 
 [[package]]
 name = "katana-document-preview"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "thiserror",
@@ -956,7 +956,7 @@ dependencies = [
 
 [[package]]
 name = "katana-document-preview-egui"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "egui",
  "katana-document-preview",
@@ -965,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "katana-document-viewer"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "cosmic-text",
  "flate2",
@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "kdp-linter"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ignore",
  "proc-macro2",

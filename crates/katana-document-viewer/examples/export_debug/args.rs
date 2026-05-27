@@ -28,91 +28,123 @@ impl CommandArgsParser {
     where
         I: IntoIterator<Item = String>,
     {
-        let mut args = args.into_iter();
-        let mut theme = KdvThemeSnapshot::katana_light();
-        let first = required_arg(&mut args, "missing input markdown path")?;
-        let input_path = match first.as_str() {
-            "--light" => required_arg(&mut args, "missing input markdown path")?,
-            "--dark" => {
-                theme = KdvThemeSnapshot::katana_dark();
-                required_arg(&mut args, "missing input markdown path")?
+        RawCommandArgsParser::new(args.into_iter()).parse()
+    }
+}
+
+struct RawCommandArgsParser<I> {
+    args: I,
+    parsed: ParsedCommandArgs,
+    parses_options: bool,
+}
+
+impl<I> RawCommandArgsParser<I>
+where
+    I: Iterator<Item = String>,
+{
+    fn new(args: I) -> Self {
+        Self {
+            args,
+            parsed: ParsedCommandArgs::new(),
+            parses_options: true,
+        }
+    }
+
+    fn parse(mut self) -> Result<CommandArgs, Box<dyn Error>> {
+        while let Some(arg) = self.args.next() {
+            self.accept(arg)?;
+        }
+        self.parsed.into_command_args()
+    }
+
+    fn accept(&mut self, arg: String) -> Result<(), Box<dyn Error>> {
+        if !self.parses_options {
+            self.parsed.push_positional(arg);
+            return Ok(());
+        }
+        match arg.as_str() {
+            "--" => {
+                self.parses_options = false;
+                Ok(())
             }
-            "--theme" => return Err(invalid_input("--theme is tracked by a later change").into()),
-            "--thema" => return Err(invalid_input("--thema is not supported").into()),
-            value => value.to_string(),
-        };
-        let output_dir = required_arg(&mut args, "missing output directory")?;
-        if args.next().is_some() {
-            return Err(invalid_input("too many arguments").into());
+            "--light" => self.parsed.set_theme(KdvThemeSnapshot::katana_light()),
+            "--dark" => self.parsed.set_theme(KdvThemeSnapshot::katana_dark()),
+            "--theme" => {
+                let json = self.required_arg("missing theme JSON")?;
+                self.parsed.set_theme(serde_json::from_str(&json)?)
+            }
+            "--thema" => Err(unknown_option("--thema").into()),
+            _ => {
+                self.parses_options = false;
+                self.parsed.push_positional(arg);
+                Ok(())
+            }
+        }
+    }
+
+    fn required_arg(&mut self, message: &'static str) -> Result<String, Box<dyn Error>> {
+        self.args
+            .next()
+            .ok_or_else(|| invalid_input(message).into())
+    }
+}
+
+struct ParsedCommandArgs {
+    theme: KdvThemeSnapshot,
+    theme_is_set: bool,
+    positional_args: Vec<String>,
+}
+
+impl ParsedCommandArgs {
+    fn new() -> Self {
+        Self {
+            theme: KdvThemeSnapshot::katana_light(),
+            theme_is_set: false,
+            positional_args: Vec::new(),
+        }
+    }
+
+    fn set_theme(&mut self, theme: KdvThemeSnapshot) -> Result<(), Box<dyn Error>> {
+        if self.theme_is_set {
+            return Err(invalid_input("theme option cannot be combined").into());
+        }
+        self.theme_is_set = true;
+        self.theme = theme;
+        Ok(())
+    }
+
+    fn push_positional(&mut self, value: String) {
+        self.positional_args.push(value);
+    }
+
+    fn into_command_args(self) -> Result<CommandArgs, Box<dyn Error>> {
+        if self.positional_args.len() != 2 {
+            return Err(positional_error(self.positional_args.len()).into());
         }
         Ok(CommandArgs {
-            input_path: PathBuf::from(input_path),
-            output_dir: PathBuf::from(output_dir),
-            theme,
+            input_path: PathBuf::from(self.positional_args[0].clone()),
+            output_dir: PathBuf::from(self.positional_args[1].clone()),
+            theme: self.theme,
         })
     }
 }
 
-fn required_arg(
-    args: &mut impl Iterator<Item = String>,
-    message: &'static str,
-) -> Result<String, std::io::Error> {
-    args.next().ok_or_else(|| invalid_input(message))
+fn positional_error(count: usize) -> std::io::Error {
+    match count {
+        0 => invalid_input("missing input markdown path"),
+        1 => invalid_input("missing output directory"),
+        _ => invalid_input("too many arguments"),
+    }
 }
 
-fn invalid_input(message: &'static str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
+fn unknown_option(value: &str) -> std::io::Error {
+    invalid_input(format!("unknown option: {value}"))
+}
+
+fn invalid_input(message: impl Into<String>) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidInput, message.into())
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_theme_is_katana_light() -> Result<(), Box<dyn Error>> {
-        let args = parse_args(&["input.md", "out"])?;
-
-        assert_eq!(args.theme.name, "katana-light");
-        assert_eq!(args.input_path, PathBuf::from("input.md"));
-        assert_eq!(args.output_dir, PathBuf::from("out"));
-        Ok(())
-    }
-
-    #[test]
-    fn light_theme_is_katana_light() -> Result<(), Box<dyn Error>> {
-        let args = parse_args(&["--light", "input.md", "out"])?;
-
-        assert_eq!(args.theme.name, "katana-light");
-        assert_eq!(args.input_path, PathBuf::from("input.md"));
-        Ok(())
-    }
-
-    #[test]
-    fn dark_theme_is_katana_dark() -> Result<(), Box<dyn Error>> {
-        let args = parse_args(&["--dark", "input.md", "out"])?;
-
-        assert_eq!(args.theme.name, "katana-dark");
-        assert_eq!(args.output_dir, PathBuf::from("out"));
-        Ok(())
-    }
-
-    #[test]
-    fn theme_json_entry_is_rejected_until_later_change() {
-        let error = parse_args(&["--theme", "theme.json", "input.md", "out"])
-            .expect_err("theme JSON entry must be rejected in this change");
-
-        assert_eq!(error.to_string(), "--theme is tracked by a later change");
-    }
-
-    #[test]
-    fn thema_spelling_is_rejected() {
-        let error = parse_args(&["--thema", "theme.json", "input.md", "out"])
-            .expect_err("--thema must not be accepted");
-
-        assert_eq!(error.to_string(), "--thema is not supported");
-    }
-
-    fn parse_args(values: &[&str]) -> Result<CommandArgs, Box<dyn Error>> {
-        CommandArgsParser::parse_from(values.iter().map(|value| value.to_string()))
-    }
-}
+#[path = "args_tests.rs"]
+mod tests;

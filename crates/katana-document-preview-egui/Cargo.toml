@@ -13,6 +13,6 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies]
-katana-document-preview = { path = "../katana-document-preview", version = "0.1.1" }
+katana-document-preview = { path = "../katana-document-preview", version = "0.1.2" }
 egui = { workspace = true }
 serde = { workspace = true }
