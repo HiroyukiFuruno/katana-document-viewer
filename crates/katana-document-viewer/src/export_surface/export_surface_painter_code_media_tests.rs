@@ -11,6 +11,8 @@ const WHITE_PIXEL: Rgba<u8> = Rgba([
     OPAQUE_CHANNEL,
 ]);
 const SAMPLE_ALPHA: u8 = OPAQUE_CHANNEL;
+const CODE_LINE_EXPECTED_X: u32 = 80;
+const CODE_LINE_BOX_Y: u32 = 16;
 
 fn has_painted_pixel(image: &image::RgbaImage) -> bool {
     image.pixels().any(|pixel| *pixel != WHITE_PIXEL)
@@ -26,11 +28,10 @@ fn paint_code_block_uses_quote_and_code_layout() {
     let palette = SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let mut image = image::RgbaImage::from_pixel(240, 120, WHITE_PIXEL);
     SurfacePainter::paint_code_block(&mut image, &block, 4, &mut painter, &palette);
+    let (box_x, _, _) = SurfacePainter::code_block_geometry(&block, 4);
     assert_ne!(image.get_pixel(PAGE_PADDING, 4).0, WHITE_PIXEL.0);
     assert_ne!(
-        image
-            .get_pixel(PAGE_PADDING + CODE_HORIZONTAL_PADDING + 1, 24)
-            .0,
+        image.get_pixel(box_x + CODE_HORIZONTAL_PADDING + 1, 24).0,
         WHITE_PIXEL.0
     );
 }
@@ -49,7 +50,20 @@ fn paint_code_lines_and_code_line_with_fallback() {
     let palette = SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let mut image = image::RgbaImage::from_pixel(200, 120, WHITE_PIXEL);
     let lines = block.lines.as_slice();
-    SurfacePainter::paint_code_lines(&mut image, lines, 16, &mut painter, &palette);
+    SurfacePainter::paint_code_lines(
+        &mut image,
+        lines,
+        CODE_LINE_EXPECTED_X,
+        CODE_LINE_BOX_Y,
+        &mut painter,
+        &palette,
+    );
+    assert_ne!(
+        image
+            .get_pixel(CODE_LINE_EXPECTED_X + CODE_HORIZONTAL_PADDING + 1, 24)
+            .0,
+        WHITE_PIXEL.0
+    );
     assert!(has_painted_pixel(&image));
 }
 

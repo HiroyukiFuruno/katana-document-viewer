@@ -12,6 +12,7 @@
 - **THEN** link annotation、footnote destination、page tree、page image、図形、数式、コードブロック、GitHub alertの検査が通常PDFより劣化してはならない
 - **THEN** file sizeと生成時間を通常PDFと比較できなければならない
 - **THEN** fatal failureが1件でも増える場合、Karui適用結果を正式成果物として採用してはならない
+- **THEN** 実際に出力したPDF artifactの目視確認で表示劣化が見つかった場合、機械検査が通っていてもreleaseへ進んではならない
 
 #### Scenario: KaruiはPDF生成backendを置き換えない
 

@@ -45,6 +45,50 @@ fn local_html_image_node_is_loaded_into_image_block() -> Result<(), Box<dyn std:
     Ok(())
 }
 
+#[test]
+fn centered_data_svg_image_node_is_loaded_into_image_block() {
+    let graph = graph();
+    let mut blocks = Vec::new();
+    let data_uri = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2210%22%3E%3Crect%20width%3D%2216%22%20height%3D%2210%22%20fill%3D%22%23000%22%2F%3E%3C%2Fsvg%3E";
+    let source = format!("<p align=\"center\"><img src=\"{data_uri}\" alt=\"fixture\"></p>");
+    let node = node(&source);
+
+    SurfaceBlockFactory::append_html(
+        &mut blocks,
+        &graph,
+        &node,
+        &HtmlBlockRole::Centered,
+        0,
+        0,
+        &KdvThemeSnapshot::katana_light(),
+    );
+
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].debug_for_tests(), "image:16x10:fixture");
+}
+
+#[test]
+fn broken_katana_fixture_svg_data_uri_is_normalized_for_surface_image() {
+    let graph = graph();
+    let mut blocks = Vec::new();
+    let data_uri = "data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%2216%22 height=%2210%22%3E%3Crect width=%2216%22 height=%2210%22 fill=%22%23000%22/%3E%3C/svg%3E";
+    let source = format!("<p align=\"center\"><img src=\"{data_uri}\" alt=\"fixture\"></p>");
+    let node = node(&source);
+
+    SurfaceBlockFactory::append_html(
+        &mut blocks,
+        &graph,
+        &node,
+        &HtmlBlockRole::Generic,
+        0,
+        0,
+        &KdvThemeSnapshot::katana_light(),
+    );
+
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].debug_for_tests(), "image:16x10:fixture");
+}
+
 fn image_html(image_file_name: &str) -> String {
     format!("<p><img src=\"{image_file_name}\" alt=\"fixture\" /></p>")
 }

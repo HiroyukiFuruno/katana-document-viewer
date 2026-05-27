@@ -39,6 +39,27 @@ fn extract_img_refs_tracks_width_and_link_targets() {
 }
 
 #[test]
+fn extract_img_refs_ignores_gt_inside_quoted_attributes() {
+    let html = "<img src=\"data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%2216%22%3E\" alt=\"Icon\">";
+    let refs = SurfaceHtmlMarkup::extract_img_refs(html);
+
+    assert_eq!(refs.len(), 1);
+    assert!(refs[0].src.contains("data:image/svg+xml"));
+    assert_eq!(refs[0].alt, "Icon");
+}
+
+#[test]
+fn has_center_alignment_detects_html_alignment_hints() {
+    assert!(SurfaceHtmlMarkup::has_center_alignment(
+        "<p align=\"center\">text</p>"
+    ));
+    assert!(SurfaceHtmlMarkup::has_center_alignment(
+        "<p style=\"text-align: center\">text</p>"
+    ));
+    assert!(!SurfaceHtmlMarkup::has_center_alignment("<p>text</p>"));
+}
+
+#[test]
 fn centered_html_spans_builds_mixed_text_and_link_spans() {
     let spans =
         SurfaceHtmlMarkup::centered_html_spans("A <a href=\"https://example.com\">go</a> B");
@@ -74,6 +95,13 @@ fn extract_img_refs_stops_on_unclosed_img_and_defaults_empty_alt() {
     assert_eq!(complete_refs.len(), 1);
     assert_eq!(complete_refs[0].alt, "");
     assert_eq!(complete_refs[0].width, None);
+}
+
+#[test]
+fn extract_img_refs_ignores_img_without_src() {
+    let refs = SurfaceHtmlMarkup::extract_img_refs("<img alt=\"Icon\">");
+
+    assert!(refs.is_empty());
 }
 
 #[test]

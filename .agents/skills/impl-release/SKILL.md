@@ -41,6 +41,11 @@ git diff --check
 
 失敗した場合は、除外や allow で逃げず、設計またはテストを直して同じ gate に戻ります。
 
+`just check` と `release-check` は release の必要条件であり、十分条件ではありません。
+PDF、PNG、JPG、HTMLなど利用者が実際に開く成果物を変更・最適化・圧縮・経路追加する場合は、同じ fixture から実artifactを出力し、絶対パスを `tasks.md` とユーザー報告に残します。
+機械検査が通っていても、出力artifactの目視確認で表示劣化が見つかった場合は release blocker として扱い、原因修正または採用見送りまで commit / PR / release へ進みません。
+発覚した劣化は、可能な範囲で `just check` 内の回帰テストへ昇格します。目視でしか判断できない部分は、ユーザー確認待ちの未完了タスクとして残します。
+
 ## Phase 3: commit と push
 
 `lefthook` を通すため、通常の commit / push を使います。
@@ -112,5 +117,6 @@ gh run list --workflow Release --limit 5
 - [ ] `release/vX.Y.Z` の PR が作成されている
 - [ ] PR に `@codex review` コメントが最低2回投稿されている
 - [ ] `lint`、`ast-lint`、`test`、`coverage`、`release-preflight` が通っている
+- [ ] 成果物の出力経路を変更した場合、実artifactの絶対パスを提示し、ユーザー目視確認が完了している
 - [ ] 最後の cloud review の指摘が解消されている
 - [ ] merge 後に Release workflow が起動している

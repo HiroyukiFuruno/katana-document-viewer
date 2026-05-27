@@ -41,7 +41,7 @@ impl SurfaceHtmlMarkup {
         while let Some(img_start) = rest.find("<img") {
             let link_target = enclosing_link_target(&rest[..img_start]);
             let after_img = &rest[img_start..];
-            let Some(img_end) = after_img.find('>') else {
+            let Some(img_end) = html_tag_end(after_img) else {
                 break;
             };
             let tag = &after_img[..img_end];
@@ -58,6 +58,13 @@ impl SurfaceHtmlMarkup {
             rest = &after_img[img_end + 1..];
         }
         images
+    }
+
+    pub(crate) fn has_center_alignment(fragment: &str) -> bool {
+        fragment.contains("align=\"center\"")
+            || fragment.contains("align='center'")
+            || fragment.contains("text-align:center")
+            || fragment.contains("text-align: center")
     }
 
     pub(crate) fn centered_html_spans(fragment: &str) -> Vec<SurfaceTextSpan> {
@@ -90,6 +97,18 @@ mod tests;
 fn enclosing_link_target(prefix: &str) -> Option<String> {
     let link_start = prefix.rfind("<a")?;
     quoted_attribute_value(&prefix[link_start..], "href")
+}
+
+fn html_tag_end(fragment: &str) -> Option<usize> {
+    let mut inside_quote = false;
+    for (index, character) in fragment.char_indices() {
+        match character {
+            '"' => inside_quote = !inside_quote,
+            '>' if !inside_quote => return Some(index),
+            _ => {}
+        }
+    }
+    None
 }
 
 fn quoted_attribute_value(tag: &str, name: &str) -> Option<String> {
