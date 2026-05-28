@@ -3,7 +3,6 @@
 KDVのCLI入口とapp/API入口でtheme責務を分け、色の欠落や暗黙fallbackでHTML/PDF/PNG/JPGの見た目が壊れる経路をなくす。
 
 ## Requirements
-
 ### Requirement: CLI入口は省略可能なlight/dark theme modeを受け取らなければならない
 
 システムは、CLI向け入口でテーマ（theme）指定を必須にせず、light/darkの簡易指定を受け取らなければならない（MUST）。
@@ -66,9 +65,9 @@ KDVのCLI入口とapp/API入口でtheme責務を分け、色の欠落や暗黙fa
 - **THEN** diagram背景は `transparent` として扱う
 - **THEN** diagramは親要素の `katana-light` 背景へ溶け込む
 
-### Requirement: `--theme` JSON入口は別changeで扱わなければならない
+### Requirement: `--theme` JSON入口は専用仕様で扱わなければならない
 
-システムは、完全テーマJSONを受け取るCLI入口をこのchangeで実装してはならない（MUST NOT）。
+システムは、完全テーマJSONを受け取るCLI入口を `cli-theme-json-entry` 仕様で扱い、complete theme contract自体へ混ぜ込んではならない（MUST）。
 
 #### Scenario: 将来のJSON入口名を確認する
 
