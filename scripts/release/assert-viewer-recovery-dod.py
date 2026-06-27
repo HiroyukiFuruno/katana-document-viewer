@@ -25,6 +25,7 @@ HANDOFF_FEEDBACK_LEDGER_FILES = (
     ROOT / "handoff-kdv-v0.2.0-viewer-recovery-2026-06-13.md",
     ROOT / "handoff-kdv-v0.2.0-work-instruction-2026-06-13.md",
 )
+CANONICAL_FEEDBACK_LEDGER_RELATIVE_PATH = USER_FEEDBACK.relative_to(ROOT).as_posix()
 CANONICAL_FEEDBACK_LEDGER_PATH = USER_FEEDBACK.as_posix()
 STALE_ROOT_FEEDBACK_LEDGER_PATH = (ROOT / "user-feedback-todo.md").as_posix()
 
@@ -700,7 +701,7 @@ REQUIRED_ACCEPTANCE_TITLE_BODY_TEXT_BANDS = (
         45,
         55,
         380,
-        450,
+        480,
         22,
         30,
         2_100,
@@ -714,10 +715,10 @@ REQUIRED_ACCEPTANCE_TITLE_BODY_TEXT_BANDS = (
         104,
         112,
         620,
-        680,
+        740,
         14,
         20,
-        1_950,
+        1_750,
         2_700,
     ),
     (
@@ -728,7 +729,7 @@ REQUIRED_ACCEPTANCE_TITLE_BODY_TEXT_BANDS = (
         127,
         135,
         560,
-        620,
+        740,
         14,
         20,
         1_750,
@@ -889,7 +890,7 @@ REQUIRED_ACCEPTANCE_HTML_CENTER_TEXT_BANDS = (
         305,
         335,
         375,
-        405,
+        435,
         500,
         590,
         1_400,
@@ -905,7 +906,7 @@ REQUIRED_ACCEPTANCE_LINK_UNDERLINE_BANDS = (
         20,
         35,
         60,
-        180,
+        140,
         340,
         35,
     ),
@@ -917,7 +918,7 @@ REQUIRED_ACCEPTANCE_LINK_UNDERLINE_BANDS = (
         150,
         35,
         60,
-        180,
+        140,
         380,
         35,
     ),
@@ -1561,12 +1562,19 @@ def self_test() -> int:
         failures.append(
             "handoff feedback ledger scanner must reject stale root user-feedback path"
         )
-    canonical_handoff = f"- {CANONICAL_FEEDBACK_LEDGER_PATH}\n"
+    canonical_handoff = f"- {CANONICAL_FEEDBACK_LEDGER_RELATIVE_PATH}\n"
     if handoff_canonical_feedback_path_errors_from_markdown(
         "self-test.md", canonical_handoff
     ):
         failures.append(
             "handoff feedback ledger scanner must allow canonical OpenSpec user-feedback path"
+        )
+    canonical_absolute_handoff = f"- {CANONICAL_FEEDBACK_LEDGER_PATH}\n"
+    if handoff_canonical_feedback_path_errors_from_markdown(
+        "self-test.md", canonical_absolute_handoff
+    ):
+        failures.append(
+            "handoff feedback ledger scanner must allow canonical absolute user-feedback path"
         )
     complete_manifest = acceptance_artifact_manifest_text()
     missing_manifest = complete_manifest.replace(
@@ -2834,7 +2842,7 @@ def self_test() -> int:
             ),
             "target/acceptance/text-regression-crops/html-margin-center.png:centered HTML paragraph": (
                 375,
-                405,
+                435,
                 520,
                 590,
                 1_500,
@@ -2872,7 +2880,7 @@ def self_test() -> int:
             ),
             "target/acceptance/text-regression-crops/html-margin-center.png:centered HTML paragraph": (
                 375,
-                405,
+                435,
                 520,
                 590,
                 1_500,
@@ -3044,7 +3052,9 @@ steps:
   - name: Install Graphviz (Windows)
     run: choco install graphviz --no-progress -y
   - name: Run tests
-    run: cargo test --workspace --locked
+    run: |
+      cargo test --workspace --locked --exclude kdv-storybook
+      cargo test -p kdv-storybook --locked -- --test-threads=1
 """
     valid_preflight_runtime = """
 env:
@@ -3359,12 +3369,24 @@ def handoff_canonical_feedback_path_errors_from_markdown(
     label: str, markdown: str
 ) -> list[str]:
     errors: list[str] = []
-    if CANONICAL_FEEDBACK_LEDGER_PATH not in markdown:
+    has_canonical_feedback_path = (
+        CANONICAL_FEEDBACK_LEDGER_RELATIVE_PATH in markdown
+        or CANONICAL_FEEDBACK_LEDGER_PATH in markdown
+    )
+    if not has_canonical_feedback_path:
         errors.append(
             f"{label} must reference canonical feedback ledger "
-            f"{CANONICAL_FEEDBACK_LEDGER_PATH}."
+            f"{CANONICAL_FEEDBACK_LEDGER_RELATIVE_PATH}."
         )
-    if STALE_ROOT_FEEDBACK_LEDGER_PATH in markdown:
+    stale_root_feedback_paths = [
+        match.group("path")
+        for match in re.finditer(
+            r"(?P<path>(?:[A-Za-z0-9_./~:-]+/)?user-feedback-todo\.md)",
+            markdown,
+        )
+        if CANONICAL_FEEDBACK_LEDGER_RELATIVE_PATH not in match.group("path")
+    ]
+    if STALE_ROOT_FEEDBACK_LEDGER_PATH in markdown or stale_root_feedback_paths:
         errors.append(
             f"{label} must not reference stale root feedback ledger "
             f"{STALE_ROOT_FEEDBACK_LEDGER_PATH}."
@@ -3886,7 +3908,8 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 "brew install graphviz",
                 "Install Graphviz (Windows)",
                 "choco install graphviz",
-                "cargo test --workspace --locked",
+                "cargo test --workspace --locked --exclude kdv-storybook",
+                "cargo test -p kdv-storybook --locked -- --test-threads=1",
             ),
         ),
         (

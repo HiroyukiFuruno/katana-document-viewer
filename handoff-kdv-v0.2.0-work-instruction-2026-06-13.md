@@ -84,7 +84,7 @@
 
 1. まず `just storybook` を起動して、現状の不具合を再確認する。
 2. 直近最優先の 1 から順に、失敗するテストを追加してから実装修正する。
-3. 変更ごとに OpenSpec change 配下の `user-feedback-todo.md` の該当項目へ対応状況を書く。
+3. 変更ごとに OpenSpec change 配下の `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md` の該当項目へ対応状況を書く。
 4. KUC 側を直すべきものは KUC 側で直す。KDV 側で部品挙動を再実装しない。
 5. 1つ直したら必ず関連 gate を通してから次へ進む。
 

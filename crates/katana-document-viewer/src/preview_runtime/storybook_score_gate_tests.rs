@@ -527,7 +527,8 @@ const CI_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "brew install graphviz",
     "Install Graphviz (Windows)",
     "choco install graphviz",
-    "cargo test --workspace --locked",
+    "cargo test --workspace --locked --exclude kdv-storybook",
+    "cargo test -p kdv-storybook --locked -- --test-threads=1",
 ];
 
 const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
