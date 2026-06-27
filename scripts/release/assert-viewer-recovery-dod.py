@@ -3030,7 +3030,7 @@ Accepted release の更新条件:
         )
     valid_ci_runtime = """
 env:
-  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
 steps:
   - name: Install Graphviz (Ubuntu)
     run: |
@@ -3048,7 +3048,7 @@ steps:
 """
     valid_preflight_runtime = """
 env:
-  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
 steps:
   - name: Install acceptance artifact dependencies
     run: |
@@ -3066,6 +3066,15 @@ steps:
         valid_ci_runtime.replace("-Xss16m ", ""), valid_preflight_runtime
     ):
         failures.append("PlantUML CI runtime scanner must reject missing JVM stack pin")
+    if not plantuml_ci_runtime_errors(
+        valid_ci_runtime.replace(
+            " -Djdk.lang.processReaperUseDefaultStackSize=true", ""
+        ),
+        valid_preflight_runtime,
+    ):
+        failures.append(
+            "PlantUML CI runtime scanner must reject missing process reaper stack pin"
+        )
     if not plantuml_ci_runtime_errors(
         valid_ci_runtime, valid_preflight_runtime.replace("GRAPHVIZ_DOT", "GRAPHVIZDOT")
     ):
@@ -3857,6 +3866,7 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 "JAVA_TOOL_OPTIONS",
                 "-Xss16m",
                 "-Djava.awt.headless=true",
+                "-Djdk.lang.processReaperUseDefaultStackSize=true",
                 "Install Graphviz (Ubuntu)",
                 "apt-get install -y graphviz",
                 "/opt/local/bin/dot",
@@ -3875,6 +3885,7 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 "JAVA_TOOL_OPTIONS",
                 "-Xss16m",
                 "-Djava.awt.headless=true",
+                "-Djdk.lang.processReaperUseDefaultStackSize=true",
                 "apt-get install -y graphviz imagemagick xvfb xclip",
                 "/opt/local/bin/dot",
                 "GRAPHVIZ_DOT",

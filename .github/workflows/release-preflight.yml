@@ -21,7 +21,7 @@ permissions:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
-  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
 
 jobs:
   preflight:
