@@ -49,7 +49,9 @@ jobs:
       - name: Install acceptance artifact dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick xvfb xclip
+          sudo apt-get install -y graphviz imagemagick xvfb xclip
+          sudo mkdir -p /opt/local/bin
+          sudo ln -sf /usr/bin/dot /opt/local/bin/dot
 
       - name: Resolve version
         id: version
