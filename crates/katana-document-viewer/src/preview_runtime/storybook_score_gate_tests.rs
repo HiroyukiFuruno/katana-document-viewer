@@ -206,6 +206,26 @@ fn release_verify_depends_on_viewer_recovery_dod_check() -> Result<(), Box<dyn s
 }
 
 #[test]
+fn ci_workflows_pin_plantuml_graphviz_runtime_for_katana_reference_scores()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let ci = std::fs::read_to_string(root.join(".github/workflows/test-and-build.yml"))?;
+    let preflight = std::fs::read_to_string(root.join(".github/workflows/release-preflight.yml"))?;
+
+    assert_contains_all(
+        "CI PlantUML runtime",
+        &ci,
+        CI_PLANTUML_RUNTIME_REQUIRED_SNIPPETS,
+    );
+    assert_contains_all(
+        "release preflight PlantUML runtime",
+        &preflight,
+        PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS,
+    );
+    Ok(())
+}
+
+#[test]
 fn release_dod_tracks_every_generated_acceptance_source_artifact()
 -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
@@ -492,6 +512,32 @@ const SCORE_OVERLAY_CONTROL_SNIPPETS: &[&str] = &[
     "fullscreen",
     "zoom-in",
     "reset-view",
+];
+
+const CI_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
+    "JAVA_TOOL_OPTIONS",
+    "-Xss16m",
+    "-Djava.awt.headless=true",
+    "Install Graphviz (Ubuntu)",
+    "apt-get install -y graphviz",
+    "/opt/local/bin/dot",
+    "GRAPHVIZ_DOT",
+    "Install Graphviz (macOS)",
+    "brew install graphviz",
+    "Install Graphviz (Windows)",
+    "choco install graphviz",
+    "cargo test --workspace --locked",
+];
+
+const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
+    "JAVA_TOOL_OPTIONS",
+    "-Xss16m",
+    "-Djava.awt.headless=true",
+    "apt-get install -y graphviz imagemagick xvfb xclip",
+    "/opt/local/bin/dot",
+    "GRAPHVIZ_DOT",
+    "storybook-release-acceptance-artifacts",
+    "release-check",
 ];
 
 const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
@@ -1481,6 +1527,7 @@ fn recipe_body<'a>(justfile: &'a str, recipe: &str) -> Result<&'a str, String> {
     let tail = &justfile[start..];
     let end = tail
         .find("\n\n")
+        .or_else(|| tail.find("\r\n\r\n"))
         .ok_or_else(|| format!("recipe `{recipe}` body not terminated"))?;
     Ok(&tail[..end])
 }

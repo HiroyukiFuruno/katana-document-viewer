@@ -51,10 +51,7 @@ fn loader_materializes_visible_direct_image_asset() -> Result<(), Box<dyn std::e
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../assets/fixtures/direct/kdv-icon.png")
         .canonicalize()?;
-    let output = output_for_document(
-        &format!("file://{}", path.display()),
-        &path.display().to_string(),
-    )?;
+    let output = output_for_document(&file_uri_for_path(&path), &path.display().to_string())?;
 
     let (loaded, report) = PreviewAssetLoader::new(FakeDiagramEngine)
         .load_requested(&output, &KdvThemeSnapshot::katana_light())?;
@@ -75,7 +72,7 @@ fn loader_materializes_encoded_direct_image_file_uri_asset()
     let path = temp_image_path("kdv encoded icon.png")?;
     let bytes = b"not-a-real-png-but-an-asset";
     std::fs::write(&path, bytes)?;
-    let uri = format!("file://{}", path.display()).replace(' ', "%20");
+    let uri = file_uri_for_path(&path).replace(' ', "%20");
     let output = output_for_document("", &uri)?;
 
     let (loaded, report) = PreviewAssetLoader::new(FakeDiagramEngine)
@@ -90,6 +87,15 @@ fn loader_materializes_encoded_direct_image_file_uri_asset()
     assert_eq!(bytes.to_vec(), loaded.input.artifacts[0].bytes.bytes);
     let _ = std::fs::remove_file(path);
     Ok(())
+}
+
+fn file_uri_for_path(path: &Path) -> String {
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    if normalized.starts_with('/') {
+        format!("file://{normalized}")
+    } else {
+        format!("file:///{normalized}")
+    }
 }
 
 #[test]

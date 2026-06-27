@@ -4,7 +4,6 @@ use crate::canvas::Canvas;
 use crate::document_viewer::media_control_icons::KucMediaControlIconSet;
 use crate::layout::preview_content_width;
 use katana_ui_core_storybook::{UiTreeRenderArea, UiTreeSurfaceHost};
-use std::path::Path;
 
 const ICON_SCAN_SIZE: usize = 20;
 const MIN_ICON_PIXELS: usize = 14;
@@ -53,49 +52,13 @@ fn diagram_control_icons_render_as_katana_glyphs_not_blocky_squares()
 fn kuc_default_diagram_control_icons_match_katana_asset_files()
 -> Result<(), Box<dyn std::error::Error>> {
     let icons = KucMediaControlIconSet::katana_default();
-    let katana_icon_root =
-        Path::new("/Users/hiroyuki_furuno/works/private/katana/assets/icons/katana");
 
-    for (command, relative_path, path_summary) in [
-        ("copy", "ui/copy.svg", "katana.ui.copy"),
-        ("copy-code", "ui/copy.svg", "katana.ui.copy"),
-        ("copy-source", "ui/copy.svg", "katana.ui.copy"),
-        ("close-modal", "ui/close_modal.svg", "katana.ui.close_modal"),
-        ("fit", "view/fullscreen.svg", "katana.view.fullscreen"),
-        (
-            "fullscreen",
-            "view/fullscreen.svg",
-            "katana.view.fullscreen",
-        ),
-        (
-            "open",
-            "system/external_link.svg",
-            "katana.system.external_link",
-        ),
-        ("pan-down", "view/pan_down.svg", "katana.view.pan_down"),
-        ("pan-left", "view/pan_left.svg", "katana.view.pan_left"),
-        ("pan-right", "view/pan_right.svg", "katana.view.pan_right"),
-        ("pan-up", "view/pan_up.svg", "katana.view.pan_up"),
-        (
-            "reset-view",
-            "view/reset_view.svg",
-            "katana.view.reset_view",
-        ),
-        (
-            "reveal-in-os",
-            "system/external_link.svg",
-            "katana.system.external_link",
-        ),
-        ("trackpad-help", "status/info.svg", "katana.status.info"),
-        ("zoom-in", "view/zoom_in.svg", "katana.view.zoom_in"),
-        ("zoom-out", "view/zoom_out.svg", "katana.view.zoom_out"),
-    ] {
-        let asset = std::fs::read_to_string(katana_icon_root.join(relative_path))?;
+    for (command, asset, path_summary) in KucMediaControlIconSet::katana_default_asset_sources() {
         let icon = icons.icon_for(command, "");
         assert_eq!(
-            normalize_svg(&asset),
+            normalize_svg(asset),
             normalize_svg(&icon.svg_source),
-            "{command} must default to KatanA asset {relative_path}"
+            "{command} must default to the embedded KatanA icon preset"
         );
         assert_eq!(path_summary, icon.path_summary, "{command} summary");
     }

@@ -38,6 +38,7 @@ permissions:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
 
 jobs:
   test:
@@ -74,6 +75,32 @@ jobs:
 
       - name: Install just
         uses: taiki-e/install-action@just
+
+      - name: Install Graphviz (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          sudo mkdir -p /opt/local/bin
+          sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+          echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+
+      - name: Install Graphviz (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          if ! command -v dot >/dev/null 2>&1; then
+            brew install graphviz
+          fi
+          sudo mkdir -p /opt/local/bin
+          sudo ln -sf "$(command -v dot)" /opt/local/bin/dot
+          echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+
+      - name: Install Graphviz (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install graphviz --no-progress -y
+          "GRAPHVIZ_DOT=C:\Program Files\Graphviz\bin\dot.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Run subagent/Spark harness check
         run: just check-subagent-harness

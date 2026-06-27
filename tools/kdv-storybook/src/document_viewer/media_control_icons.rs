@@ -19,6 +19,105 @@ const KATANA_RESET_VIEW: &str = r##"<svg fill="#FFFFFF" xmlns="http://www.w3.org
 const KATANA_ZOOM_IN: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><line x1="10" y1="10" x2="14" y2="14"/><line x1="7" y1="5" x2="7" y2="9"/><line x1="5" y1="7" x2="9" y2="7"/></svg>"##;
 const KATANA_ZOOM_OUT: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><line x1="10" y1="10" x2="14" y2="14"/><line x1="5" y1="7" x2="9" y2="7"/></svg>"##;
 
+const KATANA_DEFAULT_ICON_ASSETS: &[(&str, &str, &str, &str)] = &[
+    (
+        "close-modal",
+        KATANA_CLOSE_MODAL,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.ui.close_modal",
+    ),
+    (
+        "copy",
+        KATANA_COPY,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.ui.copy",
+    ),
+    (
+        "copy-code",
+        KATANA_COPY,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.ui.copy",
+    ),
+    (
+        "copy-source",
+        KATANA_COPY,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.ui.copy",
+    ),
+    (
+        "fit",
+        KATANA_FULLSCREEN,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.fullscreen",
+    ),
+    (
+        "fullscreen",
+        KATANA_FULLSCREEN,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.fullscreen",
+    ),
+    (
+        "open",
+        KATANA_EXTERNAL_LINK,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.system.external_link",
+    ),
+    (
+        "pan-down",
+        KATANA_PAN_DOWN,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.pan_down",
+    ),
+    (
+        "pan-left",
+        KATANA_PAN_LEFT,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.pan_left",
+    ),
+    (
+        "pan-right",
+        KATANA_PAN_RIGHT,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.pan_right",
+    ),
+    (
+        "pan-up",
+        KATANA_PAN_UP,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.pan_up",
+    ),
+    (
+        "reset-view",
+        KATANA_RESET_VIEW,
+        KATANA_MATERIAL_ICON_VIEW_BOX,
+        "katana.view.reset_view",
+    ),
+    (
+        "reveal-in-os",
+        KATANA_EXTERNAL_LINK,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.system.external_link",
+    ),
+    (
+        "trackpad-help",
+        KATANA_INFO,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.status.info",
+    ),
+    (
+        "zoom-in",
+        KATANA_ZOOM_IN,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.zoom_in",
+    ),
+    (
+        "zoom-out",
+        KATANA_ZOOM_OUT,
+        KATANA_STROKE_ICON_VIEW_BOX,
+        "katana.view.zoom_out",
+    ),
+];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KucMediaControlIconSet {
     icons: BTreeMap<String, UiIconProps>,
@@ -34,110 +133,21 @@ impl KucMediaControlIconSet {
     #[must_use]
     pub fn katana_default() -> Self {
         let mut icons = BTreeMap::new();
-        for (command, svg, view_box, summary) in [
-            (
-                "close-modal",
-                KATANA_CLOSE_MODAL,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.ui.close_modal",
-            ),
-            (
-                "copy",
-                KATANA_COPY,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.ui.copy",
-            ),
-            (
-                "copy-code",
-                KATANA_COPY,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.ui.copy",
-            ),
-            (
-                "copy-source",
-                KATANA_COPY,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.ui.copy",
-            ),
-            (
-                "fit",
-                KATANA_FULLSCREEN,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.fullscreen",
-            ),
-            (
-                "fullscreen",
-                KATANA_FULLSCREEN,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.fullscreen",
-            ),
-            (
-                "open",
-                KATANA_EXTERNAL_LINK,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.system.external_link",
-            ),
-            (
-                "pan-down",
-                KATANA_PAN_DOWN,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.pan_down",
-            ),
-            (
-                "pan-left",
-                KATANA_PAN_LEFT,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.pan_left",
-            ),
-            (
-                "pan-right",
-                KATANA_PAN_RIGHT,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.pan_right",
-            ),
-            (
-                "pan-up",
-                KATANA_PAN_UP,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.pan_up",
-            ),
-            (
-                "reset-view",
-                KATANA_RESET_VIEW,
-                KATANA_MATERIAL_ICON_VIEW_BOX,
-                "katana.view.reset_view",
-            ),
-            (
-                "reveal-in-os",
-                KATANA_EXTERNAL_LINK,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.system.external_link",
-            ),
-            (
-                "trackpad-help",
-                KATANA_INFO,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.status.info",
-            ),
-            (
-                "zoom-in",
-                KATANA_ZOOM_IN,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.zoom_in",
-            ),
-            (
-                "zoom-out",
-                KATANA_ZOOM_OUT,
-                KATANA_STROKE_ICON_VIEW_BOX,
-                "katana.view.zoom_out",
-            ),
-        ] {
+        for (command, svg, view_box, summary) in KATANA_DEFAULT_ICON_ASSETS.iter().copied() {
             icons.insert(
                 command.to_string(),
                 Self::katana_icon(command, svg, view_box, summary),
             );
         }
         Self { icons }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn katana_default_asset_sources()
+    -> impl Iterator<Item = (&'static str, &'static str, &'static str)> {
+        KATANA_DEFAULT_ICON_ASSETS
+            .iter()
+            .map(|(command, svg, _, summary)| (*command, *svg, *summary))
     }
 
     #[must_use]

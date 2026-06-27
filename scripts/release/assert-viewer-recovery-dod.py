@@ -19,6 +19,8 @@ CHANGE = ROOT / "openspec/changes/v0-2-0-markdown-viewer-kuc-integration"
 USER_FEEDBACK = CHANGE / "user-feedback-todo.md"
 REMAINING_PLAN = CHANGE / "remaining-plan.md"
 STORYBOOK_USER_ACCEPTANCE = CHANGE / "storybook-user-acceptance.md"
+CI_WORKFLOW = ROOT / ".github/workflows/test-and-build.yml"
+PREFLIGHT_WORKFLOW = ROOT / ".github/workflows/release-preflight.yml"
 HANDOFF_FEEDBACK_LEDGER_FILES = (
     ROOT / "handoff-kdv-v0.2.0-viewer-recovery-2026-06-13.md",
     ROOT / "handoff-kdv-v0.2.0-work-instruction-2026-06-13.md",
@@ -1137,6 +1139,10 @@ def main() -> int:
         acceptance_evidence(acceptance).get("confirmed_at", "").strip(),
         include_source_integrity=False,
     )
+    plantuml_ci_errors = plantuml_ci_runtime_errors(
+        CI_WORKFLOW.read_text(encoding="utf-8"),
+        PREFLIGHT_WORKFLOW.read_text(encoding="utf-8"),
+    )
 
     if (
         open_feedback_items
@@ -1154,6 +1160,7 @@ def main() -> int:
         or headless_live_acceptance_errors
         or source_integrity_errors
         or artifact_file_errors
+        or plantuml_ci_errors
     ):
         print(
             "release DoD is not satisfied for v0.2.0 viewer recovery.",
@@ -1183,6 +1190,8 @@ def main() -> int:
             print(f"release source integrity: {error}", file=sys.stderr)
         for error in artifact_file_errors:
             print(f"release acceptance artifact: {error}", file=sys.stderr)
+        for error in plantuml_ci_errors:
+            print(f"release PlantUML runtime: {error}", file=sys.stderr)
         if open_feedback_items:
             print_open_checklist_items(
                 "open user-feedback item(s)", open_feedback_items
@@ -3019,6 +3028,48 @@ Accepted release の更新条件:
             "acceptance as the current automated aid: "
             + "; ".join(current_headless_live_acceptance_errors[:5])
         )
+    valid_ci_runtime = """
+env:
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
+steps:
+  - name: Install Graphviz (Ubuntu)
+    run: |
+      sudo apt-get install -y graphviz
+      sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+      echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+  - name: Install Graphviz (macOS)
+    run: |
+      brew install graphviz
+      echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+  - name: Install Graphviz (Windows)
+    run: choco install graphviz --no-progress -y
+  - name: Run tests
+    run: cargo test --workspace --locked
+"""
+    valid_preflight_runtime = """
+env:
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
+steps:
+  - name: Install acceptance artifact dependencies
+    run: |
+      sudo apt-get install -y graphviz imagemagick xvfb xclip
+      sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+      echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+  - name: Release check
+    run: |
+      xvfb-run -a just storybook-release-acceptance-artifacts
+      xvfb-run -a just VERSION="${VERSION}" release-check
+"""
+    if plantuml_ci_runtime_errors(valid_ci_runtime, valid_preflight_runtime):
+        failures.append("PlantUML CI runtime scanner must allow complete workflow pins")
+    if not plantuml_ci_runtime_errors(
+        valid_ci_runtime.replace("-Xss16m ", ""), valid_preflight_runtime
+    ):
+        failures.append("PlantUML CI runtime scanner must reject missing JVM stack pin")
+    if not plantuml_ci_runtime_errors(
+        valid_ci_runtime, valid_preflight_runtime.replace("GRAPHVIZ_DOT", "GRAPHVIZDOT")
+    ):
+        failures.append("PlantUML CI runtime scanner must reject missing preflight Graphviz env")
     if failures:
         print("release DoD self-test failed:", file=sys.stderr)
         for failure in failures:
@@ -3793,6 +3844,53 @@ def acceptance_source_integrity_errors_from_labels(
             + ", ".join(untracked_labels)
             + "."
         )
+    return errors
+
+
+def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> list[str]:
+    errors: list[str] = []
+    requirements = (
+        (
+            "CI workflow",
+            ci_workflow,
+            (
+                "JAVA_TOOL_OPTIONS",
+                "-Xss16m",
+                "-Djava.awt.headless=true",
+                "Install Graphviz (Ubuntu)",
+                "apt-get install -y graphviz",
+                "/opt/local/bin/dot",
+                "GRAPHVIZ_DOT",
+                "Install Graphviz (macOS)",
+                "brew install graphviz",
+                "Install Graphviz (Windows)",
+                "choco install graphviz",
+                "cargo test --workspace --locked",
+            ),
+        ),
+        (
+            "release preflight workflow",
+            preflight_workflow,
+            (
+                "JAVA_TOOL_OPTIONS",
+                "-Xss16m",
+                "-Djava.awt.headless=true",
+                "apt-get install -y graphviz imagemagick xvfb xclip",
+                "/opt/local/bin/dot",
+                "GRAPHVIZ_DOT",
+                "storybook-release-acceptance-artifacts",
+                "release-check",
+            ),
+        ),
+    )
+    for label, text, tokens in requirements:
+        missing = [token for token in tokens if token not in text]
+        if missing:
+            errors.append(
+                f"{label} missing PlantUML/Graphviz runtime pin(s): "
+                + ", ".join(missing)
+                + "."
+            )
     return errors
 
 

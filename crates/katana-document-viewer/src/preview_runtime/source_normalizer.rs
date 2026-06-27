@@ -20,66 +20,63 @@ impl PreviewSourceNormalizer {
     pub(super) fn normalize(source: &MarkdownSource) -> PreparedPreviewSource {
         let source_name = Self::source_name(source);
         let source_path = PathBuf::from(&source_name);
+        let content = Self::normalize_newlines(&source.content);
         if Self::is_image_path(&source_path) {
-            return Self::image_source(source, source_name, source_path);
+            return Self::image_source(&content, source_name, source_path);
         }
         if Self::is_drawio_path(&source_path) {
-            return Self::drawio_source(source, source_path);
+            return Self::drawio_source(&content, source_path);
         }
         if Self::is_mermaid_path(&source_path) {
-            return Self::diagram_source(source, source_path, "mermaid");
+            return Self::diagram_source(&content, source_path, "mermaid");
         }
         if Self::is_plantuml_path(&source_path) {
-            return Self::diagram_source(source, source_path, "plantuml");
+            return Self::diagram_source(&content, source_path, "plantuml");
         }
         if Self::is_html_path(&source_path) {
-            return Self::html_source(source, source_path);
+            return Self::html_source(&content, source_path);
         }
-        Self::markdown_source(source, source_path)
+        Self::markdown_source(content, source_path)
     }
 
     fn image_source(
-        source: &MarkdownSource,
+        content: &str,
         source_name: String,
         source_path: PathBuf,
     ) -> PreparedPreviewSource {
         PreparedPreviewSource {
-            content: Self::image_markdown(source, &source_name),
+            content: Self::image_markdown(content, &source_name),
             source_path,
             source_kind: crate::SourceKind::Image,
             document_kind: crate::DocumentKind::Image,
         }
     }
 
-    fn drawio_source(source: &MarkdownSource, source_path: PathBuf) -> PreparedPreviewSource {
-        Self::diagram_source(source, source_path, "drawio")
+    fn drawio_source(content: &str, source_path: PathBuf) -> PreparedPreviewSource {
+        Self::diagram_source(content, source_path, "drawio")
     }
 
-    fn diagram_source(
-        source: &MarkdownSource,
-        source_path: PathBuf,
-        fence: &str,
-    ) -> PreparedPreviewSource {
+    fn diagram_source(content: &str, source_path: PathBuf, fence: &str) -> PreparedPreviewSource {
         PreparedPreviewSource {
-            content: Self::diagram_markdown(&source.content, fence),
+            content: Self::diagram_markdown(content, fence),
             source_path,
             source_kind: crate::SourceKind::Diagram,
             document_kind: crate::DocumentKind::Diagram,
         }
     }
 
-    fn html_source(source: &MarkdownSource, source_path: PathBuf) -> PreparedPreviewSource {
+    fn html_source(content: &str, source_path: PathBuf) -> PreparedPreviewSource {
         PreparedPreviewSource {
-            content: DirectHtmlNormalizer::normalize(&source.content),
+            content: DirectHtmlNormalizer::normalize(content),
             source_path,
             source_kind: crate::SourceKind::Html,
             document_kind: crate::DocumentKind::Html,
         }
     }
 
-    fn markdown_source(source: &MarkdownSource, source_path: PathBuf) -> PreparedPreviewSource {
+    fn markdown_source(content: String, source_path: PathBuf) -> PreparedPreviewSource {
         PreparedPreviewSource {
-            content: source.content.clone(),
+            content,
             source_path,
             source_kind: crate::SourceKind::Markdown,
             document_kind: crate::DocumentKind::Markdown,
@@ -93,13 +90,14 @@ impl PreviewSourceNormalizer {
         }
     }
 
-    fn image_markdown(source: &MarkdownSource, source_name: &str) -> String {
-        let trimmed = source.content.trim();
+    fn image_markdown(content: &str, source_name: &str) -> String {
+        let trimmed = content.trim();
         if Self::is_markdown_image(trimmed) {
             return trimmed.to_string();
         }
         let image_uri = Self::image_uri(trimmed, source_name);
-        let alt = Path::new(source_name)
+        let alt_source_name = source_name.replace('\\', "/");
+        let alt = Path::new(&alt_source_name)
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("image");
@@ -117,13 +115,20 @@ impl PreviewSourceNormalizer {
     }
 
     fn file_uri(source_name: &str) -> String {
-        if source_name.starts_with("file://")
-            || source_name.starts_with("http://")
-            || source_name.starts_with("https://")
-        {
+        if source_name.starts_with("http://") || source_name.starts_with("https://") {
             return source_name.to_string();
         }
-        format!("file://{source_name}")
+        let normalized = source_name.replace('\\', "/");
+        if normalized.starts_with("file://") {
+            return normalized;
+        }
+        if normalized.starts_with('/') {
+            return format!("file://{normalized}");
+        }
+        if Self::starts_with_windows_drive(&normalized) {
+            return format!("file:///{normalized}");
+        }
+        format!("file://{normalized}")
     }
 
     fn is_image_reference(value: &str) -> bool {
@@ -140,6 +145,15 @@ impl PreviewSourceNormalizer {
     fn diagram_markdown(content: &str, fence: &str) -> String {
         let body = content.trim();
         format!("```{fence}\n{body}\n```")
+    }
+
+    fn normalize_newlines(content: &str) -> String {
+        content.replace("\r\n", "\n").replace('\r', "\n")
+    }
+
+    fn starts_with_windows_drive(value: &str) -> bool {
+        let bytes = value.as_bytes();
+        bytes.len() >= 3 && bytes[1] == b':' && bytes[2] == b'/' && bytes[0].is_ascii_alphabetic()
     }
 
     fn is_image_path(path: &Path) -> bool {

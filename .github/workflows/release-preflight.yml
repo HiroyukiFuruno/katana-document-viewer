@@ -21,6 +21,7 @@ permissions:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true
 
 jobs:
   preflight:
@@ -52,6 +53,7 @@ jobs:
           sudo apt-get install -y graphviz imagemagick xvfb xclip
           sudo mkdir -p /opt/local/bin
           sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+          echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
 
       - name: Resolve version
         id: version

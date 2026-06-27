@@ -63,6 +63,28 @@ fn mermaid_extension_source_becomes_mermaid_fence() {
 }
 
 #[test]
+fn markdown_source_normalizes_crlf_before_markdown_runtime_parse() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        "| Feature | Status |\r\n| --- | --- |\r\n| PreviewPane | ok |\r\n",
+        "sample.md",
+    ));
+
+    assert!(!prepared.content.contains('\r'));
+    assert_eq!(
+        "| Feature | Status |\n| --- | --- |\n| PreviewPane | ok |\n",
+        prepared.content
+    );
+    assert_eq!(crate::SourceKind::Markdown, prepared.source_kind);
+}
+
+#[test]
+fn windows_image_source_becomes_valid_file_uri() {
+    let prepared = PreviewSourceNormalizer::normalize(&source("", r"C:\tmp\sample.png"));
+
+    assert_eq!("![sample.png](file:///C:/tmp/sample.png)", prepared.content);
+}
+
+#[test]
 fn html_source_keeps_html_document_kind() {
     let prepared = PreviewSourceNormalizer::normalize(&source(
         r#"<main><h1>Title</h1><p align="center">Body</p></main>"#,

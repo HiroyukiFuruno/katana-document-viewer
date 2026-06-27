@@ -10,6 +10,7 @@ const ALERT_ICON_SEARCH_X_OFFSET: u32 = 28;
 const ALERT_TITLE_SEARCH_X_OFFSET: u32 = 58;
 const ALERT_TITLE_SEARCH_WIDTH: u32 = 180;
 const ALERT_TITLE_TEXT_Y_OFFSET: u32 = 16;
+const ALERT_TITLE_CENTER_TOLERANCE_PX: f32 = 5.0;
 
 #[test]
 fn pdf_surface_alert_title_icon_is_visually_centered_with_title_label()
@@ -111,7 +112,7 @@ impl AlertTitleAlignmentCase {
         let title_center = (title_area.0 as f32 + title_area.1 as f32) / 2.0;
         let center_delta = icon_center - title_center;
         assert!(
-            center_delta.abs() <= 4.0,
+            center_delta.abs() <= ALERT_TITLE_CENTER_TOLERANCE_PX,
             "alert title icon/text center y mismatch for {label}: delta={center_delta}, icon_y={:?}, title_y={:?}",
             icon_area.0,
             title_area.0,

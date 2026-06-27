@@ -1086,6 +1086,7 @@ fn recipe_body<'a>(justfile: &'a str, recipe: &str) -> Result<&'a str, String> {
     let tail = &justfile[start..];
     let end = tail
         .find("\n\n")
+        .or_else(|| tail.find("\r\n\r\n"))
         .ok_or_else(|| format!("recipe `{recipe}` body not terminated"))?;
     Ok(&tail[..end])
 }
