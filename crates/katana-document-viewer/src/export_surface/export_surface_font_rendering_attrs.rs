@@ -64,13 +64,13 @@ fn hidden_inline_image_color() -> Color {
     )
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 mod tests {
-    use super::*;
+    use super::{attrs_for_span_with_metadata, APPLE_COLOR_EMOJI_FONT_FAMILY};
     use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+    use cosmic_text::Family;
 
     #[test]
-    #[cfg(target_os = "macos")]
     fn emoji_span_requests_apple_color_emoji_font_on_macos() {
         let span = SurfaceTextSpan::styled("🧪", SurfaceTextStyle::default().emoji());
 

@@ -46,10 +46,10 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Install ImageMagick
+      - name: Install acceptance artifact dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick
+          sudo apt-get install -y imagemagick xvfb
 
       - name: Resolve version
         id: version
@@ -65,4 +65,4 @@ jobs:
 
       - name: Release check
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
-        run: just VERSION="${{ steps.version.outputs.version }}" release-check
+        run: xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
