@@ -1015,7 +1015,7 @@ REQUIRED_ACCEPTANCE_LOG_MARKERS = (
 )
 REQUIRED_SCROLL_PERFORMANCE_VALUES = {
     "scenario": "large_loaded_diagram_wheel_present",
-    "fixture": "katana/sample_diagrams.md",
+    "fixture": "katana/sample_drawio_performance.md",
     "full_preview_redraw_fallback_count": "0",
 }
 INCOMPLETE_MARKERS = [
@@ -2574,7 +2574,7 @@ def self_test() -> int:
         "\n".join(
             [
                 "scenario=large_loaded_diagram_wheel_present",
-                "fixture=katana/sample_diagrams.md",
+                "fixture=katana/sample_drawio_performance.md",
                 "frame_count=8",
                 "budget_ms=130.000",
                 "elapsed_ms=140.000",

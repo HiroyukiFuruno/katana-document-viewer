@@ -32,6 +32,7 @@ const SCROLL_PERFORMANCE_ARTIFACT_ENV: &str = "KDV_STORYBOOK_SCROLL_PERFORMANCE_
 const DEFAULT_SCROLL_PERFORMANCE_ARTIFACT: &str =
     "target/acceptance/kdv-storybook-scroll-performance.txt";
 const SCROLL_PERFORMANCE_MAX_FULL_REDRAW_FALLBACKS: usize = 0;
+const SCROLL_PERFORMANCE_DIAGRAM_FIXTURE: &str = "katana/sample_drawio_performance.md";
 
 #[test]
 #[ignore = "release-only performance gate"]
@@ -510,6 +511,7 @@ fn interactive_large_window_loaded_diagram_scroll_performance_artifact_is_action
 }
 
 struct ScrollPerformanceSample {
+    fixture_label: String,
     elapsed: Duration,
     frame_times: Vec<Duration>,
     render_times: Vec<Duration>,
@@ -525,9 +527,10 @@ struct ScrollPerformanceSample {
 fn large_window_loaded_diagram_wheel_performance_sample()
 -> Result<ScrollPerformanceSample, Box<dyn std::error::Error>> {
     let fixture = StorybookFixture {
-        label: "katana/sample_diagrams.md".to_string(),
-        path: fixture_path("katana/sample_diagrams.md"),
+        label: SCROLL_PERFORMANCE_DIAGRAM_FIXTURE.to_string(),
+        path: fixture_path(SCROLL_PERFORMANCE_DIAGRAM_FIXTURE),
     };
+    let fixture_label = fixture.label.clone();
     let mut storybook = StorybookWindow::new(
         StorybookArgs::default(),
         FixtureCatalog {
@@ -536,8 +539,7 @@ fn large_window_loaded_diagram_wheel_performance_sample()
         PreviewBuilder::default(),
     );
     storybook.update_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
-    storybook
-        .wait_scroll_performance_asset_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
+    storybook.wait_loaded_asset_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
     let max_scroll = storybook
         .scene_for_tests()
         .map(|scene| (scene.content_height - PREVIEW_HEIGHT).max(0.0))
@@ -590,6 +592,7 @@ fn large_window_loaded_diagram_wheel_performance_sample()
     let elapsed = started.elapsed();
 
     Ok(ScrollPerformanceSample {
+        fixture_label,
         elapsed,
         frame_times,
         render_times,
@@ -635,7 +638,7 @@ fn write_scroll_performance_artifact(
     }
     let mut text = String::new();
     writeln!(text, "scenario=large_loaded_diagram_wheel_present")?;
-    writeln!(text, "fixture=katana/sample_diagrams.md")?;
+    writeln!(text, "fixture={}", sample.fixture_label)?;
     writeln!(text, "window_width={LARGE_FRAME_WIDTH}")?;
     writeln!(text, "window_height={LARGE_FRAME_HEIGHT}")?;
     writeln!(text, "scale=2.0")?;

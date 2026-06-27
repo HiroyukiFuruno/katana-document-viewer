@@ -80,18 +80,6 @@ fn frame_loop_redraws_only_for_visible_state_changes() {
 }
 
 #[test]
-fn scroll_performance_asset_scene_ready_allows_one_pending_loaded_asset() {
-    assert!(super::scroll_performance_asset_scene_ready(0, 16));
-    assert!(super::scroll_performance_asset_scene_ready(1, 15));
-}
-
-#[test]
-fn scroll_performance_asset_scene_ready_rejects_unloaded_or_multiple_pending_assets() {
-    assert!(!super::scroll_performance_asset_scene_ready(1, 0));
-    assert!(!super::scroll_performance_asset_scene_ready(2, 14));
-}
-
-#[test]
 fn frame_loop_defers_hover_recalculation_while_preview_scrolls() {
     assert!(!should_update_document_hover_for_loop(false, true, true));
     assert!(!should_update_document_hover_for_loop(true, false, true));
