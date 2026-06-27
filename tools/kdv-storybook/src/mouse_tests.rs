@@ -466,10 +466,7 @@ fn link_hit_is_visible(hit: &UiTreeHostActionHit, root_offset: f32) -> bool {
 }
 
 fn pointer_for_visible_hit(hit: &UiTreeHostActionHit, root_offset: f32) -> StorybookPointer {
-    let (_, center_y) = hit.center_point();
-    let area = StorybookPreviewArea::for_window(WINDOW_WIDTH, WINDOW_HEIGHT, root_offset);
-    let (x, y) = area.canvas_point_for_document_point(hit.rect.x as f32 + 4.0, center_y);
-    StorybookPointer::new(x, y, StorybookMouseButton::Left)
+    pointer_for_host_action_hit(hit, root_offset)
 }
 
 fn pointer_for_host_action_hit(hit: &UiTreeHostActionHit, root_offset: f32) -> StorybookPointer {
