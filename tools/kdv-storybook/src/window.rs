@@ -30,6 +30,13 @@ type StorybookError = Box<dyn std::error::Error>;
 type TextSelectionEndpoints = (Option<(usize, usize)>, Option<(usize, usize)>);
 
 #[cfg(test)]
+const LOADED_ASSET_WAIT_TIMEOUT_ENV: &str = "KDV_STORYBOOK_LOADED_ASSET_WAIT_SECS";
+#[cfg(test)]
+const DEFAULT_LOADED_ASSET_WAIT_TIMEOUT_SECS: u64 = 8;
+#[cfg(test)]
+const MAX_LOADED_ASSET_WAIT_TIMEOUT_SECS: u64 = 60;
+
+#[cfg(test)]
 #[derive(Debug)]
 pub(crate) struct StorybookScrollFramePhaseTimes {
     pub(crate) apply: Duration,
@@ -386,14 +393,18 @@ impl StorybookWindow {
         height: usize,
     ) -> Result<(), StorybookError> {
         self.start_asset_job_for_current_viewport(width, height);
-        let deadline = Instant::now() + Duration::from_secs(8);
+        let timeout = loaded_asset_wait_timeout_for_tests();
+        let deadline = Instant::now() + timeout;
         while Instant::now() <= deadline {
             if self.apply_asset_job()? && self.asset_job.is_none() {
                 return Ok(());
             }
             std::thread::sleep(Duration::from_millis(8));
         }
-        Err("asset job did not complete before loaded scroll performance test".into())
+        Err(format!(
+            "asset job did not complete before loaded scroll performance test within {timeout:?}"
+        )
+        .into())
     }
 
     #[cfg(test)]
@@ -420,6 +431,17 @@ impl StorybookWindow {
     ) -> Option<String> {
         self.selected_text_payload(width, height)
     }
+}
+
+#[cfg(test)]
+fn loaded_asset_wait_timeout_for_tests() -> Duration {
+    let seconds = std::env::var(LOADED_ASSET_WAIT_TIMEOUT_ENV)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .map(|seconds| seconds.min(MAX_LOADED_ASSET_WAIT_TIMEOUT_SECS))
+        .unwrap_or(DEFAULT_LOADED_ASSET_WAIT_TIMEOUT_SECS);
+    Duration::from_secs(seconds)
 }
 
 #[path = "window_types.rs"]
