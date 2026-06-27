@@ -9,6 +9,7 @@ use crate::export_inline_payload::InlineHtmlWriter;
 use crate::export_math_payload::MathHtmlWriter;
 use crate::forge::{BuildGraph, RenderedDiagram};
 use crate::html_sanitizer::HtmlFragmentNormalizer;
+use crate::render_runtime::KRR_RENDER_RUNTIME_ID;
 use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::{CodeBlockRole, DiagramKind, KmmNode, KmmNodeKind};
 
@@ -132,10 +133,13 @@ fn append_diagram_code(
         ));
         return;
     }
+    let source = ExportHtmlOps::fenced_body(&node.source.raw.text);
+    let error = diagram_error_for_node(graph, &node.id.0);
     html.push_str(&format!(
-        "<figure data-kdv-diagram=\"{kind_label}\" data-kdv-export-readiness=\"{}\"><pre><code>{}</code></pre></figure>\n",
-        diagram_readiness_label(kind),
-        ExportHtmlOps::escape_html(&ExportHtmlOps::fenced_body(&node.source.raw.text))
+        "<figure data-kdv-diagram=\"{kind_label}\" data-kdv-diagram-theme=\"{}\" data-kdv-render-runtime=\"{KRR_RENDER_RUNTIME_ID}\" data-kdv-render-error=\"{}\"><pre><code>{}</code></pre></figure>\n",
+        theme.diagram_theme_label(),
+        ExportHtmlOps::escape_html(&error),
+        ExportHtmlOps::escape_html(&source)
     ));
 }
 
@@ -146,10 +150,14 @@ fn rendered_diagram<'a>(graph: &'a BuildGraph, node_id: &str) -> Option<&'a Rend
         .find(|diagram| diagram.node_id == node_id)
 }
 
-fn diagram_readiness_label(kind: &DiagramKind) -> &'static str {
-    match kind {
-        DiagramKind::Mermaid | DiagramKind::DrawIo | DiagramKind::PlantUml => "requires-krr-render",
-    }
+fn diagram_error_for_node(graph: &BuildGraph, node_id: &str) -> String {
+    graph
+        .diagnostics
+        .messages
+        .iter()
+        .find(|message| message.contains(node_id))
+        .cloned()
+        .unwrap_or_else(|| "diagram-render-missing".to_string())
 }
 
 #[cfg(test)]

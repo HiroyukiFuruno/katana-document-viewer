@@ -1,4 +1,14 @@
 /target
+/tools/kdv-preview-storybook/target
+/tools/kdv-storybook/target
+/tools/kdv-storybook/tools/*/target
+/tools/kdv-storybook/tools/*/tmp
+/crates/katana-ui-core/
+/.codex/external-edit-allow
+/assets/fixtures/*
+!/assets/fixtures/
+!/assets/fixtures/direct/
+!/assets/fixtures/direct/**
 .DS_Store
 skill.md
 CLAUDE.md

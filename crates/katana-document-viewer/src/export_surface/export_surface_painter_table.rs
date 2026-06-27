@@ -1,8 +1,7 @@
 use super::{
     PAGE_PADDING, SURFACE_CONTENT_WIDTH, SurfaceHelpers, SurfacePaintPalette, SurfacePainter,
     SurfaceTableBlock, SurfaceTableCellPaint, SurfaceTableLayout, SurfaceTableRowPaintRequest,
-    SurfaceTextLayout, SurfaceTextPainter, TABLE_CELL_FONT_SIZE, TABLE_CELL_PADDING,
-    TABLE_LINE_HEIGHT, WrappedText,
+    SurfaceTextLayout, SurfaceTextPainter, TABLE_CELL_PADDING,
 };
 use image::RgbaImage;
 
@@ -11,14 +10,14 @@ impl SurfacePainter {
         image: &mut RgbaImage,
         table: &SurfaceTableBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let row_width = SURFACE_CONTENT_WIDTH;
-        let column_width = row_width / table.column_count().max(1) as u32;
+        let column_widths = table.column_widths_for_width(row_width);
         let mut row_y = y;
         for (row_index, row) in table.rows().iter().enumerate() {
-            let row_height = table.row_height(row_index, column_width);
+            let row_height = table.row_height_with_widths(row_index, &column_widths);
             Self::paint_table_row(
                 image,
                 SurfaceTableRowPaintRequest {
@@ -27,7 +26,7 @@ impl SurfacePainter {
                     row_index,
                     row_y,
                     row_height,
-                    column_width,
+                    column_widths: &column_widths,
                     row_width,
                 },
                 painter,
@@ -40,7 +39,7 @@ impl SurfacePainter {
     pub(super) fn paint_table_row(
         image: &mut RgbaImage,
         request: SurfaceTableRowPaintRequest<'_>,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         Self::paint_table_row_background(
@@ -61,19 +60,24 @@ impl SurfacePainter {
         request: &SurfaceTableRowPaintRequest<'_>,
         column_index: usize,
         cell: &str,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        let x = PAGE_PADDING + column_index as u32 * request.column_width;
+        let width = request
+            .column_widths
+            .get(column_index)
+            .copied()
+            .unwrap_or(0);
+        let x = PAGE_PADDING + request.column_widths.iter().take(column_index).sum::<u32>();
         Self::paint_table_cell_border(
             image,
             x,
             request.row_y,
-            request.column_width,
+            width,
             request.row_height,
             palette.table_border,
         );
-        let cell_paint = Self::table_cell_paint(request, column_index, cell, x);
+        let cell_paint = Self::table_cell_paint(request, column_index, cell, x, width);
         Self::paint_table_cell(image, &cell_paint, painter, palette);
     }
 
@@ -82,14 +86,17 @@ impl SurfacePainter {
         column_index: usize,
         cell: &'a str,
         x: u32,
+        width: u32,
     ) -> SurfaceTableCellPaint<'a> {
         SurfaceTableCellPaint {
             cell,
             alignment: request.table.alignment(column_index),
             x,
             y: request.row_y,
-            width: request.column_width,
+            width,
             row_height: request.row_height,
+            table_font_size: request.table.font_size(),
+            table_line_height: request.table.line_height(),
         }
     }
 
@@ -120,12 +127,16 @@ impl SurfacePainter {
     pub(super) fn paint_table_cell(
         image: &mut RgbaImage,
         cell: &SurfaceTableCellPaint<'_>,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        let max_chars = SurfaceTableLayout::cell_max_chars(cell.width);
-        let lines = WrappedText::new(cell.cell, max_chars).collect::<Vec<_>>();
-        let mut text_y = cell.y + SurfaceTableLayout::cell_text_y(cell.row_height, lines.len());
+        let lines = SurfaceTableLayout::cell_lines(cell.cell, cell.width);
+        let mut text_y = cell.y
+            + SurfaceTableLayout::cell_text_y_with_line_height(
+                cell.row_height,
+                lines.len(),
+                cell.table_line_height,
+            );
         for line in &lines {
             Self::paint_table_cell_line(image, cell, line, text_y, &mut text_y, painter, palette);
         }
@@ -137,23 +148,18 @@ impl SurfacePainter {
         line: &str,
         text_y: u32,
         next_text_y: &mut u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let layout = SurfaceTextLayout {
             x: SurfaceTableLayout::cell_text_x(line, &cell.alignment, cell.x, cell.width),
             y: text_y,
-            size: TABLE_CELL_FONT_SIZE,
+            size: cell.table_font_size,
             color: palette.text,
             max_width: Some(cell.width.saturating_sub(TABLE_CELL_PADDING * 2) as f32),
         };
-        match painter {
-            Some(it) => it.draw_text(image, line, layout),
-            None => {
-                SurfaceHelpers::draw_fallback_text(image, layout.x, layout.y, line, palette.text)
-            }
-        }
-        *next_text_y += TABLE_LINE_HEIGHT;
+        painter.draw_text(image, line, layout);
+        *next_text_y += cell.table_line_height;
     }
 }
 

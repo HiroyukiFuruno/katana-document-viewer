@@ -1,3 +1,4 @@
+use crate::emoji_text::EmojiTextSegments;
 use crate::export_surface_line::BODY_FONT_SIZE;
 use crate::export_surface_math::SurfaceMathText;
 use crate::export_surface_svg::SurfaceSvgRasterizer;
@@ -106,8 +107,24 @@ pub(super) fn push(
 ) {
     let text = text.into();
     if !text.is_empty() {
-        spans.push(SurfaceTextSpan::styled(text, style));
+        for segment in EmojiTextSegments::split(&text) {
+            let segment_style = if segment.emoji { style.emoji() } else { style };
+            push_styled_segment(spans, segment.text, segment_style);
+        }
     }
+}
+
+fn push_styled_segment(spans: &mut Vec<SurfaceTextSpan>, text: &str, style: SurfaceTextStyle) {
+    if let Some(previous) = spans.last_mut() {
+        let same_text_run = previous.style == style
+            && previous.link_target.is_none()
+            && previous.inline_image.is_none();
+        if same_text_run {
+            previous.text.push_str(text);
+            return;
+        }
+    }
+    spans.push(SurfaceTextSpan::styled(text, style));
 }
 
 fn html_style(html: &str, style: SurfaceTextStyle) -> SurfaceTextStyle {

@@ -73,6 +73,39 @@ fn resolves_file_url_with_absolute_src() {
 }
 
 #[test]
+fn resolves_absolute_file_uri_as_local_path() {
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, "file:///tmp/icon.png");
+
+    assert_eq!(resolved, Some(std::path::PathBuf::from("/tmp/icon.png")));
+}
+
+#[test]
+fn resolves_relative_file_uri_against_current_directory() -> Result<(), Box<dyn std::error::Error>>
+{
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, "file://assets/icon.png");
+
+    assert_eq!(
+        resolved,
+        Some(std::env::current_dir()?.join("assets/icon.png"))
+    );
+    Ok(())
+}
+
+#[test]
+fn resolves_file_uri_with_query_and_fragment_as_local_path() {
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved =
+        ExportAssetResolver::resolve_file_path(&source_uri, "file:///tmp/icon.png?cache=1#preview");
+
+    assert_eq!(resolved, Some(std::path::PathBuf::from("/tmp/icon.png")));
+}
+
+#[test]
 fn resolves_file_url_for_root_relative_source() {
     let source_uri = SourceUri("file:///README.md".to_string());
     let url = ExportAssetResolver::resolve_file_url(&source_uri, "icon.png");

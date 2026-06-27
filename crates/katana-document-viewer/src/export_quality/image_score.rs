@@ -1,15 +1,15 @@
 use crate::export_quality::types::{ExportFormatQualityScore, ExportQualityCheck, check};
 use crate::forge::ExportFormat;
 use image::GenericImageView;
+use image_score_visual::ImageVisualContent;
 
 const DOCUMENT_MIN_WIDTH: u32 = 640;
 const DOCUMENT_MIN_HEIGHT: u32 = 480;
-const DOCUMENT_MIN_AREA: u32 = DOCUMENT_MIN_WIDTH * DOCUMENT_MIN_HEIGHT;
 const NON_EMPTY_SCORE_WEIGHT: u16 = 20;
 const SIGNATURE_SCORE_WEIGHT: u16 = 20;
 const DECODE_SCORE_WEIGHT: u16 = 25;
 const SCALE_SCORE_WEIGHT: u16 = 25;
-const AREA_SCORE_WEIGHT: u16 = 10;
+const VISUAL_CONTENT_SCORE_WEIGHT: u16 = 10;
 
 pub(crate) struct ImageQualityScore;
 
@@ -39,7 +39,7 @@ impl ImageQualityScore {
             Self::signature_check(label, bytes, signature),
             Self::decode_check(label, decoded),
             Self::scale_check(label, decoded),
-            Self::area_check(label, decoded),
+            Self::visual_content_check(label, bytes),
         ]
     }
 
@@ -85,15 +85,12 @@ impl ImageQualityScore {
         )
     }
 
-    fn area_check(
-        label: &str,
-        decoded: &Result<(u32, u32), image::ImageError>,
-    ) -> ExportQualityCheck {
+    fn visual_content_check(label: &str, bytes: &[u8]) -> ExportQualityCheck {
         check(
             &format!("{label} is not visually blank"),
-            has_area(decoded),
+            ImageVisualContent::has_visible_content(bytes),
             true,
-            AREA_SCORE_WEIGHT,
+            VISUAL_CONTENT_SCORE_WEIGHT,
         )
     }
 }
@@ -104,8 +101,9 @@ fn document_scale(decoded: &Result<(u32, u32), image::ImageError>) -> bool {
         .is_ok_and(|(width, height)| *width >= DOCUMENT_MIN_WIDTH && *height >= DOCUMENT_MIN_HEIGHT)
 }
 
-fn has_area(decoded: &Result<(u32, u32), image::ImageError>) -> bool {
-    decoded
-        .as_ref()
-        .is_ok_and(|(width, height)| width.saturating_mul(*height) > DOCUMENT_MIN_AREA)
-}
+#[cfg(test)]
+#[path = "image_score_tests.rs"]
+mod tests;
+
+#[path = "image_score_visual.rs"]
+mod image_score_visual;

@@ -21,10 +21,10 @@ fn paint_alert_icon_covers_warning_and_default_paths() {
 }
 
 #[test]
-fn paint_alert_line_uses_fallback_when_painter_missing() {
+fn paint_alert_line_uses_system_painter() {
     let mut image = image::RgbaImage::from_pixel(160, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
-    let line = SurfaceLine::body("alert fallback".to_string());
+    let mut painter = crate::export_surface_font::SurfaceTextPainter::from_system_fonts();
+    let line = SurfaceLine::body("alert text".to_string());
 
     SurfacePainter::paint_alert_line(&mut image, &line, 8, 8, &mut painter, &palette());
 
@@ -32,5 +32,27 @@ fn paint_alert_line_uses_fallback_when_painter_missing() {
         image
             .pixels()
             .any(|pixel| *pixel != Rgba([255, 255, 255, 255]))
+    );
+}
+
+#[test]
+fn paint_alert_background_keeps_body_area_unfilled_and_uses_left_rule() {
+    let background = Rgba([12, 13, 14, 255]);
+    let mut image = image::RgbaImage::from_pixel(240, 120, background);
+    let alert = SurfaceAlertBlock::new("WARNING", vec!["warning".to_string()], 0);
+
+    SurfacePainter::paint_alert_background(&mut image, &alert, 0);
+
+    assert_eq!(
+        image.get_pixel(PAGE_PADDING, ALERT_PANEL_PADDING_Y),
+        &alert_color("WARNING")
+    );
+    assert_eq!(
+        image.get_pixel(
+            PAGE_PADDING + ALERT_PANEL_BORDER_WIDTH + 12,
+            ALERT_PANEL_PADDING_Y + 8
+        ),
+        &background,
+        "alert body area must not be filled as a panel"
     );
 }

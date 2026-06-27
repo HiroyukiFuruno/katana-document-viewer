@@ -13,7 +13,7 @@ impl SurfacePainter {
     pub(super) fn paint_line_marker(
         image: &mut RgbaImage,
         request: SurfaceMarkerPaintRequest<'_>,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         match request.marker {
@@ -105,23 +105,20 @@ impl SurfacePainter {
         x: u32,
         y: u32,
         size: f32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        match painter {
-            Some(it) => it.draw_text(
-                image,
-                text,
-                SurfaceTextLayout {
-                    x,
-                    y,
-                    size,
-                    color: palette.text,
-                    max_width: Some(LIST_MARKER_COLUMN_WIDTH as f32),
-                },
-            ),
-            None => SurfaceHelpers::draw_fallback_text(image, x, y, text, palette.text),
-        }
+        painter.draw_text(
+            image,
+            text,
+            SurfaceTextLayout {
+                x,
+                y,
+                size,
+                color: palette.text,
+                max_width: Some(LIST_MARKER_COLUMN_WIDTH as f32),
+            },
+        );
     }
 }
 #[cfg(test)]

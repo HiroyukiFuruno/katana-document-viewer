@@ -36,6 +36,9 @@ impl SurfaceTextParser {
     }
 
     pub(crate) fn html_fragment_text(fragment: &str) -> String {
+        if let Some(text) = Self::malformed_data_svg_tail(fragment) {
+            return text;
+        }
         let alt_texts = Self::extract_attribute_values(fragment, "alt");
         if !alt_texts.is_empty() {
             return alt_texts.join(" ");
@@ -107,6 +110,18 @@ impl SurfaceTextParser {
             rest = &value_rest[end + 1..];
         }
         values
+    }
+
+    fn malformed_data_svg_tail(fragment: &str) -> Option<String> {
+        let data_start = fragment.find("data:image/svg+xml")?;
+        let data_fragment = &fragment[data_start..];
+        let broken_namespace_start = data_fragment.find("%22<http")?;
+        let tail_start = data_start + broken_namespace_start;
+        let tail = &fragment[tail_start..];
+        let end = tail.find('>')?;
+        let raw_tail = tail[end + 1..].trim();
+        let visible_tail = Self::strip_tags(raw_tail);
+        (!visible_tail.is_empty()).then_some(visible_tail)
     }
 }
 

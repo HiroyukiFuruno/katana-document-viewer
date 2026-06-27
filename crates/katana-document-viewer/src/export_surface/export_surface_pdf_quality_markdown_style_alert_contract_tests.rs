@@ -14,7 +14,7 @@ fn pdf_surface_renders_gfm_alerts_as_alert_blocks() -> Result<(), Box<dyn std::e
             "alert:TIP:icon=tip-bulb:Tip",
             "alert:IMPORTANT:icon=important-callout:Important",
             "alert:WARNING:icon=warning-triangle:Warning",
-            "alert:CAUTION:icon=caution-octagon:Caution",
+            "alert:CAUTION:icon=caution-circle-slash:Caution",
         ],
     );
     SurfaceTestSupport::assert_not_contains_any(

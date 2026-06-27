@@ -9,6 +9,19 @@ use export_surface_svg_raster::RasterTarget;
 
 pub(crate) struct SurfaceSvgImage {
     pub(crate) image: RgbaImage,
+    pub(crate) display_width: f32,
+    pub(crate) display_height: f32,
+}
+
+impl SurfaceSvgImage {
+    #[cfg(test)]
+    pub(crate) fn from_image(image: RgbaImage) -> Self {
+        Self {
+            display_width: image.width() as f32,
+            display_height: image.height() as f32,
+            image,
+        }
+    }
 }
 
 pub(crate) struct SurfaceSvgRasterizer;
@@ -23,6 +36,20 @@ impl SurfaceSvgRasterizer {
         max_width: u32,
         root_font_size: Option<f32>,
     ) -> Option<SurfaceSvgImage> {
+        Self::rasterize_with_root_font_size_and_content_scale(
+            svg_text,
+            max_width,
+            root_font_size,
+            100,
+        )
+    }
+
+    pub(crate) fn rasterize_with_root_font_size_and_content_scale(
+        svg_text: &str,
+        max_width: u32,
+        root_font_size: Option<f32>,
+        content_scale: u32,
+    ) -> Option<SurfaceSvgImage> {
         let compatible_svg = preprocess_for_rasterizer(
             svg_text,
             root_font_size.filter(|size| size.is_finite() && *size > 0.0),
@@ -32,11 +59,37 @@ impl SurfaceSvgRasterizer {
             &export_surface_svg_raster::rasterizer_options(),
         )
         .ok()?;
-        let target = RasterTarget::new(tree.size(), max_width);
+        let size = tree.size();
+        let target = RasterTarget::new_with_content_scale(size, max_width, content_scale);
         let pixmap = target.render(&tree)?;
         let image = RgbaImage::from_raw(target.width(), target.height(), pixmap.take())?;
-        Some(SurfaceSvgImage { image })
+        Some(SurfaceSvgImage {
+            image,
+            display_width: logical_extent(size.width()),
+            display_height: logical_extent(size.height()),
+        })
     }
+
+    pub(crate) fn display_size(svg_text: &str, root_font_size: Option<f32>) -> Option<(f32, f32)> {
+        let compatible_svg = preprocess_for_rasterizer(
+            svg_text,
+            root_font_size.filter(|size| size.is_finite() && *size > 0.0),
+        );
+        let tree = usvg::Tree::from_str(
+            &compatible_svg,
+            &export_surface_svg_raster::rasterizer_options(),
+        )
+        .ok()?;
+        let size = tree.size();
+        Some((logical_extent(size.width()), logical_extent(size.height())))
+    }
+}
+
+fn logical_extent(value: f32) -> f32 {
+    if !value.is_finite() || value <= 0.0 {
+        return 1.0;
+    }
+    value
 }
 
 #[cfg(test)]
@@ -61,6 +114,19 @@ mod tests {
 
         assert!(image.is_some());
         assert_eq!(image.map(|image| image.image.width()).unwrap_or(0), 20);
+    }
+
+    #[test]
+    fn rasterize_keeps_fractional_svg_display_size_for_viewer_layout() {
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 324.9855 524.3"><rect width="10" height="10"/></svg>"#;
+        let image = SurfaceSvgRasterizer::rasterize(svg, 1000);
+        assert!(image.is_some(), "svg should rasterize");
+        let Some(image) = image else {
+            return;
+        };
+
+        assert_eq!(324.9855, image.display_width);
+        assert_eq!(524.3, image.display_height);
     }
 
     #[test]

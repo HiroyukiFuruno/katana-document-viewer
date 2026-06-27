@@ -9,10 +9,7 @@ const TEST_TEXT_SIZE: f32 = 24.0;
 #[test]
 fn paint_line_without_marker_uses_painter() -> Result<(), Box<dyn std::error::Error>> {
     let mut image = image::RgbaImage::from_pixel(160, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = Some(
-        crate::export_surface_font::SurfaceTextPainter::from_system_fonts()
-            .ok_or("system font should be available")?,
-    );
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let line = SurfaceLine::body("paint with painter".to_string());
     let text_x = 8;
@@ -36,11 +33,11 @@ fn paint_line_without_marker_uses_painter() -> Result<(), Box<dyn std::error::Er
 }
 
 #[test]
-fn paint_line_without_marker_uses_fallback_text() {
+fn paint_line_without_marker_draws_text_with_system_painter() {
     let mut image = image::RgbaImage::from_pixel(160, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
-    let line = SurfaceLine::body("fallback painter".to_string());
+    let line = SurfaceLine::body("system painter".to_string());
     SurfacePainter::paint_line_without_marker(
         &mut image,
         &line,
@@ -50,13 +47,17 @@ fn paint_line_without_marker_uses_fallback_text() {
         &mut painter,
         &palette,
     );
-    assert!(image.get_pixel(8, 20).0 != [255, 255, 255, 255]);
+    assert!(
+        image
+            .pixels()
+            .any(|pixel| *pixel != Rgba([255, 255, 255, 255]))
+    );
 }
 
 #[test]
 fn paint_line_list_marker_and_content_is_drawn() {
     let mut image = image::RgbaImage::from_pixel(220, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let spans = vec![
         SurfaceTextSpan::plain("1."),
@@ -65,13 +66,17 @@ fn paint_line_list_marker_and_content_is_drawn() {
     let line = SurfaceLine::body_spans(spans, 0);
     SurfacePainter::paint_line(&mut image, &line, 0, &mut painter, &palette);
     assert!(line.list_marker().is_some());
-    assert!(image.get_pixel(PAGE_PADDING, 12).0 != [255, 255, 255, 255]);
+    assert!(
+        image
+            .pixels()
+            .any(|pixel| *pixel != Rgba([255, 255, 255, 255]))
+    );
 }
 
 #[test]
 fn paint_aligned_list_line_pushes_list_text_horizontally() {
     let mut image = image::RgbaImage::from_pixel(220, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let spans = vec![SurfaceTextSpan::plain("A"), SurfaceTextSpan::plain(" B")];
     let line = SurfaceLine::body_spans(spans, 0);
@@ -94,7 +99,7 @@ fn paint_aligned_list_line_pushes_list_text_horizontally() {
 #[test]
 fn paint_line_without_marker_routes_in_progress_task_alignment() {
     let mut image = image::RgbaImage::from_pixel(220, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let spans = vec![
         SurfaceTextSpan::plain("◩"),
@@ -122,7 +127,7 @@ fn paint_line_without_marker_routes_in_progress_task_alignment() {
 #[test]
 fn paint_line_with_quote_bars_draws_quote_markers() {
     let mut image = image::RgbaImage::from_pixel(160, 80, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let line = SurfaceLine::body_with_quote("quoted line".to_string(), 2);
     SurfacePainter::paint_line(&mut image, &line, 2, &mut painter, &palette);
@@ -130,9 +135,9 @@ fn paint_line_with_quote_bars_draws_quote_markers() {
 }
 
 #[test]
-fn paint_line_without_marker_calls_fallback_for_body_and_code() {
+fn paint_line_without_marker_draws_body_center_and_code() {
     let mut image = image::RgbaImage::from_pixel(220, 120, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     let palette = super::super::SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
     let normal = SurfaceLine::body("normal".to_string());
     let centered = SurfaceLine::body_centered("center".to_string());
@@ -153,7 +158,7 @@ fn paint_without_marker_case(
     image: &mut image::RgbaImage,
     line: &SurfaceLine,
     y: u32,
-    painter: &mut Option<SurfaceTextPainter>,
+    painter: &mut SurfaceTextPainter,
     palette: &SurfacePaintPalette,
 ) {
     SurfacePainter::paint_line_without_marker(
@@ -165,4 +170,8 @@ fn paint_without_marker_case(
         painter,
         palette,
     );
+}
+
+fn system_text_painter() -> SurfaceTextPainter {
+    crate::export_surface_font::SurfaceTextPainter::from_system_fonts()
 }

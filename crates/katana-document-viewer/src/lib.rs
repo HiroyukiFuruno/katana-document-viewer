@@ -7,6 +7,7 @@ pub mod artifact;
 pub mod backend;
 pub mod cli_api;
 pub mod document;
+mod emoji_text;
 pub mod evaluation;
 mod export_assets;
 #[path = "export_html/export_block_payload.rs"]
@@ -68,14 +69,20 @@ mod forge_diagram_render;
 mod forge_diagram_render_types;
 mod forge_types;
 mod html_sanitizer;
+mod markdown_fence_normalizer;
+mod preview_runtime;
+mod preview_surface;
 mod render_runtime;
 mod theme;
+pub mod viewer;
 
 pub use artifact::{
-    Artifact, ArtifactBytes, ArtifactDiagnostic, ArtifactDiagnostics, ArtifactFormat, ArtifactId,
-    ArtifactKind, ArtifactManifest, ArtifactUri, DiagnosticSeverity,
+    Artifact, ArtifactBytes, ArtifactDiagnostic, ArtifactDiagnostics, ArtifactFactory,
+    ArtifactFormat, ArtifactId, ArtifactKind, ArtifactManifest, ArtifactTextExtraction,
+    ArtifactUri, DiagnosticSeverity,
 };
 pub use backend::diagram::{KrrDiagramInputFactory, KrrRenderOutputFactory};
+pub use backend::math::KrrMathRenderEngine;
 pub use cli_api::{
     CliApi, CliBuildRequest, CliDiagnostics, CliExportDebugRequest, CliExportRequest, CliOutput,
     CliRequest, CliThemeMode,
@@ -98,7 +105,8 @@ pub use export_postprocess::{
 };
 pub use export_quality::{
     ExportFormatQualityScore, ExportQualityArtifacts, ExportQualityCheck, ExportQualityGate,
-    ExportQualityReport,
+    ExportQualityReport, SurfaceEquivalenceArtifacts, SurfaceEquivalenceGate,
+    SurfaceEquivalenceImage, SurfaceEquivalenceReport,
 };
 pub use forge::{
     BuildGraph, BuildProfile, BuildRequest, ExportFormat, ExportOutput, ExportRequest,
@@ -106,9 +114,53 @@ pub use forge::{
     MarkdownEvaluationTarget, RenderedDiagram, TransformStep,
 };
 pub use forge_diagram_render_types::{
-    DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend, KrrDiagramRenderEngine,
+    DiagramRenderCacheOptions, DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend,
+    KrrDiagramRenderEngine,
+};
+pub use html_sanitizer::HtmlFragmentNormalizer;
+pub use katana_markdown_model::{
+    ByteRange, KmmNodeId, LineColumn, LineColumnRange, RawSnippet, SourceSpan,
+};
+pub use markdown_fence_normalizer::MarkdownFenceNormalizer;
+pub use preview_runtime::{
+    MarkdownPreview, MarkdownSource, PreviewAssetLoadReport, PreviewAssetLoader, PreviewConfig,
+    PreviewDiagnostics, PreviewError, PreviewOutput, PreviewOutputFactory, PreviewRenderEngine,
+    PreviewSurfaceImage, PreviewTheme, RenderTarget,
+};
+pub use preview_surface::{
+    KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX,
+    KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX, KDV_VIEWER_SURFACE_PADDING_PX,
+    KdvPdfSurfaceFactory, KdvPreviewSurface, KdvPreviewSurfaceFactory,
 };
 pub use theme::{KdvThemeMode, KdvThemeSnapshot};
+pub use viewer::{
+    CopyTextCommand, CopyTextSource, DiagramControlCommand, DiagramControlParity,
+    DiagramControlRequirement, DiagramPanCommand, DiagramPanSource, DiagramViewportState,
+    DiagramZoomCommand, DiagramZoomSource, HostCommand, ImageControlAction, ImageControlCommand,
+    SlideshowCommand, SlideshowSettingsUpdate, SlideshowState, TaskStateCommand,
+    VIEWER_DIAGRAM_DISPLAY_MAX_WIDTH, VIEWER_DIAGRAM_DISPLAY_SCALE, VIEWER_TEXT_COLOR_CHANNELS,
+    ViewerArtifactSearchResolver, ViewerArtifactTextExtraction, ViewerAssetLoadPriority,
+    ViewerAssetLoadRequest, ViewerAssetLoadResult, ViewerAssetPipeline, ViewerAssetReference,
+    ViewerAssetState, ViewerCodeBlockMetrics, ViewerCodeHighlighter, ViewerCommand,
+    ViewerCommandFactory, ViewerConfigRevision, ViewerDiagramControlSlot, ViewerDiagramKind,
+    ViewerHitTestIndex, ViewerHitTestResponse, ViewerHtmlAlignment, ViewerHtmlRole,
+    ViewerImageSurface, ViewerImageSurfaceError, ViewerImageSurfaceFactory, ViewerInput,
+    ViewerInteractionConfig, ViewerLayoutEngine, ViewerLayoutResult, ViewerMediaControlAction,
+    ViewerMediaControlKind, ViewerMediaControlSet, ViewerMediaControlSpec, ViewerMode,
+    ViewerModeSwitch, ViewerNode, ViewerNodeKind, ViewerNodePlan, ViewerNodePlanner, ViewerPoint,
+    ViewerRect, ViewerRectFactory, ViewerRenderedAnchor, ViewerScrollCommand, ViewerSearchCommand,
+    ViewerSearchDirection, ViewerSearchEngine, ViewerSearchHighlight, ViewerSearchHighlightKind,
+    ViewerSearchLayoutResolver, ViewerSearchMatch, ViewerSearchMatchId, ViewerSearchState,
+    ViewerSearchTarget, ViewerSearchTextMatch, ViewerSearchTextMatcher, ViewerSession,
+    ViewerSettingsField, ViewerSettingsState, ViewerSettingsUpdate, ViewerSettingsUpdateError,
+    ViewerSettingsValue, ViewerSlideshowControlAction, ViewerStateEngine, ViewerStateSnapshot,
+    ViewerTarget, ViewerTaskControlTarget, ViewerTaskState, ViewerTextRange, ViewerTextSpan,
+    ViewerTextStyle, ViewerTocCommandFactory, ViewerTocItem, ViewerTocModel,
+    ViewerTypographyConfig, ViewerVector, ViewerViewport, ViewerVisibleRange,
+};
+
+#[cfg(test)]
+mod dependency_tests;
 
 #[cfg(test)]
 mod test_support;

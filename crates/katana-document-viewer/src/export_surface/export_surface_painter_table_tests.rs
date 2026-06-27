@@ -46,6 +46,10 @@ fn palette() -> SurfacePaintPalette {
     SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light())
 }
 
+fn system_text_painter() -> crate::export_surface_font::SurfaceTextPainter {
+    crate::export_surface_font::SurfaceTextPainter::from_system_fonts()
+}
+
 #[test]
 fn paint_table_row_background_colors_header_and_even_rows() {
     let mut image = image::RgbaImage::from_pixel(240, 80, Rgba([255, 255, 255, 255]));
@@ -69,10 +73,12 @@ fn paint_table_cell_line_advances_text_y_with_table_line_height() {
         y: 8,
         width: 120,
         row_height: 40,
+        table_font_size: 22.0,
+        table_line_height: 34,
     };
     let mut image = image::RgbaImage::from_pixel(200, 80, Rgba([255, 255, 255, 255]));
     let mut next_text_y = cell.y + 2;
-    let mut painter = None;
+    let mut painter = system_text_painter();
     SurfacePainter::paint_table_cell_line(
         &mut image,
         &cell,
@@ -100,10 +106,10 @@ fn paint_table_cell_paint_is_positioned_by_alignment() {
         row_index: 1,
         row_y: 16,
         row_height: 40,
-        column_width: 80,
+        column_widths: &[80, 80, 80],
         row_width: SURFACE_CONTENT_WIDTH,
     };
-    let cell = SurfacePainter::table_cell_paint(&request, 1, "value", PAGE_PADDING + 80);
+    let cell = SurfacePainter::table_cell_paint(&request, 1, "value", PAGE_PADDING + 80, 80);
     assert_eq!(cell.alignment, TableAlignment::Center);
     assert_eq!(cell.x, PAGE_PADDING + 80);
 }
@@ -118,13 +124,10 @@ fn paint_table_row_paints_cells_and_content() -> Result<(), Box<dyn std::error::
         row_index: 0,
         row_y: 0,
         row_height: 40,
-        column_width: 80,
+        column_widths: &[80, 80, 80],
         row_width: SURFACE_CONTENT_WIDTH,
     };
-    let mut painter = Some(
-        crate::export_surface_font::SurfaceTextPainter::from_system_fonts()
-            .ok_or("system font should be available")?,
-    );
+    let mut painter = system_text_painter();
     let mut image = image::RgbaImage::from_pixel(240, 80, Rgba([255, 255, 255, 255]));
     SurfacePainter::paint_table_row(&mut image, request, &mut painter, &palette());
     assert_ne!(image.get_pixel(PAGE_PADDING, 1).0, [255, 255, 255, 255]);
@@ -136,7 +139,7 @@ fn paint_table_row_paints_cells_and_content() -> Result<(), Box<dyn std::error::
 fn paint_table_renders_multiple_rows() {
     let table = table_block();
     let mut image = image::RgbaImage::from_pixel(240, 200, Rgba([255, 255, 255, 255]));
-    let mut painter = None;
+    let mut painter = system_text_painter();
     SurfacePainter::paint_table(&mut image, &table, 0, &mut painter, &palette());
     assert!(
         image

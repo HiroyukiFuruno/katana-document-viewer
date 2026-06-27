@@ -33,8 +33,8 @@ fn pdf_surface_renders_math_from_shared_svg() -> Result<(), Box<dyn std::error::
 
 #[test]
 fn pdf_surface_keeps_sample_math_fraction_on_same_page() -> Result<(), Box<dyn std::error::Error>> {
-    let fixture =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/rendering/sample.ja.md");
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../assets/fixtures/katana/sample.ja.md");
     let markdown = std::fs::read_to_string(&fixture)?;
     let pages = SurfaceTestSupport::surface_page_texts(&SurfaceTestSupport::graph_from_markdown(
         &fixture.display().to_string(),

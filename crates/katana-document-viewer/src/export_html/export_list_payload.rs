@@ -90,17 +90,17 @@ impl ListHtmlWriter {
 
     fn task_state(marker: &str) -> TaskMarkerState {
         match marker {
-            "[x]" => TaskMarkerState {
+            "[x]" | "[X]" => TaskMarkerState {
                 label: "done",
                 checked: true,
                 mixed: false,
                 visual_kind: "done-check",
             },
             "[-]" => TaskMarkerState {
-                label: "in-progress",
+                label: "blocked",
                 checked: false,
                 mixed: true,
-                visual_kind: "in-progress-dash",
+                visual_kind: "blocked-dash",
             },
             "[/]" => TaskMarkerState {
                 label: "in-progress",

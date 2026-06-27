@@ -107,3 +107,42 @@ fn diagram_render_engine_plantuml_request_propagates_renderer_result() {
     let result = engine.render(request);
     assert!(result.is_err() || result.is_ok());
 }
+
+#[test]
+fn krr_diagram_render_cache_options_include_runtime_asset_versions() {
+    let options = KrrDiagramRenderEngine.cache_options();
+
+    assert_eq!(96, options.dpi);
+    assert_ne!("default", options.renderer_options);
+    assert!(options.renderer_options.contains(env!("CARGO_PKG_VERSION")));
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::mermaid_renderer::MERMAID_JS_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::mermaid_renderer::MERMAID_JS_CHECKSUM)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::drawio_renderer::DRAWIO_JS_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::drawio_renderer::DRAWIO_JS_CHECKSUM)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::plantuml_renderer::PLANTUML_JAR_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::plantuml_renderer::PLANTUML_JAR_CHECKSUM)
+    );
+}

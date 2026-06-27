@@ -88,10 +88,12 @@ fn alert_properties_use_all_variants() {
     assert_eq!(alert_title("OTHER"), "Note");
     assert_eq!(alert_label_text("WARNING"), "Warning");
     assert_eq!(alert_color("TIP"), image::Rgba([26, 127, 55, 255]));
+    assert_eq!(alert_color("WARNING"), image::Rgba([191, 135, 0, 255]));
+    assert_eq!(alert_color("CAUTION"), image::Rgba([209, 36, 47, 255]));
     assert_eq!(alert_icon_name("TIP"), "tip-bulb");
     assert_eq!(alert_icon_name("IMPORTANT"), "important-callout");
     assert_eq!(alert_icon_name("WARNING"), "warning-triangle");
-    assert_eq!(alert_icon_name("CAUTION"), "caution-octagon");
+    assert_eq!(alert_icon_name("CAUTION"), "caution-circle-slash");
     assert_eq!(alert_icon_name("OTHER"), "note-circle");
 }
 

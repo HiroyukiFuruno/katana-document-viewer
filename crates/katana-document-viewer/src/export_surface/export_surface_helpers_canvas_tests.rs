@@ -1,4 +1,5 @@
 use super::SurfaceHelpers;
+use crate::export_surface_helpers::PAGE_PADDING;
 use image::{Rgba, RgbaImage};
 
 #[test]
@@ -37,4 +38,18 @@ fn paste_rgba_skips_pixels_outside_target_bounds() {
 
     assert_eq!(target.get_pixel(1, 1).0, [255, 0, 0, 255]);
     assert_eq!(target.get_pixel(0, 0).0, [255, 255, 255, 255]);
+}
+
+#[test]
+fn block_stack_height_sums_explicit_blocks_without_implicit_gap() {
+    let height = SurfaceHelpers::block_stack_height([300, 300, 300].into_iter());
+
+    assert_eq!(300 * 3, height);
+}
+
+#[test]
+fn surface_block_height_wraps_stack_with_page_padding() {
+    let height = SurfaceHelpers::surface_block_height([300, 300, 300].into_iter());
+
+    assert_eq!(300 * 3 + PAGE_PADDING * 2, height);
 }

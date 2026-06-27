@@ -43,12 +43,14 @@ fn html_fragment_text_falls_back_to_stripped_text_without_alt_attribute() {
 }
 
 #[test]
-fn html_fragment_text_ignores_gt_inside_quoted_attributes() {
+fn html_fragment_text_keeps_malformed_data_svg_raw_tail() {
     let text = SurfaceTextParser::html_fragment_text(
         "<p><img src=\"data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%2216%22%3E\"></p>",
     );
 
-    assert!(text.is_empty());
+    assert!(text.starts_with("width=%2216%22"));
+    assert!(text.contains("%3E\""));
+    assert!(!text.contains("</p>"));
 }
 
 #[test]

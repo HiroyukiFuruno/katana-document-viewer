@@ -129,6 +129,25 @@ fn from_markdown_without_nodes_returns_plain_entity_decoded_text() {
 }
 
 #[test]
+fn from_markdown_splits_raw_emoji_for_os_emoji_rendering() {
+    let spans =
+        SurfaceInlineSpans::from_markdown("Emoji: 🦀 text ⚠️", &KdvThemeSnapshot::katana_light());
+
+    assert_eq!(
+        spans
+            .iter()
+            .map(|span| (span.text.as_str(), span.style.emoji))
+            .collect::<Vec<_>>(),
+        vec![
+            ("Emoji: ", false),
+            ("🦀", true),
+            (" text ", false),
+            ("⚠️", true)
+        ]
+    );
+}
+
+#[test]
 fn from_markdown_empty_fragment_returns_empty_plain_span() {
     let spans = SurfaceInlineSpans::from_markdown("", &KdvThemeSnapshot::katana_light());
 

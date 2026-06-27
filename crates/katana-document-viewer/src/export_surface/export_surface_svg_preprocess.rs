@@ -1,13 +1,35 @@
 const LIGHT_DARK_FUNCTION: &str = "light-dark(";
 const SVG_TAG_PREFIX_LEN: usize = 4;
 
+#[path = "export_surface_svg_preprocess_foreign_object.rs"]
+mod foreign_object;
+
 pub(super) fn preprocess_for_rasterizer(svg_text: &str, root_font_size: Option<f32>) -> String {
     let with_xml_entities = svg_text.replace("&nbsp;", "&#160;");
-    let without_foreign_objects = strip_foreign_objects(&with_xml_entities);
+    let without_plantuml_metadata = strip_plantuml_processing_instructions(&with_xml_entities);
+    let without_foreign_objects =
+        foreign_object::replace_with_text_fallbacks(&without_plantuml_metadata);
     let with_font_context = root_font_size
         .and_then(|font_size| apply_root_font_size_css_unit(&without_foreign_objects, font_size))
         .unwrap_or(without_foreign_objects);
     resolve_light_dark_functions(&with_font_context)
+}
+
+fn strip_plantuml_processing_instructions(svg_text: &str) -> String {
+    let mut output = String::with_capacity(svg_text.len());
+    let mut cursor = 0usize;
+    let lower = svg_text.to_ascii_lowercase();
+    while let Some(relative_start) = lower[cursor..].find("<?plantuml") {
+        let start = cursor + relative_start;
+        output.push_str(&svg_text[cursor..start]);
+        let Some(relative_end) = lower[start..].find("?>") else {
+            output.push_str(&svg_text[start..]);
+            return output;
+        };
+        cursor = start + relative_end + "?>".len();
+    }
+    output.push_str(&svg_text[cursor..]);
+    output
 }
 
 fn apply_root_font_size_css_unit(svg_text: &str, root_font_size: f32) -> Option<String> {
@@ -82,27 +104,6 @@ fn add_root_style_attribute(svg_text: &str, root_font_size: f32, root_end: usize
     output.push_str(&svg_text[..root_end]);
     output.push_str(&style_attr);
     output.push_str(&svg_text[root_end..]);
-    output
-}
-
-fn strip_foreign_objects(svg_text: &str) -> String {
-    let mut output = String::with_capacity(svg_text.len());
-    let mut remaining = svg_text;
-    while let Some(start) = remaining.to_ascii_lowercase().find("<foreignobject") {
-        output.push_str(&remaining[..start]);
-        let after_open = &remaining[start..];
-        let lower_after_open = after_open.to_ascii_lowercase();
-        if let Some(self_close) = lower_after_open.find("/>") {
-            remaining = &after_open[self_close + "/>".len()..];
-            continue;
-        }
-        let Some(close) = lower_after_open.find("</foreignobject>") else {
-            output.push_str(after_open);
-            return output;
-        };
-        remaining = &after_open[close + "</foreignobject>".len()..];
-    }
-    output.push_str(remaining);
     output
 }
 

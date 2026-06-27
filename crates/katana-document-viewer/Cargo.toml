@@ -13,6 +13,7 @@ path = "src/lib.rs"
 
 [dependencies]
 cosmic-text = { workspace = true }
+epaint_default_fonts = { workspace = true }
 flate2 = { workspace = true }
 image = { workspace = true }
 katana-markdown-model = { workspace = true }
@@ -24,6 +25,7 @@ syntect = { workspace = true }
 thiserror = { workspace = true }
 tiny-skia = { workspace = true }
 v8 = { workspace = true }
+xmltree = { workspace = true }
 
 [dev-dependencies]
 toml = { workspace = true }

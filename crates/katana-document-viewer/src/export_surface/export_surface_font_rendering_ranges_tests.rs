@@ -5,7 +5,7 @@ use cosmic_text::{Attrs, FontSystem, Metrics, Shaping};
 #[test]
 fn ignores_zero_metadata_glyphs() {
     let mut font_system = FontSystem::new();
-    let metrics = Metrics::new(16.0, 16.0 * 1.35);
+    let metrics = Metrics::new(16.0, 16.0 * 1.45);
     let mut buffer = cosmic_text::Buffer::new(&mut font_system, metrics);
     buffer.set_size(Some(128.0), Some(16.0 * 1.8));
     buffer.set_rich_text(
@@ -25,7 +25,7 @@ fn ignores_zero_metadata_glyphs() {
 fn ignores_glyphs_outside_span_count() {
     let span = SurfaceTextSpan::plain("text");
     let mut font_system = FontSystem::new();
-    let metrics = Metrics::new(16.0, 16.0 * 1.35);
+    let metrics = Metrics::new(16.0, 16.0 * 1.45);
     let mut buffer = cosmic_text::Buffer::new(&mut font_system, metrics);
     buffer.set_size(Some(128.0), Some(16.0 * 1.8));
     buffer.set_rich_text(

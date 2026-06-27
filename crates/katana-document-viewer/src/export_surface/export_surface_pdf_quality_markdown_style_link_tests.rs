@@ -29,7 +29,7 @@ fn pdf_surface_uses_material_list_markers_when_item_contains_code_block()
     SurfaceTestSupport::assert_contains_all(
         &debug,
         &[
-            "最初の手順:[\"indent=0\", \"list-marker=bullet\", \"marker-column=36\", \"marker-paint=material-dot\"]",
+            "最初の手順::[\"indent=0\", \"list-marker=bullet\", \"marker-column=36\", \"marker-paint=material-dot\"]",
             "cargo:[\"monospace\", \"color\"]",
         ],
     );

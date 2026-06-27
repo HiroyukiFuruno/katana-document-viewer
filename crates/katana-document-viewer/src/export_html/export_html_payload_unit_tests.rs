@@ -64,6 +64,20 @@ fn append_paragraph_uses_raw_text_when_children_missing() {
     assert!(html.contains("&lt;"));
 }
 
+#[test]
+fn diagram_error_for_node_returns_matching_diagnostic_message() {
+    let mut graph = graph();
+    graph
+        .diagnostics
+        .messages
+        .push("diagram node-diagram failed".to_string());
+
+    assert_eq!(
+        "diagram node-diagram failed",
+        diagram_error_for_node(&graph, "node-diagram")
+    );
+}
+
 fn graph() -> BuildGraph {
     use crate::{BuildProfile, BuildRequest, DocumentSnapshotFactory, DocumentSource, SourceKind};
     let source = DocumentSource {

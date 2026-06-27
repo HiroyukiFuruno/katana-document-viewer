@@ -1,0 +1,82 @@
+use super::*;
+
+#[test]
+fn image_source_becomes_single_markdown_image() {
+    let prepared = PreviewSourceNormalizer::normalize(&source("", "/tmp/sample.png"));
+
+    assert_eq!("![sample.png](file:///tmp/sample.png)", prepared.content);
+    assert_eq!(crate::SourceKind::Image, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Image, prepared.document_kind);
+}
+
+#[test]
+fn image_source_preserves_katana_reference_image_buffer() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        "![](file:///tmp/sample.png)",
+        "/tmp/sample.png",
+    ));
+
+    assert_eq!("![](file:///tmp/sample.png)", prepared.content);
+    assert_eq!(crate::SourceKind::Image, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Image, prepared.document_kind);
+}
+
+#[test]
+fn raw_svg_image_source_uses_document_path_as_image_uri() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        r#"<svg xmlns="http://www.w3.org/2000/svg"></svg>"#,
+        "/tmp/sample.svg",
+    ));
+
+    assert_eq!("![sample.svg](file:///tmp/sample.svg)", prepared.content);
+    assert!(!prepared.content.contains("<svg"));
+    assert_eq!(crate::SourceKind::Image, prepared.source_kind);
+}
+
+#[test]
+fn drawio_source_becomes_drawio_fence() {
+    let prepared = PreviewSourceNormalizer::normalize(&source("<mxfile />", "sample.drawio"));
+
+    assert_eq!("```drawio\n<mxfile />\n```", prepared.content);
+    assert_eq!(crate::SourceKind::Diagram, prepared.source_kind);
+}
+
+#[test]
+fn mermaid_source_becomes_mermaid_fence() {
+    let prepared = PreviewSourceNormalizer::normalize(&source("graph TD\nA --> B", "sample.mmd"));
+
+    assert_eq!("```mermaid\ngraph TD\nA --> B\n```", prepared.content);
+    assert_eq!(crate::SourceKind::Diagram, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Diagram, prepared.document_kind);
+}
+
+#[test]
+fn mermaid_extension_source_becomes_mermaid_fence() {
+    let prepared =
+        PreviewSourceNormalizer::normalize(&source("sequenceDiagram\nA->>B: ok", "sample.mermaid"));
+
+    assert_eq!(
+        "```mermaid\nsequenceDiagram\nA->>B: ok\n```",
+        prepared.content
+    );
+    assert_eq!(crate::SourceKind::Diagram, prepared.source_kind);
+}
+
+#[test]
+fn html_source_keeps_html_document_kind() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        r#"<main><h1>Title</h1><p align="center">Body</p></main>"#,
+        "sample.html",
+    ));
+
+    assert!(prepared.content.contains("<main>"));
+    assert_eq!(crate::SourceKind::Html, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Html, prepared.document_kind);
+}
+
+fn source(content: &str, document_id: &str) -> MarkdownSource {
+    MarkdownSource {
+        content: content.to_string(),
+        document_id: Some(document_id.to_string()),
+    }
+}

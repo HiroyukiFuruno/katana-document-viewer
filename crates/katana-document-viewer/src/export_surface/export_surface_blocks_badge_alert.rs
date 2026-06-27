@@ -3,7 +3,7 @@ use super::{
     BADGE_VERTICAL_MARGIN,
 };
 use crate::export_surface_helpers::{BODY_MAX_CHARS, SurfaceHelpers, WrappedText};
-use crate::export_surface_line::SurfaceLine;
+use crate::export_surface_line::{SurfaceLine, SurfaceTypographyConfig};
 use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
 
 const BADGE_TEXT_APPROX_CHAR_WIDTH: u32 = 10;
@@ -73,6 +73,7 @@ impl SurfaceBadge {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn text(&self) -> String {
         if self.message.is_empty() {
             return self.label.clone();
@@ -139,6 +140,13 @@ impl SurfaceAlertBlock {
     pub(crate) fn height(&self) -> u32 {
         let body_height = self.body.iter().map(SurfaceLine::line_height).sum::<u32>();
         self.title.line_height() + body_height + ALERT_VERTICAL_PADDING
+    }
+
+    pub(crate) fn apply_typography(&mut self, typography: SurfaceTypographyConfig) {
+        self.title.apply_typography(typography);
+        for line in &mut self.body {
+            line.apply_typography(typography);
+        }
     }
 
     #[cfg(test)]

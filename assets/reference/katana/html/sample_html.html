@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja" data-kdv-theme="dark">
+<head><meta charset="utf-8"><title>KDV Export</title><style data-kdv-export-style>:root{--kdv-text:#E0E0E0;--kdv-background:transparent;--kdv-table-border:#30363d;--kdv-table-header:#161b22;--kdv-table-even:#111820;--kdv-quote-border:#484f58;--kdv-quote-text:#8b949e;--kdv-alert-bg:#161b22;--kdv-code-bg:#161b22;--kdv-code-border:#30363d;--kdv-task-active-bg:#264f78;--kdv-task-empty-bg:#252526;--kdv-task-done:#569cd6;--kdv-task-progress:#569cd6;--kdv-footnote-border:#30363d;--kdv-footnote-text:#8b949e;--kdv-alert-note:#58a6ff;--kdv-alert-tip:#3fb950;--kdv-alert-important:#a371f7;--kdv-alert-warning:#f85149;--kdv-alert-caution:#d29922;--kdv-diagram-background:transparent;}body{background:var(--kdv-background);color:var(--kdv-text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}main{max-width:980px;margin:0 auto;padding:32px;}em{font-style:italic;}:not(pre)>code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--kdv-code-bg);border:1px solid var(--kdv-code-border);border-radius:4px;padding:.12em .32em;white-space:break-spaces;}[data-kdv-table="katana"]{width:100%;border-collapse:collapse;table-layout:fixed;margin:1rem 0;}[data-kdv-table="katana"] th,[data-kdv-table="katana"] td{border:1px solid var(--kdv-table-border);padding:6px 10px;vertical-align:top;}[data-kdv-table="katana"] th{background:var(--kdv-table-header);font-weight:600;}[data-kdv-table="katana"] tbody tr:nth-child(even) td{background:var(--kdv-table-even);}col[data-kdv-column-size="short"]{width:12em;}col[data-kdv-column-size="wide"]{width:auto;}th[data-kdv-column-size="short"],td[data-kdv-column-size="short"]{width:12em;max-width:12em;white-space:normal;overflow-wrap:anywhere;}th[data-kdv-column-size="wide"],td[data-kdv-column-size="wide"]{width:auto;white-space:normal;overflow-wrap:anywhere;}th[data-align="left"],td[data-align="left"]{text-align:left;}th[data-align="center"],td[data-align="center"]{text-align:center;}th[data-align="right"],td[data-align="right"]{text-align:right;}pre[data-kdv-code-role="plain"]{background:var(--kdv-code-bg);border:1px solid var(--kdv-code-border);border-radius:6px;padding:1rem;overflow:auto;margin:1rem 0 1.25rem;}pre[data-kdv-code-role="plain"] code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;}hr{border:0;border-top:1px solid var(--kdv-table-border);margin:2rem 0;}blockquote{border-left:4px solid var(--kdv-quote-border);margin:1rem 0;padding:.25rem 0 .25rem 1rem;color:var(--kdv-quote-text);}blockquote p:first-child{margin-top:0;}blockquote p:last-child{margin-bottom:0;}blockquote blockquote{margin:.75rem 0;}blockquote[data-kdv-quote-depth] blockquote[data-kdv-quote-depth]{margin-top:.75rem;margin-bottom:0;}[data-kdv-blockquote="alert"]{border-left:4px solid var(--kdv-quote-border);background:var(--kdv-alert-bg);margin:1rem 0;padding:.75rem 1rem;}[data-kdv-alert-title]{display:flex;align-items:center;gap:.4rem;font-weight:600;margin-top:0;}[data-kdv-alert-title="NOTE"]{color:var(--kdv-alert-note);}[data-kdv-alert-title="TIP"]{color:var(--kdv-alert-tip);}[data-kdv-alert-title="IMPORTANT"]{color:var(--kdv-alert-important);}[data-kdv-alert-title="WARNING"]{color:var(--kdv-alert-warning);}[data-kdv-alert-title="CAUTION"]{color:var(--kdv-alert-caution);}span[data-kdv-alert-icon]{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;line-height:1;}svg[data-kdv-alert-icon-svg]{width:1.05em;height:1.05em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}details[data-kdv-accordion]{margin:1rem 0;}details[data-kdv-accordion]>summary{cursor:pointer;font-weight:600;}details[data-kdv-accordion]>[data-kdv-accordion-body]{margin-top:.75rem;}[data-kdv-render-runtime]{overflow-x:auto;}[data-kdv-render-runtime] svg{max-width:100%;height:auto;vertical-align:-.2em;}div[data-kdv-render-runtime]{margin:1rem 0;text-align:center;}figure[data-kdv-diagram]{background:var(--kdv-diagram-background);}[data-github-alert="NOTE"]{border-left-color:var(--kdv-alert-note);}[data-github-alert="TIP"]{border-left-color:var(--kdv-alert-tip);}[data-github-alert="IMPORTANT"]{border-left-color:var(--kdv-alert-important);}[data-github-alert="WARNING"]{border-left-color:var(--kdv-alert-warning);}[data-github-alert="CAUTION"]{border-left-color:var(--kdv-alert-caution);}li[data-kdv-task-item="true"]{list-style:none;}li[data-kdv-task-item="true"]>input{position:absolute;opacity:0;width:1px;height:1px;margin:0;}span[data-kdv-task-visual]{display:inline-flex;align-items:center;justify-content:center;width:.85em;height:.85em;margin-right:.55em;border-radius:2px;vertical-align:-.05em;}span[data-kdv-task-visual="todo"]{background:var(--kdv-task-empty-bg);}span[data-kdv-task-visual="done-check"]{background:var(--kdv-task-active-bg);color:var(--kdv-task-done);}span[data-kdv-task-visual="in-progress-dash"],span[data-kdv-task-visual="in-progress-slash"]{background:var(--kdv-task-active-bg);color:var(--kdv-task-progress);}span[data-kdv-task-visual="done-check"]::before{content:"";width:.32em;height:.58em;border:solid currentColor;border-width:0 .14em .14em 0;transform:rotate(45deg);}span[data-kdv-task-visual="in-progress-dash"]::before{content:"";width:.62em;border-top:.14em solid currentColor;}span[data-kdv-task-visual="in-progress-slash"]::before{content:"";width:.72em;border-top:.14em solid currentColor;transform:rotate(-45deg);}section[data-kdv-footnotes]{border-top:1px solid var(--kdv-footnote-border);margin-top:2rem;padding-top:1rem;font-size:.92em;color:var(--kdv-footnote-text);}li[data-kdv-footnote-definition]:target{background:var(--kdv-table-even);scroll-margin-top:1rem;}</style></head>
+<body><main data-kdv-export="foundation">
+<h1>🧪 KatanA Rendering — HTML Centering</h1>
+<p>This fixture exercises HTML centering (past bug: left-aligned instead of centered).</p>
+<p align="center">
+  English | <a href="sample_html.ja.md">日本語</a>
+</p><hr>
+<h2>1. HTML Centering (Past Bug: Elements Left-Aligned Instead of Centered)</h2>
+<h3>1.1 <code>&lt;h1 align=&quot;center&quot;&gt;</code> — Centered Heading</h3>
+<h1 align="center">KatanA Desktop</h1><p>↑ The heading &quot;KatanA Desktop&quot; should be <strong>horizontally centered</strong> in the panel.</p>
+<h3>1.2 <code>&lt;p align=&quot;center&quot;&gt;</code> — Centered Paragraph</h3>
+<p align="center">
+  A fast, lightweight Markdown workspace for macOS — built with Rust and egui.
+</p><p>↑ The description text should be <strong>horizontally centered</strong> in the panel.</p>
+<h3>1.3 Multiple Consecutive Centered Blocks</h3>
+<h1 align="center">Centered Heading</h1><p align="center">
+  Centered description paragraph.
+</p><p align="center">
+  Second centered paragraph — should NOT overlap with the first one.
+</p><p>↑ All three elements should be on separate lines, all centered.</p>
+<h3>1.4 Badge Row (Multiple Link Images on Same Line)</h3>
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="#"><img src="https://img.shields.io/badge/CI-passing-brightgreen.svg" alt="CI"></a>
+  <a href="#"><img src="https://img.shields.io/badge/platform-macOS-lightgrey" alt="Platform: macOS"></a>
+</p><p>↑ Three badges should appear on the <strong>same line</strong>, centered.</p>
+<p>(If they are on separate lines, that&#39;s a bug.)</p>
+<h3>1.5 Mixed Text + Link Centering</h3>
+<p align="center">
+  English | <a href="#">日本語</a>
+</p><p>↑ &quot;English | 日本語&quot; should appear on the same line, centered.</p>
+<h3>1.6 Full README Header Reproduction</h3>
+<p align="center">
+  <img src="data:image/svg+xml,%3Csvg xmlns=%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20 width=%22128%22 height=%22128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23ddd%22/%3E%3Ctext x=%2264%22 y=%2264%22 text-anchor=%22middle%22 dominant-baseline=%22central%22 font-size=%2216%22 fill=%22%23999%22%3E128x128%3C/text%3E%3C/svg%3E" width="128" alt="icon">
+</p><h1 align="center">KatanA Desktop</h1><p align="center">
+  A fast, lightweight Markdown workspace for macOS
+</p><p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="#"><img src="https://img.shields.io/badge/CI-passing-brightgreen.svg" alt="CI"></a>
+</p><p align="center">
+  English | <a href="#">日本語</a>
+</p><p>↑ Icon → heading → description → badges → language selector, all centered in order.</p>
+<hr>
+<h2>✅ Verification Complete</h2>
+<p>If all sections above render correctly, HTML centering is working.</p>
+</main></body>
+</html>

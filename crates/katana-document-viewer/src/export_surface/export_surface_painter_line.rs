@@ -10,11 +10,11 @@ impl SurfacePainter {
         image: &mut RgbaImage,
         line: &SurfaceLine,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let size = line.font_size();
-        let text_x = Self::line_text_x(line);
+        let text_x = Self::line_text_x_for_paint(line, painter);
         if line.quote_depth() > 0 {
             self_paint_quote_bars(image, line, y, palette);
         }
@@ -43,7 +43,7 @@ impl SurfacePainter {
         text_x: u32,
         text_y: u32,
         size: f32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         if line.aligns_with_list_marker() {
@@ -56,7 +56,7 @@ impl SurfacePainter {
     pub(super) fn paint_list_line(
         image: &mut RgbaImage,
         request: SurfaceListLinePaintRequest<'_>,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let marker_request = SurfaceMarkerPaintRequest {
@@ -84,7 +84,7 @@ impl SurfacePainter {
         text_x: u32,
         text_y: u32,
         size: f32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         Self::paint_line_text(
@@ -104,15 +104,10 @@ impl SurfacePainter {
         x: u32,
         y: u32,
         size: f32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        match painter {
-            Some(it) => it.draw_spans(image, spans, x, y, size, palette.text),
-            None => {
-                SurfaceHelpers::draw_fallback_text(image, x, y, &spans_text(spans), palette.text)
-            }
-        }
+        painter.draw_spans(image, spans, x, y, size, palette.text);
     }
 }
 
@@ -129,10 +124,6 @@ fn self_paint_quote_bars(
         line.line_height(),
         palette.quote,
     );
-}
-
-fn spans_text(spans: &[SurfaceTextSpan]) -> String {
-    spans.iter().map(|span| span.text.as_str()).collect()
 }
 
 #[cfg(test)]

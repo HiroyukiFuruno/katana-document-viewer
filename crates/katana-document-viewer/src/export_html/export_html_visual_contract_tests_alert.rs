@@ -19,7 +19,7 @@ fn red_detects_katana_task_checkbox_visual_contract_gaps() -> Result<(), Box<dyn
             ),
             (
                 "dash item wrapper",
-                r#"<li data-kdv-task-item="true"><input type="checkbox" disabled data-kdv-task-marker="[-]" data-kdv-task-state="in-progress" aria-checked="mixed"><span data-kdv-task-visual="in-progress-dash" aria-hidden="true"></span>"#,
+                r#"<li data-kdv-task-item="true"><input type="checkbox" disabled data-kdv-task-marker="[-]" data-kdv-task-state="blocked" aria-checked="mixed"><span data-kdv-task-visual="blocked-dash" aria-hidden="true"></span>"#,
             ),
             (
                 "progress item wrapper",
@@ -50,6 +50,11 @@ fn quote_and_alert_markdown() -> &'static str {
 }
 
 fn assert_quote_and_alert_contract(html: &str) {
+    assert_quote_and_alert_contains_contract(html);
+    assert_alert_panel_style_is_not_filled(html);
+}
+
+fn assert_quote_and_alert_contains_contract(html: &str) {
     HtmlContractTestSupport::assert_contains_all(
         html,
         &[
@@ -74,6 +79,13 @@ fn assert_quote_and_alert_contract(html: &str) {
                 r#"<p data-kdv-alert-title="WARNING"><span data-kdv-alert-icon="WARNING" aria-hidden="true"><svg data-kdv-alert-icon-svg="WARNING""#,
             ),
         ],
+    );
+}
+
+fn assert_alert_panel_style_is_not_filled(html: &str) {
+    assert!(
+        !html.contains("background:var(--kdv-alert-bg)"),
+        "GFM alert must use KatanA left-rule style, not a filled panel: {html}"
     );
 }
 

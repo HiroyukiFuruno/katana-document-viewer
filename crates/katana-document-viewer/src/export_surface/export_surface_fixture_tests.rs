@@ -1,13 +1,16 @@
+use crate::RenderedDiagram;
 use crate::export_surface::test_modules::test_support::SurfaceTestSupport;
+use katana_markdown_model::{CodeBlockRole, KmmNode, KmmNodeKind};
 
 #[test]
 fn sample_fixture_surface_does_not_leak_raw_markup_or_diagram_source()
 -> Result<(), Box<dyn std::error::Error>> {
     let (fixture, markdown) = sample_fixture()?;
-    let joined = SurfaceTestSupport::surface_text(&SurfaceTestSupport::graph_from_markdown(
-        &fixture.display().to_string(),
-        markdown,
-    )?);
+    let mut graph =
+        SurfaceTestSupport::graph_from_markdown(&fixture.display().to_string(), markdown)?;
+    let rendered_diagrams = rendered_diagrams_for(&graph.snapshot.document.nodes);
+    graph = graph.with_rendered_diagrams(rendered_diagrams);
+    let joined = SurfaceTestSupport::surface_text(&graph);
 
     SurfaceTestSupport::assert_not_contains_any(
         &joined,
@@ -61,8 +64,35 @@ fn sample_fixture_surface_accepts_crlf_markdown_input() -> Result<(), Box<dyn st
 }
 
 fn sample_fixture() -> Result<(std::path::PathBuf, String), Box<dyn std::error::Error>> {
-    let fixture =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/rendering/sample.ja.md");
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../assets/fixtures/katana/sample.ja.md");
     let markdown = std::fs::read_to_string(&fixture)?;
     Ok((fixture, markdown))
+}
+
+fn rendered_diagrams_for(nodes: &[KmmNode]) -> Vec<RenderedDiagram> {
+    let mut diagrams = Vec::new();
+    collect_rendered_diagrams(nodes, &mut diagrams);
+    diagrams
+}
+
+fn collect_rendered_diagrams(nodes: &[KmmNode], diagrams: &mut Vec<RenderedDiagram>) {
+    for node in nodes {
+        if matches!(
+            node.kind,
+            KmmNodeKind::CodeBlock(CodeBlockRole::Diagram { .. })
+        ) {
+            diagrams.push(RenderedDiagram {
+                node_id: node.id.0.clone(),
+                kind: "fixture".to_string(),
+                svg: "<svg><text>Rendered diagram</text></svg>".to_string(),
+            });
+        }
+        if let KmmNodeKind::List(list) = &node.kind {
+            for item in &list.items {
+                collect_rendered_diagrams(&item.children, diagrams);
+            }
+        }
+        collect_rendered_diagrams(&node.children, diagrams);
+    }
 }

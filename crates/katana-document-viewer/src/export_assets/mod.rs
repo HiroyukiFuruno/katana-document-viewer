@@ -18,6 +18,9 @@ impl ExportAssetResolver {
     }
 
     pub(crate) fn resolve_file_path(source_uri: &SourceUri, src: &str) -> Option<PathBuf> {
+        if let Some(path) = Self::file_uri_path(src) {
+            return Some(path);
+        }
         if Self::is_non_file_reference(src) {
             return None;
         }
@@ -70,6 +73,19 @@ impl ExportAssetResolver {
             || src.starts_with("http://")
             || src.starts_with("https://")
             || src.starts_with("file://")
+    }
+
+    fn file_uri_path(src: &str) -> Option<PathBuf> {
+        let path = src
+            .strip_prefix("file://")?
+            .split(['?', '#'])
+            .next()
+            .unwrap_or(src);
+        let path = Path::new(path);
+        if path.is_absolute() {
+            return Some(path.to_path_buf());
+        }
+        Some(std::env::current_dir().ok()?.join(path))
     }
 
     fn resolve_file_url(source_uri: &SourceUri, src: &str) -> Option<String> {

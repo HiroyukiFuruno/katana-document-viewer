@@ -4,7 +4,9 @@ use image::Rgba;
 use super::{SurfaceInlineImage, SurfaceTextSpan, SurfaceTextStyle};
 
 const INLINE_IMAGE_LAYOUT_SPACE_FACTOR: f32 = 0.35;
-const TEXT_WIDTH_ESTIMATE_FACTOR: f32 = 0.58;
+const ASCII_TEXT_WIDTH_ESTIMATE_FACTOR: f32 = 0.58;
+const SPACE_TEXT_WIDTH_ESTIMATE_FACTOR: f32 = 0.35;
+const WIDE_TEXT_WIDTH_ESTIMATE_FACTOR: f32 = 1.0;
 const LINK_COLOR_RED: u8 = 9;
 const LINK_COLOR_GREEN: u8 = 105;
 const LINK_COLOR_BLUE: u8 = 218;
@@ -88,7 +90,11 @@ impl SurfaceTextSpan {
         if let Some(image) = &self.inline_image {
             return image.width();
         }
-        (self.text.chars().count() as f32 * font_size * TEXT_WIDTH_ESTIMATE_FACTOR).ceil() as u32
+        self.text
+            .chars()
+            .map(|character| character_width(character, font_size))
+            .sum::<f32>()
+            .ceil() as u32
     }
 
     pub(crate) fn is_plain(&self) -> bool {
@@ -99,10 +105,40 @@ impl SurfaceTextSpan {
             && !self.style.strikethrough
             && !self.style.highlight
             && !self.style.inline_code
+            && !self.style.emoji
             && self.style.color.is_none()
             && self.link_target.is_none()
             && self.inline_image.is_none()
     }
+}
+
+fn character_width(character: char, font_size: f32) -> f32 {
+    font_size * character_width_factor(character)
+}
+
+fn character_width_factor(character: char) -> f32 {
+    if character.is_ascii_whitespace() {
+        return SPACE_TEXT_WIDTH_ESTIMATE_FACTOR;
+    }
+    if is_east_asian_wide(character) {
+        return WIDE_TEXT_WIDTH_ESTIMATE_FACTOR;
+    }
+    ASCII_TEXT_WIDTH_ESTIMATE_FACTOR
+}
+
+fn is_east_asian_wide(character: char) -> bool {
+    matches!(
+        character as u32,
+        0x1100..=0x115F
+            | 0x2329..=0x232A
+            | 0x2E80..=0xA4CF
+            | 0xAC00..=0xD7A3
+            | 0xF900..=0xFAFF
+            | 0xFE10..=0xFE19
+            | 0xFE30..=0xFE6F
+            | 0xFF00..=0xFF60
+            | 0xFFE0..=0xFFE6
+    )
 }
 
 impl SurfaceTextStyle {
@@ -139,6 +175,11 @@ impl SurfaceTextStyle {
     pub(crate) fn inline_code(mut self) -> Self {
         self.monospace = true;
         self.inline_code = true;
+        self
+    }
+
+    pub(crate) fn emoji(mut self) -> Self {
+        self.emoji = true;
         self
     }
 

@@ -68,7 +68,7 @@ fn centered_data_svg_image_node_is_loaded_into_image_block() {
 }
 
 #[test]
-fn broken_katana_fixture_svg_data_uri_is_normalized_for_surface_image() {
+fn broken_katana_fixture_svg_data_uri_matches_export_surface_image_reference() {
     let graph = graph();
     let mut blocks = Vec::new();
     let data_uri = "data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%2216%22 height=%2210%22%3E%3Crect width=%2216%22 height=%2210%22 fill=%22%23000%22/%3E%3C/svg%3E";

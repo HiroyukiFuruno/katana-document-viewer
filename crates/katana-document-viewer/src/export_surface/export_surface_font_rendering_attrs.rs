@@ -1,6 +1,8 @@
 use crate::export_surface_span::SurfaceTextSpan;
 use cosmic_text::{Attrs, Color, Family, Style, Weight};
 
+#[cfg(target_os = "macos")]
+const APPLE_COLOR_EMOJI_FONT_FAMILY: &str = "Apple Color Emoji";
 const HIDE_IMAGE_COLOR: u8 = 0;
 const RED_CHANNEL: usize = 0;
 const GREEN_CHANNEL: usize = 1;
@@ -22,6 +24,9 @@ pub(super) fn attrs_for_span_with_metadata(
     if style.monospace && span.text.is_ascii() {
         attrs = attrs.family(Family::Monospace);
     }
+    if style.emoji {
+        attrs = attrs.family(os_emoji_font_family());
+    }
     if let Some(color) = style.color {
         attrs = attrs.color(rgba_text_color(color));
     }
@@ -29,6 +34,16 @@ pub(super) fn attrs_for_span_with_metadata(
         attrs = attrs.color(hidden_inline_image_color());
     }
     attrs.metadata(metadata)
+}
+
+#[cfg(target_os = "macos")]
+fn os_emoji_font_family() -> Family<'static> {
+    Family::Name(APPLE_COLOR_EMOJI_FONT_FAMILY)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn os_emoji_font_family() -> Family<'static> {
+    Family::SansSerif
 }
 
 fn rgba_text_color(color: image::Rgba<u8>) -> Color {
@@ -47,4 +62,20 @@ fn hidden_inline_image_color() -> Color {
         HIDE_IMAGE_COLOR,
         HIDE_IMAGE_COLOR,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn emoji_span_requests_apple_color_emoji_font_on_macos() {
+        let span = SurfaceTextSpan::styled("🧪", SurfaceTextStyle::default().emoji());
+
+        let attrs = attrs_for_span_with_metadata(&span, 1);
+
+        assert_eq!(Family::Name(APPLE_COLOR_EMOJI_FONT_FAMILY), attrs.family);
+    }
 }

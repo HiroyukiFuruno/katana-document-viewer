@@ -12,10 +12,61 @@ fn must_apply_root_font_size(source: &str, font_size: f32) -> String {
 #[test]
 fn strips_foreign_object_nodes_from_svg() {
     let before = "<svg><foreignObject><body>keep</body></foreignObject><text>ok</text></svg>";
-    let after = strip_foreign_objects(before);
+    let after = preprocess_for_rasterizer(before, None);
 
     assert!(!after.contains("foreignObject"));
+    assert!(after.contains(">keep<"));
     assert!(after.contains("<text>ok</text>"));
+}
+
+#[test]
+fn preprocess_converts_foreign_object_label_to_svg_text() {
+    let before = concat!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60">"#,
+        r#"<foreignObject x="10" y="20" width="80" height="24">"#,
+        r#"<div xmlns="http://www.w3.org/1999/xhtml" "#,
+        r#"style="font-size: 12px; color: #E0E0E0;">Node &amp; Label</div>"#,
+        r#"</foreignObject></svg>"#
+    );
+
+    let after = preprocess_for_rasterizer(before, None);
+
+    assert!(!after.contains("<foreignObject"));
+    assert!(after.contains("<text"));
+    assert!(after.contains(r##"fill="#E0E0E0""##));
+    assert!(after.contains(">Node &amp; Label<"));
+}
+
+#[test]
+fn preprocess_uses_existing_svg_text_in_switch_fallback() {
+    let before = concat!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60">"#,
+        r#"<switch><foreignObject x="10" y="20" width="80" height="24">"#,
+        r#"<div xmlns="http://www.w3.org/1999/xhtml">HTML Label</div>"#,
+        r#"</foreignObject><text x="10" y="20">SVG Label</text></switch></svg>"#
+    );
+
+    let after = preprocess_for_rasterizer(before, None);
+
+    assert!(!after.contains("<foreignObject"));
+    assert!(!after.contains("HTML Label"));
+    assert!(after.contains("SVG Label"));
+    assert_eq!(after.matches("<text").count(), 1);
+}
+
+#[test]
+fn preprocess_removes_plantuml_processing_instructions() {
+    let raw = concat!(
+        r#"<?plantuml 1.2026.2?>"#,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px">"#,
+        r##"<g><?plantuml-src abc?><rect width="20" height="20" fill="#2D2D2D"/>"##,
+        r##"<text x="2" y="12" fill="#E0E0E0">PUML</text></g></svg>"##
+    );
+
+    let processed = preprocess_for_rasterizer(raw, None);
+
+    assert!(!processed.contains("<?plantuml"));
+    assert!(processed.contains("PUML"));
 }
 
 #[test]
@@ -63,7 +114,7 @@ fn locate_root_style_handles_single_and_double_quotes() {
 #[test]
 fn strip_foreign_objects_preserves_self_closing_tags() {
     let before = "<svg><foreignObject/><text>ok</text></svg>";
-    let after = strip_foreign_objects(before);
+    let after = preprocess_for_rasterizer(before, None);
 
     assert!(!after.contains("foreignObject"));
     assert!(after.contains("<text>ok</text>"));
@@ -101,7 +152,7 @@ fn style_attribute_without_quotes_gets_new_root_style() {
 #[test]
 fn strip_foreign_objects_keeps_unclosed_node_for_visibility() {
     let raw = "<svg><foreignObject><body>visible fallback</body>";
-    let processed = strip_foreign_objects(raw);
+    let processed = preprocess_for_rasterizer(raw, None);
 
     assert!(processed.contains("foreignObject"));
     assert!(processed.contains("visible fallback"));

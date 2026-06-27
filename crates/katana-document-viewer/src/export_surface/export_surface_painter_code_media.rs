@@ -1,9 +1,8 @@
 use super::{
-    CODE_BLOCK_MARGIN, CODE_HORIZONTAL_PADDING, CODE_VERTICAL_PADDING, DIAGRAM_VERTICAL_MARGIN,
-    IMAGE_VERTICAL_MARGIN, LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH, LIST_MARKER_COLUMN_WIDTH,
-    MATH_FALLBACK_TEXT_SIZE, MATH_VERTICAL_MARGIN, PAGE_PADDING, QUOTE_INDENT,
-    SURFACE_CONTENT_WIDTH, SURFACE_WIDTH, SurfaceCodeBlock, SurfaceDiagramBlock, SurfaceHelpers,
-    SurfaceImageBlock, SurfaceLine, SurfaceMathBlock, SurfacePaintPalette, SurfacePainter,
+    CODE_BLOCK_MARGIN, CODE_HORIZONTAL_PADDING, CODE_VERTICAL_PADDING,
+    LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH, LIST_MARKER_COLUMN_WIDTH, MATH_VERTICAL_MARGIN,
+    PAGE_PADDING, QUOTE_INDENT, SURFACE_CONTENT_WIDTH, SURFACE_WIDTH, SurfaceCodeBlock,
+    SurfaceHelpers, SurfaceLine, SurfaceMathBlock, SurfacePaintPalette, SurfacePainter,
     SurfaceSvgImage, SurfaceTextLayout, SurfaceTextPainter,
 };
 use image::RgbaImage;
@@ -13,7 +12,7 @@ impl SurfacePainter {
         image: &mut RgbaImage,
         block: &SurfaceCodeBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         if block.quote_depth > 0 {
@@ -70,7 +69,7 @@ impl SurfacePainter {
         lines: &[SurfaceLine],
         box_x: u32,
         box_y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let mut line_y = box_y + CODE_VERTICAL_PADDING;
@@ -85,35 +84,32 @@ impl SurfacePainter {
         line: &SurfaceLine,
         box_x: u32,
         line_y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let x = box_x + CODE_HORIZONTAL_PADDING;
-        match painter {
-            Some(it) => it.draw_spans(
-                image,
-                &line.spans,
-                x,
-                line_y,
-                line.font_size(),
-                palette.text,
-            ),
-            None => SurfaceHelpers::draw_fallback_text(image, x, line_y, &line.text, palette.text),
-        }
+        painter.draw_spans(
+            image,
+            &line.spans,
+            x,
+            line_y,
+            line.font_size(),
+            palette.text,
+        );
     }
 
     pub(super) fn paint_math_block(
         image: &mut RgbaImage,
         block: &SurfaceMathBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         if let Some(rendered) = &block.image {
             Self::paint_rendered_math(image, rendered, y);
             return;
         }
-        Self::paint_fallback_math(image, block, y, painter, palette);
+        Self::paint_raw_math_text(image, block, y, painter, palette);
     }
 
     pub(super) fn paint_rendered_math(image: &mut RgbaImage, rendered: &SurfaceSvgImage, y: u32) {
@@ -121,70 +117,59 @@ impl SurfacePainter {
         SurfaceHelpers::paste_rgba(image, &rendered.image, x, y + MATH_VERTICAL_MARGIN);
     }
 
-    pub(super) fn paint_fallback_math(
+    pub(super) fn paint_raw_math_text(
         image: &mut RgbaImage,
         block: &SurfaceMathBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        match painter {
-            Some(it) => it.draw_text(
-                image,
-                block.fallback_text(),
-                SurfaceTextLayout {
-                    x: PAGE_PADDING,
-                    y: y + MATH_VERTICAL_MARGIN,
-                    size: MATH_FALLBACK_TEXT_SIZE,
-                    color: palette.text,
-                    max_width: Some(SURFACE_CONTENT_WIDTH as f32),
-                },
-            ),
-            None => SurfaceHelpers::draw_fallback_text(
-                image,
-                PAGE_PADDING,
-                y + MATH_VERTICAL_MARGIN,
-                block.fallback_text(),
-                palette.text,
-            ),
-        }
+        painter.draw_text(
+            image,
+            block.fallback_text(),
+            SurfaceTextLayout {
+                x: PAGE_PADDING,
+                y: y + MATH_VERTICAL_MARGIN,
+                size: block.raw_text_size(),
+                color: palette.text,
+                max_width: Some(SURFACE_CONTENT_WIDTH as f32),
+            },
+        );
     }
 
     pub(super) fn line_text_x(line: &SurfaceLine) -> u32 {
+        Self::line_text_x_with_width(line, None)
+    }
+
+    pub(super) fn line_text_x_for_paint(
+        line: &SurfaceLine,
+        painter: &mut SurfaceTextPainter,
+    ) -> u32 {
+        let measured_width = painter.measure_spans_width(
+            &line.spans,
+            line.font_size(),
+            SURFACE_CONTENT_WIDTH as f32,
+        );
+        Self::line_text_x_with_width(line, Some(measured_width))
+    }
+
+    fn line_text_x_with_width(line: &SurfaceLine, measured_width: Option<u32>) -> u32 {
         if line.is_code() {
             return line.x() + CODE_HORIZONTAL_PADDING;
         }
         if line.is_centered() {
-            let estimated_width = (line.text.chars().count() as u32)
-                .saturating_mul(LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH);
-            return PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(estimated_width) / 2;
+            let width = measured_width.unwrap_or_else(|| Self::estimated_aligned_line_width(line));
+            return PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(width) / 2;
+        }
+        if line.is_right_aligned() {
+            let width = measured_width.unwrap_or_else(|| Self::estimated_aligned_line_width(line));
+            return PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(width);
         }
         line.x()
     }
 
-    pub(super) fn paint_diagram(
-        image: &mut RgbaImage,
-        diagram: &SurfaceDiagramBlock,
-        y: u32,
-        palette: &SurfacePaintPalette,
-    ) {
-        let Some(rendered) = &diagram.image else {
-            SurfaceHelpers::draw_fallback_text(
-                image,
-                PAGE_PADDING,
-                y + DIAGRAM_VERTICAL_MARGIN,
-                diagram.fallback_text(),
-                palette.text,
-            );
-            return;
-        };
-        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(rendered.image.width()) / 2;
-        SurfaceHelpers::paste_rgba(image, &rendered.image, x, y + DIAGRAM_VERTICAL_MARGIN);
-    }
-
-    pub(super) fn paint_image(image: &mut RgbaImage, block: &SurfaceImageBlock, y: u32) {
-        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(block.image.width()) / 2;
-        SurfaceHelpers::paste_rgba(image, &block.image, x, y + IMAGE_VERTICAL_MARGIN);
+    fn estimated_aligned_line_width(line: &SurfaceLine) -> u32 {
+        (line.text.chars().count() as u32).saturating_mul(LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH)
     }
 }
 

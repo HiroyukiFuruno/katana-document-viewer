@@ -13,6 +13,20 @@ fn pdf_payload_contains_link_annotations_for_markdown_links() {
 }
 
 #[test]
+fn pdf_payload_contains_link_annotations_for_generic_html_links() {
+    let theme = crate::KdvThemeSnapshot::katana_light();
+    let graph = must_graph_from_markdown(
+        r#"<div><a href="https://example.com">HTML link</a></div>"#.to_string(),
+    );
+    let pdf = create_payload(&graph, crate::ExportFormat::Pdf, &theme);
+    let text = String::from_utf8_lossy(&pdf);
+
+    assert!(text.contains("/Annots ["), "{text}");
+    assert!(text.contains("/Subtype /Link"), "{text}");
+    assert!(text.contains("/URI (https://example.com)"), "{text}");
+}
+
+#[test]
 fn export_formats_share_surface_semantics_with_declared_interaction_exceptions() {
     let theme = crate::KdvThemeSnapshot::katana_light();
     let graph = must_graph_from_markdown(

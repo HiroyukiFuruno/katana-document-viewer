@@ -21,7 +21,7 @@ fn does_not_paint_when_range_is_missing() {
     let mut image = RgbaImage::from_pixel(20, 20, Rgba([255, 255, 255, 255]));
     let spans = vec![SurfaceTextSpan::inline_image(
         "image",
-        SurfaceSvgImage { image: source },
+        SurfaceSvgImage::from_image(source),
         SurfaceTextStyle::default(),
     )];
     let ranges = vec![None];
@@ -37,7 +37,7 @@ fn paints_inline_image_at_calculated_position() {
     let mut image = RgbaImage::from_pixel(20, 20, Rgba([255, 255, 255, 255]));
     let spans = vec![SurfaceTextSpan::inline_image(
         "image",
-        SurfaceSvgImage { image: source },
+        SurfaceSvgImage::from_image(source),
         SurfaceTextStyle::default(),
     )];
     let ranges = vec![Some(SpanVisualRange::new(4.0, 8.0))];

@@ -1,9 +1,28 @@
 use resvg::usvg;
 
-use super::{RasterTarget, rasterizer_options};
+use super::{
+    FALLBACK_MONOSPACE_FONT_FAMILY, FALLBACK_PROPORTIONAL_FONT_FAMILY, RasterTarget,
+    rasterizer_options,
+};
 
 fn parse_tree(svg: &str) -> Result<usvg::Tree, usvg::Error> {
     usvg::Tree::from_str(svg, &rasterizer_options())
+}
+
+#[test]
+fn rasterizer_options_match_katana_embedded_font_fallbacks() {
+    let options = rasterizer_options();
+
+    assert_eq!(FALLBACK_PROPORTIONAL_FONT_FAMILY, options.font_family);
+    assert!(has_font_family(
+        &options.fontdb,
+        FALLBACK_PROPORTIONAL_FONT_FAMILY
+    ));
+    assert!(has_font_family(
+        &options.fontdb,
+        FALLBACK_MONOSPACE_FONT_FAMILY
+    ));
+    assert!(has_font_family(&options.fontdb, "Noto Emoji"));
 }
 
 #[test]
@@ -21,7 +40,35 @@ fn raster_target_preserves_size_when_max_width_is_bigger() -> Result<(), Box<dyn
 }
 
 #[test]
-fn raster_target_down_scales_to_max_width() -> Result<(), Box<dyn std::error::Error>> {
+fn raster_target_uses_content_scale_for_retina_surface() -> Result<(), Box<dyn std::error::Error>> {
+    let tree = parse_tree(
+        r#"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='10'><rect width='20' height='10'/></svg>"#,
+    )?;
+
+    let target = RasterTarget::new_with_content_scale(tree.size(), 40, 200);
+
+    assert_eq!(target.width(), 40);
+    assert_eq!(target.height(), 20);
+    Ok(())
+}
+
+#[test]
+fn raster_target_keeps_katana_retina_pixels_before_display_scaling()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tree = parse_tree(
+        r#"<svg xmlns='http://www.w3.org/2000/svg' width='200' height='80'><rect width='200' height='80'/></svg>"#,
+    )?;
+
+    let target = RasterTarget::new_with_content_scale(tree.size(), 50, 200);
+
+    assert_eq!(target.width(), 400);
+    assert_eq!(target.height(), 160);
+    Ok(())
+}
+
+#[test]
+fn raster_target_keeps_export_surface_max_width_scaling() -> Result<(), Box<dyn std::error::Error>>
+{
     let tree = parse_tree(
         r#"<svg xmlns='http://www.w3.org/2000/svg' width='200' height='80'><rect width='200' height='80'/></svg>"#,
     )?;
@@ -73,4 +120,12 @@ fn raster_target_minimum_size_is_one_pixel() -> Result<(), Box<dyn std::error::E
     assert_eq!(target.width(), 1);
     assert_eq!(target.height(), 1);
     Ok(())
+}
+
+fn has_font_family(fontdb: &usvg::fontdb::Database, family: &str) -> bool {
+    fontdb.faces().any(|face| {
+        face.families
+            .iter()
+            .any(|(candidate, _)| candidate == family)
+    })
 }

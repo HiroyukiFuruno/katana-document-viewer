@@ -1,13 +1,14 @@
 use crate::export_surface_font::{SurfaceTextLayout, SurfaceTextPainter};
 use crate::export_surface_helpers::{
     PAGE_PADDING, QUOTE_INDENT, SURFACE_CONTENT_WIDTH, SURFACE_PAGE_HEIGHT, SURFACE_WIDTH,
-    SurfaceHelpers, WrappedText,
+    SurfaceHelpers,
 };
 use crate::export_surface_line::{
     LIST_MARKER_COLUMN_WIDTH, SurfaceLine, SurfaceLineMarker, SurfaceTaskMarker,
 };
 use crate::export_surface_span::SurfaceTextSpan;
 use crate::theme::KdvThemeSnapshot;
+use crate::viewer::ViewerCodeBlockMetrics;
 use image::RgbaImage;
 
 use super::icons::{
@@ -25,8 +26,8 @@ use super::{
 use crate::export_surface_svg::SurfaceSvgImage;
 
 const CODE_HORIZONTAL_PADDING: u32 = 24;
-const CODE_VERTICAL_PADDING: u32 = 6;
-const CODE_BLOCK_MARGIN: u32 = 14;
+const CODE_VERTICAL_PADDING: u32 = ViewerCodeBlockMetrics::VERTICAL_PADDING_PX;
+const CODE_BLOCK_MARGIN: u32 = ViewerCodeBlockMetrics::BLOCK_MARGIN_PX;
 const CODE_LINE_BULLET_X_OFFSET: u32 = 14;
 const CODE_LINE_BULLET_FILLED_Y_OFFSET: u32 = 17;
 const CODE_LINE_BULLET_FILLED_RADIUS: u32 = 4;
@@ -37,7 +38,6 @@ const CODE_LINE_BULLET_RECT_Y_OFFSET: u32 = 13;
 const CODE_LINE_BULLET_RECT_SIZE: u32 = 8;
 
 const DIAGRAM_VERTICAL_MARGIN: u32 = 18;
-const TABLE_LINE_HEIGHT: u32 = 34;
 const TABLE_CELL_PADDING: u32 = 16;
 const RULE_HEIGHT: u32 = 34;
 
@@ -53,14 +53,11 @@ const BADGE_TEXT_COLOR: image::Rgba<u8> = image::Rgba([255, 255, 255, 255]);
 const IMAGE_VERTICAL_MARGIN: u32 = 18;
 
 const MATH_VERTICAL_MARGIN: u32 = 18;
-const MATH_FALLBACK_TEXT_SIZE: f32 = 28.0;
-
 const TASK_MARKER_SIZE: u32 = 18;
 const TASK_MARKER_BOX_OFFSET: u32 = 4;
 const TASK_MARKER_INLINE_OFFSET: u32 = 4;
 const TASK_MARKER_PROGRESS_STROKE: u32 = 3;
 
-const TABLE_CELL_FONT_SIZE: f32 = 22.0;
 const ALERT_PANEL_PADDING_X: u32 = 28;
 const ALERT_PANEL_PADDING_Y: u32 = 16;
 const ALERT_PANEL_BORDER_WIDTH: u32 = 5;
@@ -70,9 +67,6 @@ const ALERT_PANEL_TEXT_Y_STEP: u32 = 4;
 const LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH: u32 = 14;
 
 const RULE_STROKE_WIDTH: u32 = 2;
-const ALPHA_FULL: u8 = 255;
-const ALERT_BACKGROUND_COLOR: image::Rgba<u8> = image::Rgba([246, 248, 250, ALPHA_FULL]);
-
 pub(crate) struct SurfacePaintPalette {
     pub(crate) text: image::Rgba<u8>,
     pub(crate) quote: image::Rgba<u8>,
@@ -85,7 +79,6 @@ pub(crate) struct SurfacePaintPalette {
     pub(crate) task_empty_background: image::Rgba<u8>,
     pub(crate) task_done_accent: image::Rgba<u8>,
     pub(crate) task_in_progress_accent: image::Rgba<u8>,
-    pub(crate) alert_background: image::Rgba<u8>,
 }
 
 impl SurfacePaintPalette {
@@ -102,7 +95,6 @@ impl SurfacePaintPalette {
             task_empty_background: SurfaceHelpers::parse_color(&theme.task_empty_background),
             task_done_accent: SurfaceHelpers::parse_color(&theme.task_done_accent),
             task_in_progress_accent: SurfaceHelpers::parse_color(&theme.task_in_progress_accent),
-            alert_background: ALERT_BACKGROUND_COLOR,
         }
     }
 }
@@ -132,7 +124,7 @@ struct SurfacePagePaintRequest<'a> {
     blocks: &'a [SurfaceBlock],
     block_indexes: &'a [usize],
     page_index: usize,
-    painter: &'a mut Option<SurfaceTextPainter>,
+    painter: &'a mut SurfaceTextPainter,
     palette: &'a SurfacePaintPalette,
     links: SurfacePageLinkMetadata<'a>,
 }
@@ -143,7 +135,7 @@ struct SurfaceTableRowPaintRequest<'a> {
     row_index: usize,
     row_y: u32,
     row_height: u32,
-    column_width: u32,
+    column_widths: &'a [u32],
     row_width: u32,
 }
 
@@ -177,6 +169,8 @@ mod line;
 mod links;
 #[path = "export_surface_painter_markers.rs"]
 mod markers;
+#[path = "export_surface_painter_media.rs"]
+mod media;
 #[path = "export_surface_painter_rule.rs"]
 mod rule;
 #[path = "export_surface_painter_table.rs"]

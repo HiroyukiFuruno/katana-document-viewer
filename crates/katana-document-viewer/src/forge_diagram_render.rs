@@ -7,9 +7,15 @@ use crate::forge::{
     ForgeError, RenderedDiagram,
 };
 use crate::forge_diagram_render_types::{
-    DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend, KrrDiagramRenderEngine,
+    DiagramRenderCacheOptions, DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend,
+    KrrDiagramRenderEngine,
 };
 use katana_markdown_model::{CodeBlockRole, DiagramKind, KmmNode, KmmNodeKind};
+use katana_render_runtime::markdown::{
+    drawio_renderer::{DRAWIO_JS_CHECKSUM, DRAWIO_JS_VERSION},
+    mermaid_renderer::{MERMAID_JS_CHECKSUM, MERMAID_JS_VERSION},
+    plantuml_renderer::{PLANTUML_JAR_CHECKSUM, PLANTUML_JAR_VERSION},
+};
 use katana_render_runtime::{
     DrawioRenderer, MermaidRenderer, PlantUmlRenderer, RenderContext, Renderer, RuntimePathResolver,
 };
@@ -128,8 +134,16 @@ fn record_diagram_result(
 ) {
     match result {
         Ok(Ok(diagram)) => rendered_diagrams.push(diagram),
-        Ok(Err(message)) => messages.push(message),
-        Err(_) => messages.push(format!("diagram renderer panicked for node {node_id}")),
+        Ok(Err(message)) => {
+            let diagnostic = format!("diagram renderer failed for node {node_id}: {message}");
+            eprintln!("[kdv-render-runtime] {diagnostic}");
+            messages.push(diagnostic);
+        }
+        Err(_) => {
+            let diagnostic = format!("diagram renderer panicked for node {node_id}");
+            eprintln!("[kdv-render-runtime] {diagnostic}");
+            messages.push(diagnostic);
+        }
     }
 }
 
@@ -138,10 +152,17 @@ fn catch_diagram_render<T>(render: impl FnOnce() -> T) -> Result<T, Box<dyn std:
 }
 
 impl DiagramRenderEngine for KrrDiagramRenderEngine {
+    fn cache_options(&self) -> DiagramRenderCacheOptions {
+        DiagramRenderCacheOptions {
+            dpi: 96,
+            renderer_options: krr_renderer_cache_options(),
+        }
+    }
+
     fn render(&self, request: DiagramRenderRequest<'_>) -> Result<RenderedDiagram, String> {
         let context = RenderContext {
             document_id: Some(request.document_id.to_string()),
-            theme: Some(request.theme.krr_theme()),
+            theme: Some(request.theme.krr_theme_for_diagram(&request.kind)),
             ..RenderContext::default()
         };
         let input =
@@ -164,6 +185,19 @@ impl DiagramRenderEngine for KrrDiagramRenderEngine {
             Err(error) => Err(krr_error_message(error)),
         }
     }
+}
+
+fn krr_renderer_cache_options() -> String {
+    format!(
+        "kdv={};mermaid={}:{};drawio={}:{};plantuml={}:{}",
+        env!("CARGO_PKG_VERSION"),
+        MERMAID_JS_VERSION,
+        MERMAID_JS_CHECKSUM,
+        DRAWIO_JS_VERSION,
+        DRAWIO_JS_CHECKSUM,
+        PLANTUML_JAR_VERSION,
+        PLANTUML_JAR_CHECKSUM
+    )
 }
 
 impl KrrDiagramRenderEngine {

@@ -22,7 +22,14 @@ impl SurfaceBlockFactory {
             CodeBlockRole::Diagram { kind } => Self::append_diagram(blocks, graph, node, kind),
             CodeBlockRole::Math => Self::append_fenced_math(blocks, node, quote_depth, theme),
             CodeBlockRole::Plain { language } => {
-                Self::append_plain_code(blocks, node, language.as_deref(), quote_depth, list_depth);
+                Self::append_plain_code(
+                    blocks,
+                    node,
+                    language.as_deref(),
+                    quote_depth,
+                    list_depth,
+                    theme,
+                );
             }
         }
     }
@@ -46,10 +53,12 @@ impl SurfaceBlockFactory {
         language: Option<&str>,
         quote_depth: u32,
         list_depth: u32,
+        theme: &KdvThemeSnapshot,
     ) {
-        let lines = SurfaceCodeHighlighter::highlight(
+        let lines = SurfaceCodeHighlighter::highlight_with_theme(
             language,
             &ExportHtmlOps::fenced_body(&node.source.raw.text),
+            theme,
         )
         .into_iter()
         .map(SurfaceLine::code_spans)
@@ -76,7 +85,7 @@ impl SurfaceBlockFactory {
         blocks: &mut Vec<SurfaceBlock>,
         graph: &BuildGraph,
         node: &KmmNode,
-        kind: &DiagramKind,
+        _kind: &DiagramKind,
     ) {
         if let Some(diagram) = Self::rendered_diagram(graph, node) {
             blocks.push(SurfaceBlock::Diagram(SurfaceDiagramBlock::rendered(
@@ -84,12 +93,9 @@ impl SurfaceBlockFactory {
             )));
             return;
         }
-        Self::append_wrapped(
-            blocks,
-            format!("Diagram rendering unavailable: {kind:?}"),
-            0,
-            0,
-        );
+        blocks.push(SurfaceBlock::Diagram(SurfaceDiagramBlock::raw(
+            &ExportHtmlOps::fenced_body(&node.source.raw.text),
+        )));
     }
 
     fn rendered_diagram<'a>(graph: &'a BuildGraph, node: &KmmNode) -> Option<&'a RenderedDiagram> {

@@ -1,14 +1,13 @@
 [workspace]
 members = [
-    "crates/kdp-linter",
+    "crates/kdv-linter",
     "crates/katana-document-viewer",
-    "crates/katana-document-preview",
-    "crates/katana-document-preview-egui",
+    "tools/kdv-storybook",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.4"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/HiroyukiFuruno/katana-document-viewer"
@@ -17,20 +16,28 @@ authors = ["Hiroyuki Furuno"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
+emojis = "0.8"
+epaint_default_fonts = "0.34"
 thiserror = "2"
 katana-markdown-model = "0.2.1"
-katana-render-runtime = "0.3.5"
+katana-render-runtime = "0.3.6"
+katana-ui-core = { git = "https://github.com/HiroyukiFuruno/katana-ui-core.git", tag = "v0.1.4" }
+katana-ui-core-storybook = { git = "https://github.com/HiroyukiFuruno/katana-ui-core.git", tag = "v0.1.4" }
 serde_json = "1"
 syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
 cosmic-text = "0.19"
 flate2 = "1"
-image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
+minifb = "0.28"
 resvg = "0.47"
 tiny-skia = "0.12"
-egui = "0.34"
 ignore = "0.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 katana-ast-lint = "0.5.1"
 syn = { version = "2", features = ["full", "visit"] }
 toml = "1.1"
 v8 = { version = "=149.2.0", features = ["simdutf"] }
+xmltree = "0.12"
+
+[profile.test]
+opt-level = 2

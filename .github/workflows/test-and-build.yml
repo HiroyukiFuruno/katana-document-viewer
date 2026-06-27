@@ -75,6 +75,9 @@ jobs:
       - name: Install just
         uses: taiki-e/install-action@just
 
+      - name: Run subagent/Spark harness check
+        run: just check-subagent-harness
+
       - name: Check types
         run: cargo check --workspace --locked
 

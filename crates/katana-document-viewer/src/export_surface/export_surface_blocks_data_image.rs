@@ -1,4 +1,4 @@
-use super::media::SurfaceImageBlock;
+use super::image::SurfaceImageBlock;
 use crate::export_surface_helpers::SURFACE_CONTENT_WIDTH;
 use crate::export_surface_svg::SurfaceSvgRasterizer;
 use image::RgbaImage;

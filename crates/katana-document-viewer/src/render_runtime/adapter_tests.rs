@@ -1,29 +1,22 @@
 use super::*;
-use std::env;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use crate::render_runtime::test_env::RenderRuntimeTestEnv;
 use std::path::PathBuf;
-use std::sync::Mutex;
-
-static RUNTIME_ENV_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn normalize_wraps_inline_expression_without_braces() {
     let normalized = MathJaxSourceNormalizer::normalize("a+b", KrrMathMode::Inline);
-
     assert_eq!(normalized, "{a+b}");
 }
 
 #[test]
 fn normalize_keeps_inline_expression_with_existing_braces() {
     let normalized = MathJaxSourceNormalizer::normalize("{a+b}", KrrMathMode::Inline);
-
     assert_eq!(normalized, "{a+b}");
 }
 
 #[test]
 fn normalize_keeps_display_expression_as_is() {
     let normalized = MathJaxSourceNormalizer::normalize("a+b", KrrMathMode::Display);
-
     assert_eq!(normalized, "a+b");
 }
 
@@ -45,34 +38,10 @@ fn restore_metadata_leaves_non_matched_payload() {
     );
 }
 
-fn with_mathjax_env(value: Option<&str>, test: impl FnOnce()) {
-    let _guard = match RUNTIME_ENV_LOCK.lock() {
-        Ok(guard) => guard,
-        Err(error) => {
-            std::panic::resume_unwind(Box::new(format!("runtime env lock failed: {error}")))
-        }
-    };
-    let previous = env::var_os("MATHJAX_JS");
-    match value {
-        Some(value) => unsafe { env::set_var("MATHJAX_JS", value) },
-        None => unsafe { env::remove_var("MATHJAX_JS") },
-    }
-    let result = catch_unwind(AssertUnwindSafe(test));
-    match previous {
-        Some(value) => unsafe { env::set_var("MATHJAX_JS", value) },
-        None => unsafe { env::remove_var("MATHJAX_JS") },
-    }
-    if let Err(error) = result {
-        std::panic::resume_unwind(error);
-    }
-}
-
 #[test]
-fn helpers_respect_svg_detection_and_output_fallback() {
+fn helper_detects_svg_payload() {
     assert!(is_svg("<svg><path /></svg>"));
     assert!(!is_svg("text"));
-    assert_eq!(rendered_raw("plain", ""), "plain");
-    assert_eq!(rendered_raw("plain", "svg"), "svg");
 }
 
 #[test]
@@ -117,6 +86,37 @@ fn raw_error_wraps_input_and_code() {
 }
 
 #[test]
+fn renderer_failure_keeps_source_raw_even_when_output_has_text() {
+    let result = render_math_tex_result("x+1", "{x+1}", Ok(render_output_with_error("not-svg")));
+
+    assert_eq!(result.raw_payload(), "x+1");
+    assert_eq!(result.diagnostic_message(), "render-failed: failed");
+}
+
+fn render_output_with_error(svg: &str) -> katana_render_runtime::RenderOutput {
+    katana_render_runtime::RenderOutput {
+        svg: svg.to_string(),
+        width: 0.0,
+        height: 0.0,
+        view_box: String::new(),
+        runtime: katana_render_runtime::RuntimeVersion {
+            name: String::new(),
+            version: String::new(),
+            checksum: None,
+        },
+        profile: katana_render_runtime::RendererProfile {
+            id: String::new(),
+            description: None,
+        },
+        diagnostics: katana_render_runtime::RenderDiagnostics {
+            errors: vec!["failed".to_string()],
+            warnings: Vec::new(),
+        },
+        cache_fingerprint: String::new(),
+    }
+}
+
+#[test]
 fn render_math_tex_empty_source_short_circuits_as_raw_output() {
     let output =
         KrrRenderRuntimeAdapter::render_math_tex_with_theme("", KrrMathMode::Display, None);
@@ -128,7 +128,7 @@ fn render_math_tex_empty_source_short_circuits_as_raw_output() {
 
 #[test]
 fn render_math_tex_runtime_resolution_error_is_returned_as_raw() {
-    with_mathjax_env(Some(""), || {
+    RenderRuntimeTestEnv::with_mathjax_env(Some(""), || {
         let output =
             KrrRenderRuntimeAdapter::render_math_tex_with_theme("x+1", KrrMathMode::Inline, None);
 

@@ -29,7 +29,7 @@ fn fixture_matrix_records_current_coverage_gaps() {
 
 #[test]
 fn fixture_matrix_paths_exist() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     for fixture in EvaluationFixtureMatrix::v0_1().fixtures {
         assert!(root.join(fixture.path).exists());
     }
@@ -59,6 +59,7 @@ fn coverage_matrix_marks_krr_adoption_as_complete() {
 
     assert!(matrix.is_complete());
     assert!(matrix.contains_feature("commonmark-emphasis", CoverageStatus::KmmDto));
+    assert!(matrix.contains_feature("gfm-strikethrough", CoverageStatus::KdvExportContract));
     assert!(matrix.contains_feature("github-alert-note", CoverageStatus::KmmDto));
     assert!(matrix.contains_feature(
         "zenuml-mermaid-compat",

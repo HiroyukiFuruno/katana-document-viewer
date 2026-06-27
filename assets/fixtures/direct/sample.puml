@@ -1,0 +1,4 @@
+@startuml
+Alice -> Bob: direct PlantUML fixture
+Bob --> Alice: rendered
+@enduml

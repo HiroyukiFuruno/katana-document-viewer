@@ -142,7 +142,7 @@ impl SurfaceInlineSpans {
             KmmNodeKind::InlineMath(math) => {
                 append_inline_math(spans, &math.expression, style, theme);
             }
-            KmmNodeKind::Emoji(emoji) => push(spans, emoji.value.as_str(), style),
+            KmmNodeKind::Emoji(emoji) => push(spans, emoji.value.as_str(), style.emoji()),
             _ => return false,
         }
         true
