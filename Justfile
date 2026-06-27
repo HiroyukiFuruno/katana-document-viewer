@@ -531,7 +531,7 @@ release-dod-check:
     python3 scripts/release/assert-viewer-recovery-dod.py
 
 # Verify package metadata and dry-run the crates.io publish target.
-release-verify: release-dod-check check coverage
+release-verify: storybook-release-acceptance-artifacts release-dod-check check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
     {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty

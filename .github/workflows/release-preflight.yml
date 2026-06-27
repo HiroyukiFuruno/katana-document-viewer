@@ -46,6 +46,11 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
       - name: Resolve version
         id: version
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
