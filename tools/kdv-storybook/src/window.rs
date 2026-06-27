@@ -419,6 +419,41 @@ impl StorybookWindow {
     }
 
     #[cfg(test)]
+    pub(crate) fn wait_scroll_performance_asset_scene_for_tests(
+        &mut self,
+        width: usize,
+        height: usize,
+    ) -> Result<(), StorybookError> {
+        self.start_asset_job_for_current_viewport(width, height);
+        let timeout = loaded_asset_wait_timeout_for_tests();
+        let deadline = Instant::now() + timeout;
+        while Instant::now() <= deadline {
+            let changed = self.apply_asset_job()?;
+            if changed
+                && let Some(scene) = self.scene.as_ref()
+                && scroll_performance_asset_scene_ready(
+                    scene.asset_request_count,
+                    scene.loaded_asset_count,
+                )
+            {
+                if let Some(job) = self.asset_job.as_ref() {
+                    job.cancel();
+                }
+                self.asset_job = None;
+                return Ok(());
+            }
+            if changed && self.asset_job.is_none() {
+                return Ok(());
+            }
+            std::thread::sleep(Duration::from_millis(8));
+        }
+        Err(
+            format!("asset job did not reach scroll performance readiness within {timeout:?}")
+                .into(),
+        )
+    }
+
+    #[cfg(test)]
     pub(crate) fn set_text_selection_for_tests(
         &mut self,
         start: (usize, usize),
@@ -453,6 +488,11 @@ fn loaded_asset_wait_timeout_for_tests() -> Duration {
         .map(|seconds| seconds.min(MAX_LOADED_ASSET_WAIT_TIMEOUT_SECS))
         .unwrap_or(DEFAULT_LOADED_ASSET_WAIT_TIMEOUT_SECS);
     Duration::from_secs(seconds)
+}
+
+#[cfg(test)]
+fn scroll_performance_asset_scene_ready(pending_count: usize, loaded_count: usize) -> bool {
+    loaded_count > 0 && pending_count <= 1
 }
 
 #[path = "window_types.rs"]

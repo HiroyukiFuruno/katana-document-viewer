@@ -536,7 +536,8 @@ fn large_window_loaded_diagram_wheel_performance_sample()
         PreviewBuilder::default(),
     );
     storybook.update_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
-    storybook.wait_loaded_asset_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
+    storybook
+        .wait_scroll_performance_asset_scene_for_tests(LARGE_FRAME_WIDTH, LARGE_FRAME_HEIGHT)?;
     let max_scroll = storybook
         .scene_for_tests()
         .map(|scene| (scene.content_height - PREVIEW_HEIGHT).max(0.0))
