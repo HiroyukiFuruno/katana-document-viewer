@@ -12,7 +12,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
-const DEFAULT_ASSET_JOB_TIMEOUT: Duration = Duration::from_secs(8);
+const ASSET_JOB_TIMEOUT_ENV: &str = "KDV_STORYBOOK_ASSET_JOB_TIMEOUT_SECS";
+const DEFAULT_ASSET_JOB_TIMEOUT_SECS: u64 = 8;
+const MAX_ASSET_JOB_TIMEOUT_SECS: u64 = 60;
 const FIRST_FRAME_ASSET_JOB_DELAY: Duration = Duration::from_millis(16);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -184,7 +186,7 @@ impl StorybookAssetJob {
             receiver,
             cancel_token,
             started_at: Instant::now(),
-            timeout: DEFAULT_ASSET_JOB_TIMEOUT,
+            timeout: asset_job_timeout(),
         }
     }
 
@@ -313,6 +315,20 @@ fn scope_ids(scope: &str) -> BTreeSet<&str> {
         .map(str::trim)
         .filter(|id| !id.is_empty())
         .collect()
+}
+
+fn asset_job_timeout() -> Duration {
+    let value = std::env::var(ASSET_JOB_TIMEOUT_ENV).ok();
+    asset_job_timeout_from_env(value.as_deref())
+}
+
+fn asset_job_timeout_from_env(value: Option<&str>) -> Duration {
+    let seconds = value
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .map(|seconds| seconds.min(MAX_ASSET_JOB_TIMEOUT_SECS))
+        .unwrap_or(DEFAULT_ASSET_JOB_TIMEOUT_SECS);
+    Duration::from_secs(seconds)
 }
 
 #[cfg(test)]

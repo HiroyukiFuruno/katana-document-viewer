@@ -142,6 +142,34 @@ fn asset_job_try_recv_fails_after_timeout_and_cancels_worker()
 }
 
 #[test]
+fn asset_job_timeout_uses_default_for_missing_invalid_or_zero_env_value() {
+    assert_eq!(
+        Duration::from_secs(8),
+        super::asset_job_timeout_from_env(None)
+    );
+    assert_eq!(
+        Duration::from_secs(8),
+        super::asset_job_timeout_from_env(Some("not-a-number"))
+    );
+    assert_eq!(
+        Duration::from_secs(8),
+        super::asset_job_timeout_from_env(Some("0"))
+    );
+}
+
+#[test]
+fn asset_job_timeout_accepts_env_value_and_caps_it() {
+    assert_eq!(
+        Duration::from_secs(30),
+        super::asset_job_timeout_from_env(Some("30"))
+    );
+    assert_eq!(
+        Duration::from_secs(60),
+        super::asset_job_timeout_from_env(Some("3600"))
+    );
+}
+
+#[test]
 fn cancelled_asset_job_send_failure_is_normal_discard() {
     let cancel_token = std::sync::atomic::AtomicBool::new(true);
 
