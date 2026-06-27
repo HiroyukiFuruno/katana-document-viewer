@@ -1273,3 +1273,11 @@
   - 対応: `scripts/release/assert-viewer-recovery-dod.py` は、dirty / staged / untracked source の mtime だけを artifact freshness 対象にする。clean tracked file の mtime-only drift は freshness 対象外にした。
   - 検証: KDV release DoD self-test、focused `release_verify_depends_on_viewer_recovery_dod_check`、focused `storybook_score_gate` は通過。
   - release 判定: guard 修正後も dirty source については artifact refresh が必要。`storybook-user-acceptance.md status: pending`、open `UF-040` / `UF-042`、この remaining-plan acceptance item はユーザー実機確認まで維持する。
+
+## 2026-06-27 追補: release PR CI hardening / platform drift
+
+- [/] release PR CI の不安定 red を修正し、現行の未達をユーザー実機 acceptance に戻した。
+  - 発見: PR preflight は PlantUML / Graphviz / Java process reaper の並列実行で visual reference score が `91/95` へ落ちることがあった。Windows CI は `file:///C:/...` の path 解釈と CRLF checkout の source snippet audit で落ちていた。
+  - 対応: KDV KRR adapter は PlantUML render のみを mutex で直列化し、Mermaid / Draw.io の並列性は維持する。KDV asset loader は Windows drive file URI を正規化する。source snippet audit は CRLF を LF へ正規化してから検査する。score gate の KatanA reference 比較と閾値は変更しない。
+  - 検証: KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked plantuml_render_lock_serializes_renderer_calls -- --test-threads=1`、`/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked asset_loader_tests -- --test-threads=1`、`/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked storybook_score_gate -- --test-threads=1`、`/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked storybook_score_visual_uses_katana_ -- --test-threads=1`、`/opt/homebrew/bin/rtk just storybook-release-acceptance-artifacts`、`/opt/homebrew/bin/rtk just ast-lint` は通過した。
+  - release 判定: KDV `/opt/homebrew/bin/rtk env KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 just VERSION=v0.2.0 release-check` は通過した。通常の release DoD はユーザー実機 acceptance の代替ではないため、`storybook-user-acceptance.md status: pending`、open `UF-040` / `UF-042`、この remaining-plan acceptance item はユーザー実機確認まで維持する。

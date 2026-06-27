@@ -46,8 +46,12 @@ impl PreviewAssetLoaderSupport {
         let path = raw.split(['?', '#']).next().unwrap_or(raw);
         let local_path = if let Some(rest) = path.strip_prefix("localhost/") {
             format!("/{rest}")
-        } else if path.starts_with('/') {
-            path.to_string()
+        } else if let Some(windows_path) = path.strip_prefix('/') {
+            if Self::starts_with_windows_drive(windows_path) {
+                windows_path.to_string()
+            } else {
+                path.to_string()
+            }
         } else {
             return None;
         };
@@ -123,6 +127,14 @@ impl PreviewAssetLoaderSupport {
             index += 1;
         }
         String::from_utf8(output).ok()
+    }
+
+    fn starts_with_windows_drive(value: &str) -> bool {
+        let bytes = value.as_bytes();
+        bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'/' | b'\\')
     }
 
     fn hex_byte(high: u8, low: u8) -> Option<u8> {

@@ -1421,6 +1421,7 @@ fn assert_release_dod_recipe(root: &std::path::Path, release_verify: &str, relea
 }
 
 fn acceptance_script_required_source_artifacts(source: &str) -> std::collections::BTreeSet<String> {
+    let source = normalize_newlines(source);
     let Some((_, after_start)) = source.split_once("required=(\n") else {
         return std::collections::BTreeSet::new();
     };
@@ -1456,7 +1457,9 @@ fn quoted_python_path(line: &str) -> Option<&str> {
 fn assert_hover_screenshot_artifact_contract(
     root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let window_loop = std::fs::read_to_string(root.join("tools/kdv-storybook/src/window_loop.rs"))?;
+    let window_loop = normalize_newlines(&std::fs::read_to_string(
+        root.join("tools/kdv-storybook/src/window_loop.rs"),
+    )?);
     assert!(
         window_loop.contains(
             "write_stage_canvas_png(\n            &self.args.screenshot_output,\n            \"hover\",\n            &hovered,"
@@ -1533,9 +1536,18 @@ fn recipe_body<'a>(justfile: &'a str, recipe: &str) -> Result<&'a str, String> {
 }
 
 fn assert_contains_all(label: &str, haystack: &str, needles: &[&str]) {
+    let haystack = normalize_newlines(haystack);
     for needle in needles {
-        assert!(haystack.contains(needle), "{label} must include `{needle}`");
+        let needle = normalize_newlines(needle);
+        assert!(
+            haystack.contains(&needle),
+            "{label} must include `{needle}`"
+        );
     }
+}
+
+fn normalize_newlines(source: &str) -> String {
+    source.replace("\r\n", "\n")
 }
 
 fn workspace_root() -> Result<std::path::PathBuf, std::io::Error> {

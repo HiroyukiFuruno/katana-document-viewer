@@ -20,6 +20,7 @@ use katana_render_runtime::{
     DrawioRenderer, MermaidRenderer, PlantUmlRenderer, RenderContext, Renderer, RuntimePathResolver,
 };
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::{Mutex, MutexGuard};
 
 #[cfg(test)]
 #[path = "forge_diagram_render_runtime_tests.rs"]
@@ -27,6 +28,8 @@ mod forge_diagram_render_runtime_tests;
 #[cfg(test)]
 #[path = "forge_diagram_render_tests.rs"]
 mod forge_diagram_render_tests;
+
+static KRR_PLANTUML_RENDER_LOCK: Mutex<()> = Mutex::new(());
 
 impl<E> DiagramRenderingBackend<E> {
     pub fn new(engine: E) -> Self {
@@ -176,9 +179,9 @@ impl DiagramRenderEngine for KrrDiagramRenderEngine {
                     DiagramKind::DrawIo => {
                         DrawioRenderer::with_runtime_path(runtime_path).render(&input)
                     }
-                    DiagramKind::PlantUml => {
+                    DiagramKind::PlantUml => with_krr_plantuml_render_lock(|| {
                         PlantUmlRenderer::with_runtime_path(runtime_path).render(&input)
-                    }
+                    }),
                 };
                 Self::rendered_diagram_from_output(request, rendered)
             }
@@ -213,6 +216,18 @@ impl KrrDiagramRenderEngine {
             }),
             Err(error) => Err(krr_error_message(error)),
         }
+    }
+}
+
+fn with_krr_plantuml_render_lock<T>(render: impl FnOnce() -> T) -> T {
+    let _guard = krr_plantuml_render_guard();
+    render()
+}
+
+fn krr_plantuml_render_guard() -> MutexGuard<'static, ()> {
+    match KRR_PLANTUML_RENDER_LOCK.lock() {
+        Ok(guard) => guard,
+        Err(error) => error.into_inner(),
     }
 }
 
