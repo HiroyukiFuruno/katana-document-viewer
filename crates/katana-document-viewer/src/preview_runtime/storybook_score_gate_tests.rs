@@ -226,6 +226,27 @@ fn ci_workflows_pin_plantuml_graphviz_runtime_for_katana_reference_scores()
 }
 
 #[test]
+fn just_test_recipe_isolates_platform_dependent_storybook_visual_tests()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let justfile = std::fs::read_to_string(root.join("Justfile"))?;
+    let test_recipe = recipe_body(&justfile, "test")?;
+
+    assert_contains_all(
+        "Justfile test recipe",
+        test_recipe,
+        JUST_TEST_STORYBOOK_ISOLATION_REQUIRED_SNIPPETS,
+    );
+    assert!(
+        !test_recipe.lines().any(|line| {
+            line.trim() == "{{CARGO}} test --workspace --all-targets --all-features --locked"
+        }),
+        "Justfile test recipe must not run kdv-storybook platform-dependent tests in the generic workspace process"
+    );
+    Ok(())
+}
+
+#[test]
 fn release_dod_tracks_every_generated_acceptance_source_artifact()
 -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
@@ -557,6 +578,14 @@ const CI_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "--skip storybook_score_visual_",
     "--skip mouse_click_uses_external_scroll_for_scroll_independent_scene",
     "cargo test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1",
+];
+
+const JUST_TEST_STORYBOOK_ISOLATION_REQUIRED_SNIPPETS: &[&str] = &[
+    "{{CARGO}} test --workspace --all-targets --all-features --locked --exclude kdv-storybook",
+    "{{CARGO}} test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights",
+    "--skip storybook_score_visual_",
+    "--skip mouse_click_uses_external_scroll_for_scroll_independent_scene",
+    "{{CARGO}} test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1",
 ];
 
 const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
@@ -987,6 +1016,10 @@ const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
     "native fullscreen ledger scanner must reject current OS-window sync claims",
     "native fullscreen ledger scanner must allow historical superseded notes",
     "native fullscreen ledger:",
+    "def release_test_entrypoint_isolation_errors",
+    "def just_recipe_body",
+    "release test entrypoint scanner must reject generic kdv-storybook workspace tests",
+    "release test entrypoint:",
 ];
 
 #[test]

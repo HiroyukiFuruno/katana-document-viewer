@@ -1144,6 +1144,9 @@ def main() -> int:
         CI_WORKFLOW.read_text(encoding="utf-8"),
         PREFLIGHT_WORKFLOW.read_text(encoding="utf-8"),
     )
+    release_test_entrypoint_errors = release_test_entrypoint_isolation_errors(
+        (ROOT / "Justfile").read_text(encoding="utf-8")
+    )
 
     if (
         open_feedback_items
@@ -1162,6 +1165,7 @@ def main() -> int:
         or source_integrity_errors
         or artifact_file_errors
         or plantuml_ci_errors
+        or release_test_entrypoint_errors
     ):
         print(
             "release DoD is not satisfied for v0.2.0 viewer recovery.",
@@ -1193,6 +1197,8 @@ def main() -> int:
             print(f"release acceptance artifact: {error}", file=sys.stderr)
         for error in plantuml_ci_errors:
             print(f"release PlantUML runtime: {error}", file=sys.stderr)
+        for error in release_test_entrypoint_errors:
+            print(f"release test entrypoint: {error}", file=sys.stderr)
         if open_feedback_items:
             print_open_checklist_items(
                 "open user-feedback item(s)", open_feedback_items
@@ -3101,6 +3107,22 @@ steps:
         failures.append(
             "PlantUML CI runtime scanner must reject missing ImageMagick magick shim"
         )
+    valid_just_test = """
+test:
+    {{CARGO}} test --workspace --all-targets --all-features --locked --exclude kdv-storybook
+    {{CARGO}} test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights --skip storybook_score_visual_ --skip mouse_click_uses_external_scroll_for_scroll_independent_scene
+    {{CARGO}} test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1
+"""
+    if release_test_entrypoint_isolation_errors(valid_just_test):
+        failures.append("release test entrypoint scanner must allow isolated kdv-storybook tests")
+    stale_just_test = """
+test:
+    {{CARGO}} test --workspace --all-targets --all-features --locked
+"""
+    if not release_test_entrypoint_isolation_errors(stale_just_test):
+        failures.append(
+            "release test entrypoint scanner must reject generic kdv-storybook workspace tests"
+        )
     if failures:
         print("release DoD self-test failed:", file=sys.stderr)
         for failure in failures:
@@ -3944,6 +3966,50 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 + "."
             )
     return errors
+
+
+def release_test_entrypoint_isolation_errors(justfile: str) -> list[str]:
+    errors: list[str] = []
+    recipe = just_recipe_body(justfile, "test")
+    if recipe is None:
+        return ["Justfile test recipe is missing."]
+    required = (
+        "{{CARGO}} test --workspace --all-targets --all-features --locked --exclude kdv-storybook",
+        "{{CARGO}} test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights",
+        "--skip storybook_score_visual_",
+        "--skip mouse_click_uses_external_scroll_for_scroll_independent_scene",
+        "{{CARGO}} test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1",
+    )
+    missing = [token for token in required if token not in recipe]
+    if missing:
+        errors.append(
+            "Justfile test recipe does not isolate platform-dependent kdv-storybook "
+            "visual tests: missing " + ", ".join(missing) + "."
+        )
+    stale_lines = (
+        "{{CARGO}} test --workspace --all-targets --all-features --locked",
+        "cargo test --workspace --all-targets --all-features --locked",
+    )
+    for line in recipe.splitlines():
+        if line.strip() in stale_lines:
+            errors.append(
+                "Justfile test recipe still runs kdv-storybook visual/html tests in "
+                "the generic workspace test process."
+            )
+            break
+    return errors
+
+
+def just_recipe_body(justfile: str, recipe: str) -> str | None:
+    header = f"{recipe}:"
+    start = justfile.find(header)
+    if start < 0:
+        return None
+    tail = justfile[start:]
+    endings = [index for index in (tail.find("\n\n"), tail.find("\r\n\r\n")) if index >= 0]
+    if not endings:
+        return tail
+    return tail[: min(endings)]
 
 
 def missing_acceptance_source_code_files() -> list[str]:

@@ -43,7 +43,9 @@ ast-lint:
 kdv-lint: ast-lint
 
 test:
-    {{CARGO}} test --workspace --all-targets --all-features --locked
+    {{CARGO}} test --workspace --all-targets --all-features --locked --exclude kdv-storybook
+    {{CARGO}} test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights --skip katana_language_link_underline_reaches_frame_pixels --skip direct_html_margin_left_fixture_reaches_frame_pixels --skip storybook_score_visual_ --skip storybook_sample_ --skip storybook_preview_crop_score_ --skip storybook_score_export_surface_excludes_overlay_controls --skip mouse_click_uses_external_scroll_for_scroll_independent_scene
+    {{CARGO}} test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1
 
 # Backward-compatible test entrypoint
 unit-test: test
