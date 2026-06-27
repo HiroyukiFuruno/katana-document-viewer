@@ -7,9 +7,9 @@ use katana_document_viewer::{
     ImageControlCommand, SlideshowCommand, ViewerCommand, ViewerMode, ViewerScrollCommand,
     ViewerStateEngine, ViewerTarget, ViewerTaskControlTarget, ViewerTaskState,
 };
-#[cfg(not(test))]
+#[cfg(all(not(test), any(target_os = "macos", target_os = "linux")))]
 use std::io::Write;
-#[cfg(not(test))]
+#[cfg(all(not(test), any(target_os = "macos", target_os = "linux")))]
 use std::process::{Command, Stdio};
 
 impl StorybookWindow {
@@ -239,13 +239,33 @@ fn image_action_label(action: ImageControlAction) -> &'static str {
     }
 }
 
-#[cfg(not(test))]
+#[cfg(all(not(test), target_os = "macos"))]
+const CLIPBOARD_READ_ARGS: &[&str] = &[];
+#[cfg(all(not(test), target_os = "macos"))]
+const CLIPBOARD_READ_COMMAND: &str = "/usr/bin/pbpaste";
+#[cfg(all(not(test), target_os = "macos"))]
+const CLIPBOARD_WRITE_ARGS: &[&str] = &[];
+#[cfg(all(not(test), target_os = "macos"))]
+const CLIPBOARD_WRITE_COMMAND: &str = "/usr/bin/pbcopy";
+#[cfg(all(not(test), target_os = "linux"))]
+const CLIPBOARD_READ_ARGS: &[&str] = &["-selection", "clipboard", "-out"];
+#[cfg(all(not(test), target_os = "linux"))]
+const CLIPBOARD_READ_COMMAND: &str = "xclip";
+#[cfg(all(not(test), target_os = "linux"))]
+const CLIPBOARD_WRITE_ARGS: &[&str] = &["-selection", "clipboard"];
+#[cfg(all(not(test), target_os = "linux"))]
+const CLIPBOARD_WRITE_COMMAND: &str = "xclip";
+
+#[cfg(all(not(test), any(target_os = "macos", target_os = "linux")))]
 pub(super) fn write_clipboard_text(text: &str) -> Result<(), std::io::Error> {
-    let mut child = Command::new("/usr/bin/pbcopy")
+    let mut child = Command::new(CLIPBOARD_WRITE_COMMAND)
+        .args(CLIPBOARD_WRITE_ARGS)
         .stdin(Stdio::piped())
         .spawn()?;
     let Some(stdin) = child.stdin.as_mut() else {
-        return Err(std::io::Error::other("pbcopy stdin is unavailable"));
+        return Err(std::io::Error::other(format!(
+            "{CLIPBOARD_WRITE_COMMAND} stdin is unavailable"
+        )));
     };
     stdin.write_all(text.as_bytes())?;
     let status = child.wait()?;
@@ -253,21 +273,39 @@ pub(super) fn write_clipboard_text(text: &str) -> Result<(), std::io::Error> {
         return Ok(());
     }
     Err(std::io::Error::other(format!(
-        "pbcopy exited with status {status}"
+        "{CLIPBOARD_WRITE_COMMAND} exited with status {status}"
     )))
 }
 
-#[cfg(not(test))]
+#[cfg(all(not(test), any(target_os = "macos", target_os = "linux")))]
 pub(super) fn read_clipboard_text() -> Result<String, std::io::Error> {
-    let output = Command::new("/usr/bin/pbpaste").output()?;
+    let output = Command::new(CLIPBOARD_READ_COMMAND)
+        .args(CLIPBOARD_READ_ARGS)
+        .output()?;
     if output.status.success() {
         return String::from_utf8(output.stdout)
             .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error));
     }
     Err(std::io::Error::other(format!(
-        "pbpaste exited with status {}",
-        output.status
+        "{CLIPBOARD_READ_COMMAND} exited with status {}",
+        output.status,
     )))
+}
+
+#[cfg(all(not(test), not(any(target_os = "macos", target_os = "linux"))))]
+pub(super) fn write_clipboard_text(_text: &str) -> Result<(), std::io::Error> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "storybook clipboard write is unsupported on this platform",
+    ))
+}
+
+#[cfg(all(not(test), not(any(target_os = "macos", target_os = "linux"))))]
+pub(super) fn read_clipboard_text() -> Result<String, std::io::Error> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "storybook clipboard read is unsupported on this platform",
+    ))
 }
 
 #[cfg(test)]

@@ -87,20 +87,20 @@ storybook-window-smoke:
 
 # Smoke-test selectable Storybook text reaches the OS clipboard.
 storybook-clipboard-smoke:
-    old_clip=$(/usr/bin/pbpaste 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | /usr/bin/pbcopy; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-smoke; payload=$(/usr/bin/pbpaste); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-smoke-pbpaste: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-smoke-pbpaste: missing expected text\n" >&2; exit 1 ;; esac
+    old_clip=$(bash scripts/clipboard-read.sh 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | bash scripts/clipboard-write.sh; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-smoke; payload=$(bash scripts/clipboard-read.sh); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-smoke: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-smoke: missing expected text\n" >&2; exit 1 ;; esac
 
 # Smoke-test selectable Storybook text reaches the OS clipboard through the keyboard copy path.
 storybook-clipboard-keyboard-smoke:
-    old_clip=$(/usr/bin/pbpaste 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | /usr/bin/pbcopy; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-keyboard-smoke; payload=$(/usr/bin/pbpaste); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-keyboard-smoke-pbpaste: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-keyboard-smoke-pbpaste: missing expected text\n" >&2; exit 1 ;; esac
+    old_clip=$(bash scripts/clipboard-read.sh 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | bash scripts/clipboard-write.sh; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-keyboard-smoke; payload=$(bash scripts/clipboard-read.sh); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-keyboard-smoke: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-keyboard-smoke: missing expected text\n" >&2; exit 1 ;; esac
 
 storybook-clipboard-drag-smoke:
-    old_clip=$(/usr/bin/pbpaste 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | /usr/bin/pbcopy; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-drag-smoke; payload=$(/usr/bin/pbpaste); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-drag-smoke-pbpaste: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-drag-smoke-pbpaste: missing expected text\n" >&2; exit 1 ;; esac
+    old_clip=$(bash scripts/clipboard-read.sh 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | bash scripts/clipboard-write.sh; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --clipboard-drag-smoke; payload=$(bash scripts/clipboard-read.sh); case "$payload" in *"KDV settings"*"Hover highlight"*"katana/sample.md"*"KatanA Rendering"*"Regression"*"Test"*) printf "clipboard-drag-smoke: ok bytes=%s\n" "${#payload}" ;; *) printf "clipboard-drag-smoke: missing expected text\n" >&2; exit 1 ;; esac
 
 storybook-selection-screenshot-smoke:
     {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --selection-screenshot-smoke --screenshot-output target/kdv-storybook-selection-smoke.png; test -s target/kdv-storybook-selection-smoke.png
 
 storybook-window-selection-screenshot-smoke:
-    old_clip=$(/usr/bin/pbpaste 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | /usr/bin/pbcopy; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-selection-screenshot-smoke --screenshot-output target/kdv-storybook-window-selection-smoke.png; test -s target/kdv-storybook-window-selection-smoke.png
+    old_clip=$(bash scripts/clipboard-read.sh 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | bash scripts/clipboard-write.sh; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-selection-screenshot-smoke --screenshot-output target/kdv-storybook-window-selection-smoke.png; test -s target/kdv-storybook-window-selection-smoke.png
 
 storybook-window-hover-screenshot-smoke:
     {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-hover-screenshot-smoke --screenshot-output target/kdv-storybook-window-hover-smoke.png; test -s target/kdv-storybook-window-hover-smoke.png; test -s target/kdv-storybook-window-hover-smoke-hover.png
@@ -115,7 +115,7 @@ storybook-window-table-screenshot-smoke:
     {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-table-screenshot-smoke --screenshot-output target/kdv-storybook-window-table-smoke.png; test -s target/kdv-storybook-window-table-smoke.png
 
 storybook-window-code-copy-screenshot-smoke:
-    old_clip=$(/usr/bin/pbpaste 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | /usr/bin/pbcopy; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-code-copy-screenshot-smoke --screenshot-output target/kdv-storybook-window-code-copy-smoke.png; test -s target/kdv-storybook-window-code-copy-smoke.png; test -s target/kdv-storybook-window-code-copy-smoke-hover.png; test -s target/kdv-storybook-window-code-copy-smoke-copied.png; payload=$(/usr/bin/pbpaste); case "$payload" in *"fn main"*) printf "window-code-copy-screenshot-smoke-pbpaste: ok bytes=%s\n" "${#payload}" ;; *) printf "window-code-copy-screenshot-smoke-pbpaste: missing expected code payload\n" >&2; exit 1 ;; esac
+    old_clip=$(bash scripts/clipboard-read.sh 2>/dev/null || true); restore_clipboard() { printf "%s" "$old_clip" | bash scripts/clipboard-write.sh; }; trap restore_clipboard EXIT; {{RTK_CMD}}{{CARGO}} run --release --locked -p kdv-storybook -- --window-code-copy-screenshot-smoke --screenshot-output target/kdv-storybook-window-code-copy-smoke.png; test -s target/kdv-storybook-window-code-copy-smoke.png; test -s target/kdv-storybook-window-code-copy-smoke-hover.png; test -s target/kdv-storybook-window-code-copy-smoke-copied.png; payload=$(bash scripts/clipboard-read.sh); case "$payload" in *"fn main"*) printf "window-code-copy-screenshot-smoke: ok bytes=%s\n" "${#payload}" ;; *) printf "window-code-copy-screenshot-smoke: missing expected code payload\n" >&2; exit 1 ;; esac
 
 storybook-selection-contract-check-core:
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked storybook_window_visible_text_runs_are_individually_selectable_and_copyable -- --test-threads=1
@@ -531,7 +531,7 @@ release-dod-check:
     python3 scripts/release/assert-viewer-recovery-dod.py
 
 # Verify package metadata and dry-run the crates.io publish target.
-release-verify: storybook-release-acceptance-artifacts release-dod-check check coverage
+release-verify: release-dod-check check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
     {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty

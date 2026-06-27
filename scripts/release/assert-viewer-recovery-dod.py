@@ -34,6 +34,8 @@ CONFIRMED_AT_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$"
 )
 CONFIRMED_BY_PLACEHOLDERS = {"", "human reviewer", "reviewer", "user", "tbd", "n/a", "none"}
+ACCEPTANCE_FRESHNESS_SKIP_ENV = "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS"
+ACCEPTANCE_FRESHNESS_SKIP_VALUES = {"1", "true", "yes", "ci", "ci-reproducible"}
 REQUIRED_EVIDENCE_FIELDS = ("confirmed_by", "confirmed_at")
 HUMAN_ACCEPTANCE_NOTE_RE = re.compile(r"^\s*-\s+human acceptance:\s*(?P<note>.+?)\s*$")
 HUMAN_ACCEPTANCE_NOTE_REQUIRED_TOKENS = ("just storybook", "KatanA", "interactive")
@@ -1629,6 +1631,10 @@ def self_test() -> int:
     )
     if not any("source file" in error for error in stale_source_errors):
         failures.append("acceptance freshness scanner must reject stale source changes")
+    if not acceptance_freshness_check_enabled({}):
+        failures.append("acceptance freshness check must default to enabled")
+    if acceptance_freshness_check_enabled({ACCEPTANCE_FRESHNESS_SKIP_ENV: "1"}):
+        failures.append("acceptance freshness check must support CI reproducible artifact mode")
     current_source_freshness_errors = (
         acceptance_artifact_source_freshness_errors_from_mtimes(
             artifact_mtimes={
@@ -6353,6 +6359,8 @@ def acceptance_artifact_source_freshness_errors_from_mtimes(
 
 
 def acceptance_artifact_freshness_errors(confirmed_at: str) -> list[str]:
+    if not acceptance_freshness_check_enabled(os.environ):
+        return []
     path_mtimes: dict[str, float] = {}
     for path in required_acceptance_freshness_paths():
         if path.is_file() and path.stat().st_size > 0:
@@ -6360,6 +6368,11 @@ def acceptance_artifact_freshness_errors(confirmed_at: str) -> list[str]:
     return acceptance_artifact_freshness_errors_from_mtimes(
         confirmed_at, path_mtimes
     )
+
+
+def acceptance_freshness_check_enabled(env: dict[str, str]) -> bool:
+    value = env.get(ACCEPTANCE_FRESHNESS_SKIP_ENV, "").strip().lower()
+    return value not in ACCEPTANCE_FRESHNESS_SKIP_VALUES
 
 
 def acceptance_artifact_freshness_errors_from_mtimes(

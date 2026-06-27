@@ -66,7 +66,7 @@ fn hidden_inline_image_color() -> Color {
 
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
-    use super::{attrs_for_span_with_metadata, APPLE_COLOR_EMOJI_FONT_FAMILY};
+    use super::{APPLE_COLOR_EMOJI_FONT_FAMILY, attrs_for_span_with_metadata};
     use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
     use cosmic_text::Family;
 
