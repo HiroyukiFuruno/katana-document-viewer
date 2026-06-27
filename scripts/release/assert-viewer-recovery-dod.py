@@ -3054,6 +3054,10 @@ steps:
     run: |
       sudo apt-get install -y graphviz imagemagick xvfb xclip
       sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+      if ! command -v magick >/dev/null 2>&1; then
+        sudo tee /usr/local/bin/magick >/dev/null
+        exec convert "$@"
+      fi
       echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
   - name: Release check
     run: |
@@ -3079,6 +3083,13 @@ steps:
         valid_ci_runtime, valid_preflight_runtime.replace("GRAPHVIZ_DOT", "GRAPHVIZDOT")
     ):
         failures.append("PlantUML CI runtime scanner must reject missing preflight Graphviz env")
+    if not plantuml_ci_runtime_errors(
+        valid_ci_runtime,
+        valid_preflight_runtime.replace("/usr/local/bin/magick", "/usr/local/bin/not-magick"),
+    ):
+        failures.append(
+            "PlantUML CI runtime scanner must reject missing ImageMagick magick shim"
+        )
     if failures:
         print("release DoD self-test failed:", file=sys.stderr)
         for failure in failures:
@@ -3887,6 +3898,9 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 "-Djava.awt.headless=true",
                 "-Djdk.lang.processReaperUseDefaultStackSize=true",
                 "apt-get install -y graphviz imagemagick xvfb xclip",
+                "command -v magick",
+                "/usr/local/bin/magick",
+                "exec convert",
                 "/opt/local/bin/dot",
                 "GRAPHVIZ_DOT",
                 "storybook-release-acceptance-artifacts",
