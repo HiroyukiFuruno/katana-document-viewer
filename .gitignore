@@ -9,6 +9,8 @@
 !/assets/fixtures/
 !/assets/fixtures/direct/
 !/assets/fixtures/direct/**
+!/assets/fixtures/katana/
+!/assets/fixtures/katana/**
 .DS_Store
 skill.md
 CLAUDE.md
