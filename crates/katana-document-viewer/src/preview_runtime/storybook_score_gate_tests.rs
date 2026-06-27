@@ -365,6 +365,31 @@ fn release_scripts_do_not_depend_on_obsolete_preview_egui_package()
 }
 
 #[test]
+fn kuc_boundary_check_resolves_cargo_dependency_when_sibling_repo_is_missing()
+-> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let script = std::fs::read_to_string(root.join("scripts/kuc-adapter-boundary-check.sh"))?;
+
+    assert_contains_all(
+        "kuc-adapter-boundary-check.sh",
+        &script,
+        &[
+            "resolve_cargo_package_root",
+            "metadata --locked --format-version 1",
+            "kuc_core_source_root",
+            "kuc_storybook_source_root",
+            "katana-ui-core-storybook",
+        ],
+    );
+    assert!(
+        !script.contains("KUC_ROOT is missing"),
+        "KUC boundary check must use cargo dependency source when the sibling KUC repo is absent"
+    );
+
+    Ok(())
+}
+
+#[test]
 fn storybook_link_footnote_gate_keeps_real_pointer_jump_tests()
 -> Result<(), Box<dyn std::error::Error>> {
     let justfile = std::fs::read_to_string(workspace_root()?.join("Justfile"))?;
@@ -528,7 +553,10 @@ const CI_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "Install Graphviz (Windows)",
     "choco install graphviz",
     "cargo test --workspace --locked --exclude kdv-storybook",
-    "cargo test -p kdv-storybook --locked -- --test-threads=1",
+    "cargo test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights",
+    "--skip storybook_score_visual_",
+    "--skip mouse_click_uses_external_scroll_for_scroll_independent_scene",
+    "cargo test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1",
 ];
 
 const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[

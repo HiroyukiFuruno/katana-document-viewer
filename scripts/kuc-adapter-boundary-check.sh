@@ -5,6 +5,14 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cargo_bin="${CARGO:-cargo}"
 kuc_root="${KUC_ROOT:-"$repo_root/../katana-ui-core"}"
 embedded_kuc_root="$repo_root/crates/katana-ui-core"
+metadata_file=""
+
+cleanup_metadata_file() {
+  if [[ -n "$metadata_file" && -f "$metadata_file" ]]; then
+    rm -f "$metadata_file"
+  fi
+}
+trap cleanup_metadata_file EXIT
 
 cd "$repo_root"
 
@@ -54,6 +62,29 @@ neutral_package_roots=(
   "$repo_root/tools/kdv-storybook"
 )
 neutral_extra_roots=()
+
+resolve_cargo_package_root() {
+  local package="$1"
+  if [[ -z "$metadata_file" ]]; then
+    metadata_file="$(mktemp)"
+    "$cargo_bin" metadata --locked --format-version 1 > "$metadata_file"
+  fi
+  python3 - "$package" "$metadata_file" <<'PY'
+import json
+import pathlib
+import sys
+
+package_name = sys.argv[1]
+metadata_path = sys.argv[2]
+with open(metadata_path, encoding="utf-8") as metadata_file:
+    metadata = json.load(metadata_file)
+for package in metadata["packages"]:
+    if package["name"] == package_name:
+        print(pathlib.Path(package["manifest_path"]).parent.as_posix())
+        sys.exit(0)
+sys.exit(1)
+PY
+}
 
 check_kuc_core_source_boundary() {
   local label="$1"
@@ -157,22 +188,28 @@ for package in "${packages[@]}"; do
   fi
 done
 
-if [[ ! -f "$kuc_root/Cargo.toml" ]]; then
-  echo "kuc-adapter-boundary-check: KUC_ROOT is missing: $kuc_root" >&2
-  exit 1
+kuc_core_source_root="$kuc_root/crates/katana-ui-core"
+kuc_storybook_source_root="$kuc_root/crates/katana-ui-core-storybook"
+
+if [[ ! -f "$kuc_core_source_root/Cargo.toml" ]]; then
+  kuc_core_source_root="$(resolve_cargo_package_root katana-ui-core)"
 fi
 
-kuc_tree="$(cd "$kuc_root" && "$cargo_bin" tree -p katana-ui-core --locked)"
+if [[ ! -f "$kuc_storybook_source_root/Cargo.toml" ]]; then
+  kuc_storybook_source_root="$(resolve_cargo_package_root katana-ui-core-storybook)"
+fi
+
+kuc_tree="$("$cargo_bin" tree -p katana-ui-core --locked)"
 if printf '%s\n' "$kuc_tree" | grep -E "$vendor_pattern"; then
   echo "kuc-adapter-boundary-check: vendor runtime dependency leaked into katana-ui-core" >&2
   exit 1
 fi
 
-check_kuc_core_source_boundary "katana-ui-core" "$kuc_root/crates/katana-ui-core"
-check_file_tree_facade_contract_for_root "katana-ui-core" "$kuc_root/crates/katana-ui-core"
+check_kuc_core_source_boundary "katana-ui-core" "$kuc_core_source_root"
+check_file_tree_facade_contract_for_root "katana-ui-core" "$kuc_core_source_root"
 
-kuc_storybook_lib="$kuc_root/crates/katana-ui-core-storybook/src/lib.rs"
-kuc_storybook_visual_mod="$kuc_root/crates/katana-ui-core-storybook/src/visual/mod.rs"
+kuc_storybook_lib="$kuc_storybook_source_root/src/lib.rs"
+kuc_storybook_visual_mod="$kuc_storybook_source_root/src/visual/mod.rs"
 if grep -n -E 'present_frame,|present_frame[[:space:]]*}' "$kuc_storybook_lib" "$kuc_storybook_visual_mod"; then
   echo "kuc-adapter-boundary-check: raw frame presentation must not be exported; use present_frame_for_window" >&2
   exit 1
@@ -349,7 +386,7 @@ if [[ -n "$duplicate_viewer_media_prefix_matches" ]]; then
   exit 1
 fi
 
-kuc_document_viewer_source="$kuc_root/crates/katana-ui-core-storybook/src/document_viewer"
+kuc_document_viewer_source="$kuc_storybook_source_root/src/document_viewer"
 if [[ -d "$kuc_document_viewer_source" ]]; then
   kuc_document_viewer_manual_interactive_matches="$(
     find "$kuc_document_viewer_source" \
@@ -391,7 +428,7 @@ else
   exit 1
 fi
 
-kuc_storybook_visual_root="$kuc_root/crates/katana-ui-core-storybook/src/visual"
+kuc_storybook_visual_root="$kuc_storybook_source_root/src/visual"
 if [[ -d "$kuc_storybook_visual_root" ]]; then
   kuc_storybook_kdv_overlay_matches="$(
     find "$kuc_storybook_visual_root" \

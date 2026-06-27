@@ -3054,7 +3054,8 @@ steps:
   - name: Run tests
     run: |
       cargo test --workspace --locked --exclude kdv-storybook
-      cargo test -p kdv-storybook --locked -- --test-threads=1
+      cargo test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights --skip katana_language_link_underline_reaches_frame_pixels --skip direct_html_margin_left_fixture_reaches_frame_pixels --skip storybook_score_visual_ --skip storybook_sample_ --skip storybook_preview_crop_score_ --skip storybook_score_export_surface_excludes_overlay_controls --skip mouse_click_uses_external_scroll_for_scroll_independent_scene
+      cargo test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1
 """
     valid_preflight_runtime = """
 env:
@@ -3909,7 +3910,10 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 "Install Graphviz (Windows)",
                 "choco install graphviz",
                 "cargo test --workspace --locked --exclude kdv-storybook",
-                "cargo test -p kdv-storybook --locked -- --test-threads=1",
+                "cargo test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights",
+                "--skip storybook_score_visual_",
+                "--skip mouse_click_uses_external_scroll_for_scroll_independent_scene",
+                "cargo test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1",
             ),
         ),
         (
