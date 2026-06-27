@@ -395,14 +395,25 @@ impl StorybookWindow {
         self.start_asset_job_for_current_viewport(width, height);
         let timeout = loaded_asset_wait_timeout_for_tests();
         let deadline = Instant::now() + timeout;
+        let mut last_asset_request_count = 0usize;
+        let mut last_loaded_asset_count = 0usize;
+        let mut last_failed_asset_count = 0usize;
+        let mut last_image_surface_count = 0usize;
         while Instant::now() <= deadline {
             if self.apply_asset_job()? && self.asset_job.is_none() {
                 return Ok(());
             }
+            if let Some(scene) = self.scene.as_ref() {
+                last_asset_request_count = scene.asset_request_count;
+                last_loaded_asset_count = scene.loaded_asset_count;
+                last_failed_asset_count = scene.failed_asset_count;
+                last_image_surface_count = scene.image_surface_count;
+            }
             std::thread::sleep(Duration::from_millis(8));
         }
         Err(format!(
-            "asset job did not complete before loaded scroll performance test within {timeout:?}"
+            "asset job did not complete before loaded scroll performance test within {timeout:?}: pending={last_asset_request_count} loaded={last_loaded_asset_count} failed={last_failed_asset_count} image_surfaces={last_image_surface_count} job_alive={}",
+            self.asset_job.is_some()
         )
         .into())
     }
