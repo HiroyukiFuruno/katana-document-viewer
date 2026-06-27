@@ -54,20 +54,19 @@ jobs:
           sudo mkdir -p /opt/local/bin
           sudo ln -sf /usr/bin/dot /opt/local/bin/dot
           if ! command -v magick >/dev/null 2>&1; then
-            sudo tee /usr/local/bin/magick >/dev/null <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-case "${1:-}" in
-  identify|compare|montage)
-    command="$1"
-    shift
-    exec "$command" "$@"
-    ;;
-  *)
-    exec convert "$@"
-    ;;
-esac
-EOF
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'set -euo pipefail' \
+              'case "${1:-}" in' \
+              '  identify|compare|montage)' \
+              '    command="$1"' \
+              '    shift' \
+              '    exec "$command" "$@"' \
+              '    ;;' \
+              '  *)' \
+              '    exec convert "$@"' \
+              '    ;;' \
+              'esac' | sudo tee /usr/local/bin/magick >/dev/null
             sudo chmod +x /usr/local/bin/magick
           fi
           echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
