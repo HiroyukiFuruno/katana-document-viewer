@@ -71,3 +71,7 @@ impl SurfacePagePlan {
         SURFACE_PAGE_HEIGHT - PAGE_PADDING * 2
     }
 }
+
+#[cfg(test)]
+#[path = "page_plan_tests.rs"]
+mod tests;

@@ -63,10 +63,7 @@ fn render_math_tex_result(
                 mathjax_source,
             ))
         }
-        Ok(output) => KrrRenderOutput::raw(
-            rendered_raw(source, &output.svg),
-            KrrRenderDiagnostic::new("render-failed", diagnostics_message(&output)),
-        ),
+        Ok(output) => raw_render_failure(source, "render-failed", diagnostics_message(&output)),
         Err(error) => raw_error(source, error),
     }
 }
@@ -130,30 +127,28 @@ fn is_svg(output: &str) -> bool {
     output.trim_start().starts_with("<svg")
 }
 
-fn rendered_raw(source: &str, output: &str) -> String {
-    if output.trim().is_empty() {
-        source.to_string()
-    } else {
-        output.to_string()
-    }
-}
-
 fn diagnostics_message(output: &katana_render_runtime::RenderOutput) -> String {
-    output
+    let message = output
         .diagnostics
         .errors
         .iter()
         .chain(output.diagnostics.warnings.iter())
         .cloned()
         .collect::<Vec<_>>()
-        .join("; ")
+        .join("; ");
+    if message.is_empty() {
+        return "renderer returned non-svg output".to_string();
+    }
+    message
 }
 
 fn raw_error(source: &str, error: RenderError) -> KrrRenderOutput {
-    KrrRenderOutput::raw(
-        source.to_string(),
-        KrrRenderDiagnostic::new(render_error_code(&error), error.to_string()),
-    )
+    raw_render_failure(source, render_error_code(&error), error.to_string())
+}
+
+fn raw_render_failure(source: &str, code: &'static str, message: String) -> KrrRenderOutput {
+    eprintln!("[kdv-render-runtime] {code}: {message}");
+    KrrRenderOutput::raw(source.to_string(), KrrRenderDiagnostic::new(code, message))
 }
 
 fn render_error_code(error: &RenderError) -> &'static str {
@@ -166,6 +161,9 @@ fn render_error_code(error: &RenderError) -> &'static str {
     }
 }
 
+#[cfg(test)]
+#[path = "adapter_diagnostics_tests.rs"]
+mod diagnostics_tests;
 #[cfg(test)]
 #[path = "adapter_result_tests.rs"]
 mod result_tests;

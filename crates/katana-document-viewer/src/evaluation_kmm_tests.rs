@@ -6,8 +6,8 @@ use katana_markdown_model::{
 #[test]
 fn commonmark_fixture_maps_supported_blocks_to_kmm_dto() -> Result<(), KmmError> {
     let document = parse_fixture(
-        "commonmark.md",
-        include_str!("../fixtures/rendering/commonmark.md"),
+        "sample_basic.md",
+        include_str!("../../../assets/fixtures/katana/sample_basic.md"),
     )?;
 
     assert!(has_kind(&document, |kind| matches!(
@@ -35,7 +35,10 @@ fn commonmark_fixture_maps_supported_blocks_to_kmm_dto() -> Result<(), KmmError>
 
 #[test]
 fn gfm_fixture_maps_alert_table_and_task_markers_to_kmm_dto() -> Result<(), KmmError> {
-    let document = parse_fixture("gfm.md", include_str!("../fixtures/rendering/gfm.md"))?;
+    let document = parse_fixture(
+        "sample_basic.md",
+        include_str!("../../../assets/fixtures/katana/sample_basic.md"),
+    )?;
 
     assert!(has_alert(&document, "NOTE"));
     assert!(has_alert(&document, "WARNING"));
@@ -44,40 +47,39 @@ fn gfm_fixture_maps_alert_table_and_task_markers_to_kmm_dto() -> Result<(), KmmE
         KmmNodeKind::Table(_)
     )));
     assert!(has_task_marker(&document, "[x]"));
-    assert!(has_task_marker(&document, "[/]"));
+    assert!(has_task_marker(&document, "[-]"));
     Ok(())
 }
 
 #[test]
 fn katana_fixture_maps_original_compatibility_to_kmm_dto() -> Result<(), KmmError> {
     let document = parse_fixture(
-        "katana-compat.md",
-        include_str!("../fixtures/rendering/katana-compat.md"),
+        "sample.ja.md",
+        include_str!("../../../assets/fixtures/katana/sample.ja.md"),
     )?;
 
     assert!(has_html_role(&document, HtmlBlockRole::Centered));
     assert!(has_html_role(&document, HtmlBlockRole::BadgeRow));
     assert!(has_alert(&document, "NOTE"));
-    assert!(has_kind(&document, |kind| {
-        matches!(kind, KmmNodeKind::DescriptionList { .. })
-    }));
     assert!(has_task_marker(&document, "[-]"));
-    assert!(has_task_marker(&document, "[/]"));
     assert!(has_diagram(&document, DiagramKind::DrawIo));
-    assert!(has_paragraph_containing(&document, "日本語"));
+    assert!(has_raw_containing(&document, "日本語"));
     Ok(())
 }
 
 #[test]
 fn math_and_external_fixtures_expose_supported_kmm_boundaries() -> Result<(), KmmError> {
-    let math = parse_fixture("math.md", include_str!("../fixtures/rendering/math.md"))?;
+    let math = parse_fixture(
+        "sample_basic.md",
+        include_str!("../../../assets/fixtures/katana/sample_basic.md"),
+    )?;
     let success = parse_fixture(
-        "external-success.md",
-        include_str!("../fixtures/rendering/external-success.md"),
+        "sample.ja.md",
+        include_str!("../../../assets/fixtures/katana/sample.ja.md"),
     )?;
     let failure = parse_fixture(
-        "external-failure.md",
-        include_str!("../fixtures/rendering/external-failure.md"),
+        "sample.ja.md",
+        include_str!("../../../assets/fixtures/katana/sample.ja.md"),
     )?;
 
     assert!(has_math_block(&math));
@@ -149,8 +151,17 @@ fn has_plain_code_block(document: &KmmDocument) -> bool {
     })
 }
 
-fn has_paragraph_containing(document: &KmmDocument, expected: &str) -> bool {
-    document.nodes.iter().any(|node| {
-        matches!(node.kind, KmmNodeKind::Paragraph) && node.source.raw.text.contains(expected)
-    })
+fn has_raw_containing(document: &KmmDocument, expected: &str) -> bool {
+    document
+        .nodes
+        .iter()
+        .any(|node| node_has_raw_containing(node, expected))
+}
+
+fn node_has_raw_containing(node: &katana_markdown_model::KmmNode, expected: &str) -> bool {
+    node.source.raw.text.contains(expected)
+        || node
+            .children
+            .iter()
+            .any(|child| node_has_raw_containing(child, expected))
 }

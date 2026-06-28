@@ -9,15 +9,14 @@ mod icons;
 mod markup;
 mod page_plan;
 
-use self::export_surface_block_factory::SurfaceBlockFactory;
-use self::export_surface_painter::SurfacePainter;
+pub(crate) use self::export_surface_block_factory::SurfaceBlockFactory;
 
 pub(crate) use self::export_surface_blocks::{
     SurfaceAlertBlock, SurfaceBadge, SurfaceBadgeRowBlock, SurfaceBlock, SurfaceCodeBlock,
     SurfaceDiagramBlock, SurfaceImageBlock, SurfaceMathBlock, SurfaceSpanMetrics,
     SurfaceTableBlock, SurfaceTableCellPaint, SurfaceTableLayout,
 };
-pub(crate) use self::export_surface_painter::SurfacePaintPalette;
+pub(crate) use self::export_surface_painter::{SurfacePaintPalette, SurfacePainter};
 
 use crate::export_surface_helpers::{SURFACE_WIDTH, SurfaceHelpers};
 pub(crate) use crate::export_surface_line::BODY_FONT_SIZE;

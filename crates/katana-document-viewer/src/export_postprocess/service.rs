@@ -114,6 +114,8 @@ impl<A: PdfPostprocessAdapter> ExportPostprocessEvaluationService<A> {
             pdf: optimized_pdf,
             png: request.artifacts.png,
             jpeg: request.artifacts.jpeg,
+            source_markdown: request.artifacts.source_markdown,
+            surface_equivalence: request.artifacts.surface_equivalence,
         })
     }
 

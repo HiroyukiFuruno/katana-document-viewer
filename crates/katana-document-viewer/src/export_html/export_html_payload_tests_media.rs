@@ -41,12 +41,15 @@ fn html_export_embeds_rendered_drawio_svg() -> Result<(), Box<dyn std::error::Er
 }
 
 #[test]
-fn html_export_marks_diagram_without_svg_as_krr_required() -> Result<(), Box<dyn std::error::Error>>
-{
+fn html_export_marks_diagram_without_svg_as_runtime_error_raw()
+-> Result<(), Box<dyn std::error::Error>> {
     let html = super::support::export_html("```mermaid\ngraph TD; A-->B\n```\n")?;
 
     assert!(html.contains(r#"data-kdv-diagram="mermaid""#));
-    assert!(html.contains(r#"data-kdv-export-readiness="requires-krr-render""#));
+    assert!(html.contains(r#"data-kdv-render-runtime="katana-render-runtime""#));
+    assert!(html.contains(r#"data-kdv-render-error="diagram-render-missing""#));
+    assert!(html.contains("graph TD; A--&gt;B"));
+    assert!(!html.contains("requires-krr-render"));
     Ok(())
 }
 

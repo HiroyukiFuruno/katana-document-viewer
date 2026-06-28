@@ -1,4 +1,5 @@
-use crate::export_surface_line::SurfaceLine;
+use crate::export_surface_helpers::SurfaceHelpers;
+use crate::export_surface_line::{SurfaceLine, SurfaceTypographyConfig};
 use crate::export_surface_span::SurfaceInlineSpans;
 use crate::forge::BuildGraph;
 use crate::theme::KdvThemeSnapshot;
@@ -18,6 +19,10 @@ mod dispatch;
 mod footnote;
 #[path = "export_surface_block_factory/html.rs"]
 mod html;
+#[path = "export_surface_block_factory/html_details_block.rs"]
+mod html_details_block;
+#[path = "export_surface_block_factory/image.rs"]
+mod image;
 #[path = "export_surface_block_factory/list.rs"]
 mod list;
 #[path = "export_surface_block_factory/raw.rs"]
@@ -31,6 +36,14 @@ pub(crate) struct SurfaceBlockFactory;
 
 impl SurfaceBlockFactory {
     pub(crate) fn create(graph: &BuildGraph, theme: &KdvThemeSnapshot) -> Vec<SurfaceBlock> {
+        Self::create_with_typography(graph, theme, SurfaceTypographyConfig::default())
+    }
+
+    pub(crate) fn create_with_typography(
+        graph: &BuildGraph,
+        theme: &KdvThemeSnapshot,
+        typography: SurfaceTypographyConfig,
+    ) -> Vec<SurfaceBlock> {
         let mut blocks = Vec::new();
         let mut footnotes = Vec::new();
         for node in &graph.snapshot.document.nodes {
@@ -38,13 +51,35 @@ impl SurfaceBlockFactory {
                 footnotes.push(line);
                 continue;
             }
-            Self::append_node(&mut blocks, graph, node, 0, 0, theme);
+            let mut node_blocks = Vec::new();
+            Self::append_node(&mut node_blocks, graph, node, 0, 0, theme);
+            if node_blocks.is_empty() {
+                continue;
+            }
+            blocks.extend(node_blocks);
         }
         if !footnotes.is_empty() {
             blocks.push(SurfaceBlock::Rule);
             blocks.extend(footnotes.into_iter().map(SurfaceBlock::Line));
         }
+        for block in &mut blocks {
+            block.apply_typography(typography);
+        }
         blocks
+    }
+
+    pub(crate) fn node_height_with_typography(
+        graph: &BuildGraph,
+        node: &KmmNode,
+        theme: &KdvThemeSnapshot,
+        typography: SurfaceTypographyConfig,
+    ) -> u32 {
+        let mut blocks = Vec::new();
+        Self::append_node(&mut blocks, graph, node, 0, 0, theme);
+        for block in &mut blocks {
+            block.apply_typography(typography);
+        }
+        SurfaceHelpers::block_stack_height(blocks.iter().map(SurfaceBlock::height))
     }
 
     pub(super) fn append_node(

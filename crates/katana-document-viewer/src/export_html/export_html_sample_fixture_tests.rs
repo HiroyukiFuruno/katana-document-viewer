@@ -1,6 +1,6 @@
 use super::contract_test_support::HtmlContractTestSupport;
 
-const SAMPLE_JA_MD: &str = include_str!("../../fixtures/rendering/sample.ja.md");
+const SAMPLE_JA_MD: &str = include_str!("../../../../assets/fixtures/katana/sample.ja.md");
 
 #[test]
 fn sample_ja_fixture_is_exported_from_repo_local_copy() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,10 +57,7 @@ fn assert_sample_fixture_contains_export_contracts(html: &str) {
                 "pipe sentence remains paragraph",
                 "<p>↑ 「English | 日本語」が中央揃えの同一行に表示されること。</p>",
             ),
-            (
-                "legacy note heading",
-                "<h2>7. Note ブロック（旧 <code>&gt; **Type**</code> 形式）</h2>",
-            ),
+            ("legacy note heading", "<h2>7. Note ブロック</h2>"),
             (
                 "legacy note inline quote",
                 "<blockquote data-kdv-blockquote=\"quote\"><p><strong>Note</strong> GitHub では note 系ブロックを blockquote として表現する。</p></blockquote>",

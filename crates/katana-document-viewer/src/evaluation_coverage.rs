@@ -1,6 +1,6 @@
 use crate::evaluation::{CoverageStatus, EvaluationFeatureCoverage, FixtureCategory};
 
-const FEATURE_COUNT: usize = 33;
+const FEATURE_COUNT: usize = 34;
 const COMMONMARK: FixtureCategory = FixtureCategory::CommonMark;
 const GFM: FixtureCategory = FixtureCategory::Gfm;
 const MATH: FixtureCategory = FixtureCategory::Math;
@@ -8,6 +8,7 @@ const ALERT: FixtureCategory = FixtureCategory::GitHubAlert;
 const KATANA: FixtureCategory = FixtureCategory::KatanaCompatibility;
 const EXTERNAL: FixtureCategory = FixtureCategory::ExternalRendering;
 const DTO: CoverageStatus = CoverageStatus::KmmDto;
+const KDV: CoverageStatus = CoverageStatus::KdvExportContract;
 const KRR: CoverageStatus = CoverageStatus::KrrDirect;
 const ZENUML: CoverageStatus = CoverageStatus::KrrMermaidCompatibility;
 
@@ -63,6 +64,7 @@ const FEATURES: [FeatureSeed; FEATURE_COUNT] = [
     ),
     ("gfm-table", "gfm-table-task", GFM, DTO),
     ("gfm-task-list", "gfm-table-task", GFM, DTO),
+    ("gfm-strikethrough", "gfm-table-task", GFM, KDV),
     ("github-alert-note", "gfm-alerts", ALERT, DTO),
     ("github-alert-warning", "gfm-alerts", ALERT, DTO),
     ("math-fenced", "math-mixed", MATH, DTO),

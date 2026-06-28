@@ -46,8 +46,8 @@ fn pdf_surface_table_right_alignment_keeps_cell_padding() {
 fn pdf_surface_table_uses_html_like_padding_and_theme_colors()
 -> Result<(), Box<dyn std::error::Error>> {
     let theme = KdvThemeSnapshot::katana_light();
-    assert_eq!(theme.table_header_background, "#eaf5ff");
-    assert_eq!(theme.table_even_row_background, "#f7fbff");
+    assert_eq!(theme.table_header_background, "#f3f3f3");
+    assert_eq!(theme.table_even_row_background, "#ffffff");
 
     let (row_height, text_y) =
         surface_table_metrics_from_markdown(table_markdown()).ok_or("table fixture must parse")?;

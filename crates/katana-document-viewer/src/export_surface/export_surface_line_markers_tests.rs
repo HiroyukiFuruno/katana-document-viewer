@@ -1,4 +1,5 @@
 use super::*;
+use crate::export_surface_line::SurfaceTypographyConfig;
 use crate::export_surface_span::SurfaceTextSpan;
 
 #[test]
@@ -92,4 +93,12 @@ fn top_margin_follows_line_level() {
     assert_eq!(SurfaceLine::body("body".to_string()).top_margin(), 5);
     let code = SurfaceLine::code_spans(vec![SurfaceTextSpan::plain("code")]);
     assert_eq!(code.top_margin(), 0);
+}
+
+#[test]
+fn compact_body_top_margin_matches_kuc_document_body_origin() {
+    let mut body = SurfaceLine::body("body".to_string());
+    body.apply_typography(SurfaceTypographyConfig::from_body_font_size(14.0));
+
+    assert_eq!(body.top_margin(), 0);
 }

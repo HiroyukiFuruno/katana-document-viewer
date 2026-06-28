@@ -1,7 +1,8 @@
 use katana_document_viewer::{
     BuildProfile, BuildRequest, DiagramRenderingBackend, DocumentSnapshotFactory, DocumentSource,
     EvaluationCoverageMatrix, ExportFormat, ExportOutput, ExportRequest, ForgePipeline,
-    KdvThemeSnapshot, KrrDiagramRenderEngine, SourceKind, SourceRevision, SourceUri,
+    KdvThemeSnapshot, KrrDiagramRenderEngine, MarkdownFenceNormalizer, SourceKind, SourceRevision,
+    SourceUri,
 };
 use katana_markdown_model::{KatanaMarkdownModel, MarkdownInput};
 use serde::Serialize;
@@ -38,7 +39,8 @@ struct ExportDebugCommand;
 impl ExportDebugCommand {
     fn run(args: CommandArgs) -> Result<(), Box<dyn Error>> {
         let content = fs::read_to_string(&args.input_path)?;
-        let content = content.replace("\r\n", "\n").replace('\r', "\n");
+        let content =
+            MarkdownFenceNormalizer::normalize(&content.replace("\r\n", "\n").replace('\r', "\n"));
         let source = Self::source(&args.input_path, &content);
         let document = KatanaMarkdownModel::parse(MarkdownInput::from_content(
             args.input_path.display().to_string(),

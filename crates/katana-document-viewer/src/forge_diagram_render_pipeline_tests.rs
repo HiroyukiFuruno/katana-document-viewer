@@ -25,7 +25,7 @@ fn diagram_renderer_panic_is_recorded_as_diagnostic() -> Result<(), Box<dyn std:
             .diagnostics
             .messages
             .iter()
-            .any(|message| message.contains("diagram renderer panicked"))
+            .any(|message| message.contains("diagram renderer panicked for node"))
     );
     Ok(())
 }
@@ -66,9 +66,12 @@ fn diagram_renderer_records_render_error_without_panic() -> Result<(), Box<dyn s
     })?;
 
     assert_eq!(graph.rendered_diagrams.len(), 0);
-    assert_eq!(
-        graph.diagnostics.messages,
-        vec!["render failed".to_string()]
+    assert_eq!(graph.diagnostics.messages.len(), 1);
+    assert!(graph.diagnostics.messages[0].contains("render failed"));
+    assert!(
+        graph.diagnostics.messages[0].contains("diagram renderer failed for node"),
+        "{:?}",
+        graph.diagnostics.messages
     );
     Ok(())
 }

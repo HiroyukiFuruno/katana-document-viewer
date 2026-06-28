@@ -9,8 +9,8 @@ pub(super) use self::export_surface_markup_html::SurfaceHtmlMarkup;
 
 const ALERT_COLOR_TIP: image::Rgba<u8> = image::Rgba([26, 127, 55, 255]);
 const ALERT_COLOR_IMPORTANT: image::Rgba<u8> = image::Rgba([130, 80, 223, 255]);
-const ALERT_COLOR_WARNING: image::Rgba<u8> = image::Rgba([209, 36, 47, 255]);
-const ALERT_COLOR_CAUTION: image::Rgba<u8> = image::Rgba([191, 135, 0, 255]);
+const ALERT_COLOR_WARNING: image::Rgba<u8> = image::Rgba([191, 135, 0, 255]);
+const ALERT_COLOR_CAUTION: image::Rgba<u8> = image::Rgba([209, 36, 47, 255]);
 const ALERT_COLOR_DEFAULT: image::Rgba<u8> = image::Rgba([9, 105, 218, 255]);
 
 pub(super) struct SurfaceDetailsParts<'a> {
@@ -96,7 +96,7 @@ pub(super) fn alert_icon_name(label: &str) -> &str {
         "TIP" => "tip-bulb",
         "IMPORTANT" => "important-callout",
         "WARNING" => "warning-triangle",
-        "CAUTION" => "caution-octagon",
+        "CAUTION" => "caution-circle-slash",
         _ => "note-circle",
     }
 }

@@ -70,7 +70,11 @@ fn useful_optimized_pdf_is_accepted_with_comparison_metrics() -> Result<(), Box<
 
     let report = service.evaluate(&fixture.request());
 
-    assert_eq!(report.status, ExportPostprocessStatus::Accepted);
+    assert_eq!(
+        report.status,
+        ExportPostprocessStatus::Accepted,
+        "{report:#?}"
+    );
     assert_eq!(report.selected_pdf_bytes, FixtureArtifacts::base_pdf());
     assert!(report.metrics.size_reduction_percent_x100 >= MINIMUM_ACCEPTED_REDUCTION_PERCENT_X100);
     assert!(report.optimized_quality.is_pass());

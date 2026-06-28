@@ -1,4 +1,5 @@
 use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+use crate::{KdvThemeMode, KdvThemeSnapshot};
 use image::Rgba;
 use std::sync::LazyLock;
 use syntect::easy::HighlightLines;
@@ -6,21 +7,41 @@ use syntect::highlighting::{Style, Theme, ThemeSet};
 use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::util::LinesWithEndings;
 
-const SYNTAX_THEME: &str = "InspiredGitHub";
+const DEFAULT_SYNTAX_THEME: &str = "InspiredGitHub";
 
 pub(crate) struct SurfaceCodeHighlighter;
 
 impl SurfaceCodeHighlighter {
     pub(crate) fn highlight(language: Option<&str>, body: &str) -> Vec<Vec<SurfaceTextSpan>> {
+        Self::highlight_with_theme_name(language, body, DEFAULT_SYNTAX_THEME)
+    }
+
+    pub(crate) fn highlight_with_theme(
+        language: Option<&str>,
+        body: &str,
+        theme: &KdvThemeSnapshot,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
+        Self::highlight_with_theme_name(language, body, syntax_theme_name(theme))
+    }
+
+    fn highlight_with_theme_name(
+        language: Option<&str>,
+        body: &str,
+        syntax_theme: &str,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
         match language.filter(|value| !value.is_empty()) {
-            Some(language) => Self::highlight_language(language, body),
+            Some(language) => Self::highlight_language(language, body, syntax_theme),
             None => body.lines().map(Self::plain_line).collect(),
         }
     }
 
-    fn highlight_language(language: &str, body: &str) -> Vec<Vec<SurfaceTextSpan>> {
+    fn highlight_language(
+        language: &str,
+        body: &str,
+        syntax_theme: &str,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
         let syntax = syntax(language);
-        let mut highlighter = HighlightLines::new(syntax, theme());
+        let mut highlighter = HighlightLines::new(syntax, theme(syntax_theme));
         LinesWithEndings::from(body)
             .map(|line| Self::highlight_line(&mut highlighter, line))
             .collect()
@@ -73,8 +94,22 @@ fn theme_set() -> &'static ThemeSet {
     &THEME_SET
 }
 
-fn theme() -> &'static Theme {
-    &theme_set().themes[SYNTAX_THEME]
+fn theme(name: &str) -> &'static Theme {
+    theme_set()
+        .themes
+        .get(name)
+        .unwrap_or_else(|| &theme_set().themes[DEFAULT_SYNTAX_THEME])
+}
+
+fn syntax_theme_name(theme: &KdvThemeSnapshot) -> &str {
+    let name = match theme.mode {
+        KdvThemeMode::Light => theme.syntax_theme_light.as_str(),
+        KdvThemeMode::Dark => theme.syntax_theme_dark.as_str(),
+    };
+    if name.trim().is_empty() {
+        return DEFAULT_SYNTAX_THEME;
+    }
+    name
 }
 
 #[cfg(test)]

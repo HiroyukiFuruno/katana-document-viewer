@@ -1,0 +1,13 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="direct-drawio" name="drawio">
+    <mxGraphModel dx="640" dy="480" grid="1" gridSize="10" page="1" pageWidth="320" pageHeight="240">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="node" value="Direct Drawio Fixture" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="220" height="80" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,8 @@
+# Direct Text Fixture
+
+Katana opens `.txt` files from the default visible extension list.
+
+- [ ] todo
+- [x] done
+
+<p align="center">Centered text in a plain text file.</p>

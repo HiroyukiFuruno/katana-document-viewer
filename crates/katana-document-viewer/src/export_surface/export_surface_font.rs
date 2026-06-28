@@ -1,18 +1,21 @@
+mod export_surface_font_metrics;
 mod export_surface_font_rendering;
 
 use crate::export_surface_span::SurfaceTextSpan;
-use cosmic_text::{Attrs, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache};
+use cosmic_text::{Attrs, Buffer, FontSystem, Metrics, Shaping, SwashCache};
 use image::{Rgba, RgbaImage};
+use std::cell::RefCell;
 
+use self::export_surface_font_metrics::{buffer_text_color, span_ranges_width};
 use self::export_surface_font_rendering as rendering;
 
-const FONT_LINE_HEIGHT_MULTIPLIER: f32 = 1.35;
+const FONT_LINE_HEIGHT_MULTIPLIER: f32 = 1.45;
 const FONT_BUFFER_HEIGHT_SCALE: f32 = 1.8;
-const FONT_COLOR_RED_CHANNEL: usize = 0;
-const FONT_COLOR_GREEN_CHANNEL: usize = 1;
-const FONT_COLOR_BLUE_CHANNEL: usize = 2;
-const FONT_COLOR_ALPHA_CHANNEL: usize = 3;
 
+thread_local! {
+    static CACHED_TEXT_PAINTER: RefCell<SurfaceTextPainter> =
+        RefCell::new(SurfaceTextPainter::from_system_fonts());
+}
 pub(crate) struct SurfaceTextLayout {
     pub(crate) x: u32,
     pub(crate) y: u32,
@@ -27,10 +30,17 @@ pub(crate) struct SurfaceTextPainter {
 }
 
 impl SurfaceTextPainter {
-    pub(crate) fn from_system_fonts() -> Option<Self> {
-        Some(Self {
+    pub(crate) fn from_system_fonts() -> Self {
+        Self {
             font_system: FontSystem::new(),
             swash_cache: SwashCache::new(),
+        }
+    }
+
+    pub(crate) fn with_system_fonts<T>(render: impl FnOnce(&mut SurfaceTextPainter) -> T) -> T {
+        CACHED_TEXT_PAINTER.with(|cell| {
+            let mut painter = cell.borrow_mut();
+            render(&mut painter)
         })
     }
 
@@ -40,14 +50,15 @@ impl SurfaceTextPainter {
         text: &str,
         layout: SurfaceTextLayout,
     ) {
-        let mut buffer = self.create_text_buffer(
-            layout.size,
+        let mut draw_buffer = self.create_text_buffer(
+            layout.size * rendering::TEXT_SUPERSAMPLE_SCALE,
             layout
                 .max_width
-                .unwrap_or_else(|| image.width().saturating_sub(layout.x) as f32),
+                .unwrap_or_else(|| image.width().saturating_sub(layout.x) as f32)
+                * rendering::TEXT_SUPERSAMPLE_SCALE,
         );
-        buffer.set_text(text, &Attrs::new(), Shaping::Advanced, None);
-        self.draw_buffer(image, &mut buffer, layout.x, layout.y, layout.color);
+        draw_buffer.set_text(text, &Attrs::new(), Shaping::Advanced, None);
+        self.draw_buffer(image, &mut draw_buffer, layout.x, layout.y, layout.color);
     }
 
     pub(crate) fn draw_spans(
@@ -59,11 +70,22 @@ impl SurfaceTextPainter {
         size: f32,
         color: Rgba<u8>,
     ) {
-        let (mut buffer, ranges) = self.create_spans_buffer(image, spans, x, y, size);
+        let (_layout_buffer, ranges) = self.create_spans_buffer(image, spans, x, y, size);
+        let mut draw_buffer = self.create_spans_draw_buffer(image, spans, x, y, size);
         rendering::draw_span_backgrounds(image, spans, &ranges, x, y, size);
-        self.draw_buffer(image, &mut buffer, x, y, color);
+        self.draw_buffer(image, &mut draw_buffer, x, y, color);
         rendering::draw_inline_images(image, spans, &ranges, x, y, size);
         rendering::draw_span_decorations(image, spans, &ranges, x, y, size);
+    }
+
+    pub(crate) fn measure_spans_width(
+        &mut self,
+        spans: &[SurfaceTextSpan],
+        size: f32,
+        max_width: f32,
+    ) -> u32 {
+        let (_buffer, ranges) = self.create_spans_buffer_with_width(spans, size, max_width);
+        span_ranges_width(&ranges)
     }
 
     fn draw_buffer(
@@ -75,25 +97,16 @@ impl SurfaceTextPainter {
         color: Rgba<u8>,
     ) {
         let default_color = buffer_text_color(color);
+        let mut samples = rendering::SurfaceTextSupersamples::new();
         buffer.draw(
             &mut self.font_system,
             &mut self.swash_cache,
             default_color,
             |glyph_x, glyph_y, width, height, pixel| {
-                rendering::draw_glyph_pixel(
-                    image,
-                    rendering::SurfaceGlyphPixel {
-                        origin_x: x,
-                        origin_y: y,
-                        glyph_x,
-                        glyph_y,
-                        width,
-                        height,
-                        color: pixel,
-                    },
-                );
+                samples.push_glyph(glyph_x, glyph_y, width, height, pixel);
             },
         );
+        samples.draw(image, x, y);
     }
 
     fn create_text_buffer(&mut self, size: f32, max_width: f32) -> Buffer {
@@ -111,7 +124,38 @@ impl SurfaceTextPainter {
         _y: u32,
         size: f32,
     ) -> (Buffer, Vec<Option<rendering::SpanVisualRange>>) {
-        let mut buffer = self.create_text_buffer(size, image.width().saturating_sub(x) as f32);
+        self.create_spans_buffer_with_width(spans, size, image.width().saturating_sub(x) as f32)
+    }
+
+    fn create_spans_draw_buffer(
+        &mut self,
+        image: &RgbaImage,
+        spans: &[SurfaceTextSpan],
+        x: u32,
+        _y: u32,
+        size: f32,
+    ) -> Buffer {
+        let mut buffer = self.create_text_buffer(
+            size * rendering::TEXT_SUPERSAMPLE_SCALE,
+            image.width().saturating_sub(x) as f32 * rendering::TEXT_SUPERSAMPLE_SCALE,
+        );
+        let rich = self.prepare_span_rich_text(spans, size);
+        let rich = rich
+            .iter()
+            .map(|(text, attrs)| (text.as_str(), attrs.clone()))
+            .collect::<Vec<_>>();
+        buffer.set_rich_text(rich, &Attrs::new(), Shaping::Advanced, None);
+        buffer.shape_until_scroll(&mut self.font_system, false);
+        buffer
+    }
+
+    fn create_spans_buffer_with_width(
+        &mut self,
+        spans: &[SurfaceTextSpan],
+        size: f32,
+        max_width: f32,
+    ) -> (Buffer, Vec<Option<rendering::SpanVisualRange>>) {
+        let mut buffer = self.create_text_buffer(size, max_width);
         let rich = self.prepare_span_rich_text(spans, size);
         let rich = rich
             .iter()
@@ -148,15 +192,6 @@ impl SurfaceTextPainter {
     fn metrics(&self, size: f32) -> Metrics {
         Metrics::new(size, size * FONT_LINE_HEIGHT_MULTIPLIER)
     }
-}
-
-fn buffer_text_color(color: Rgba<u8>) -> Color {
-    Color::rgba(
-        color[FONT_COLOR_RED_CHANNEL],
-        color[FONT_COLOR_GREEN_CHANNEL],
-        color[FONT_COLOR_BLUE_CHANNEL],
-        color[FONT_COLOR_ALPHA_CHANNEL],
-    )
 }
 
 #[cfg(test)]

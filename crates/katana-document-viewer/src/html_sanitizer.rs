@@ -1,10 +1,10 @@
 const BROKEN_SVG_XMLNS: &str = "%22<http://www.w3.org/2000/svg%22>";
 const ENCODED_SVG_XMLNS: &str = "%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20";
 
-pub(crate) struct HtmlFragmentNormalizer;
+pub struct HtmlFragmentNormalizer;
 
 impl HtmlFragmentNormalizer {
-    pub(crate) fn normalize(fragment: &str) -> String {
+    pub fn normalize(fragment: &str) -> String {
         fragment.replace(BROKEN_SVG_XMLNS, ENCODED_SVG_XMLNS)
     }
 }

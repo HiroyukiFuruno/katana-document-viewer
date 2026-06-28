@@ -122,7 +122,7 @@ fn surface_diagram_svg_is_rasterized_into_native_surface() -> Result<(), Box<dyn
 {
     let graph =
         SurfaceTestSupport::graph_with_rendered_diagram_svg(diagram_markdown(), red_rect_svg())?;
-    let theme = KdvThemeSnapshot::katana_light();
+    let theme = KdvThemeSnapshot::katana_export_reference();
     let surface = DocumentSurfaceFactory::create(&graph, &theme);
 
     let sampled = surface.image.get_pixel(640, first_diagram_sample_y());
@@ -134,7 +134,7 @@ fn surface_diagram_svg_is_rasterized_into_native_surface() -> Result<(), Box<dyn
 #[test]
 fn surface_code_block_is_painted_with_code_background() -> Result<(), Box<dyn std::error::Error>> {
     let graph = SurfaceTestSupport::graph_from_markdown("code.md", code_markdown())?;
-    let theme = KdvThemeSnapshot::katana_light();
+    let theme = KdvThemeSnapshot::katana_export_reference();
     let code_y = first_code_line_y();
     let surface = DocumentSurfaceFactory::create(&graph, &theme);
 

@@ -16,6 +16,34 @@ fn badge_row_height_text_and_total_width_calculated_from_badges() {
     assert_eq!(row.badges().len(), 2);
     assert!(row.total_width() > 0);
     assert_eq!(row.height(), 46);
+    assert_eq!(row.total_width(), 176);
+}
+
+#[test]
+fn sample_fixture_badge_row_matches_katana_reference_width() {
+    let row = SurfaceBadgeRowBlock::new(vec![
+        SurfaceBadge::linked(
+            "License".to_string(),
+            "MIT".to_string(),
+            image::Rgba([0, 123, 192, 255]),
+            None,
+        ),
+        SurfaceBadge::linked(
+            "CI".to_string(),
+            "passing".to_string(),
+            image::Rgba([68, 204, 17, 255]),
+            None,
+        ),
+        SurfaceBadge::linked(
+            "platform".to_string(),
+            "macOS".to_string(),
+            image::Rgba([159, 159, 159, 255]),
+            None,
+        ),
+    ]);
+
+    assert_eq!(row.height(), 46);
+    assert_eq!(row.total_width(), 484);
 }
 
 #[test]

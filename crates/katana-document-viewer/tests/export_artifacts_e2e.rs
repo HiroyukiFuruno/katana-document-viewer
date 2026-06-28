@@ -1,7 +1,8 @@
 use katana_document_viewer::{
     BuildProfile, BuildRequest, DiagramRenderEngine, DiagramRenderRequest, DiagramRenderingBackend,
     DocumentSnapshotFactory, DocumentSource, ExportFormat, ExportRequest, ForgePipeline,
-    KdvThemeSnapshot, RenderedDiagram, SourceKind, SourceRevision, SourceUri,
+    KdvPreviewSurfaceFactory, KdvThemeSnapshot, RenderedDiagram, SourceKind, SourceRevision,
+    SourceUri, SurfaceEquivalenceArtifacts, SurfaceEquivalenceImage, ViewerViewport,
 };
 use katana_document_viewer::{ExportQualityArtifacts, ExportQualityGate};
 use katana_markdown_model::{DiagramKind, KatanaMarkdownModel, MarkdownInput};
@@ -10,16 +11,21 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "export_artifacts_e2e/viewer.rs"]
+mod viewer;
+
 #[test]
 fn e2e_export_scores_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Result<(), Box<dyn Error>>
 {
+    let source_markdown = contract_markdown();
     let pipeline = ForgePipeline::new(DiagramRenderingBackend::new(StaticDiagramEngine));
     let theme = KdvThemeSnapshot::katana_light();
     let graph = pipeline.build(&BuildRequest {
-        snapshot: snapshot_from_markdown(contract_markdown())?,
+        snapshot: snapshot_from_markdown(source_markdown.clone())?,
         profile: BuildProfile::markdown_export(),
         theme: theme.clone(),
     })?;
+    viewer::assert_viewer_plan_integration(&graph);
     let exports_dir = unique_output_dir()?.join("exports");
     fs::create_dir_all(&exports_dir)?;
 
@@ -33,11 +39,33 @@ fn e2e_export_scores_evaluated_html_pdf_png_and_jpeg_without_sidecars() -> Resul
     let pdf_bytes = fs::read(pdf)?;
     let png_bytes = fs::read(png)?;
     let jpeg_bytes = fs::read(jpeg)?;
+    let preview_surface = KdvPreviewSurfaceFactory::create(
+        &graph,
+        &theme,
+        ViewerViewport {
+            width: 1280.0,
+            height: 720.0,
+        },
+        0.0,
+    );
+    let reference = SurfaceEquivalenceImage {
+        width: preview_surface.width,
+        height: preview_surface.height,
+        rgba: &preview_surface.rgba,
+    };
     let quality = ExportQualityGate::evaluate(&ExportQualityArtifacts {
         html: &html_bytes,
         pdf: &pdf_bytes,
         png: &png_bytes,
         jpeg: &jpeg_bytes,
+        source_markdown: &source_markdown,
+        surface_equivalence: Some(SurfaceEquivalenceArtifacts {
+            raster_reference: reference,
+            pdf_reference: reference,
+            pdf: &pdf_bytes,
+            png: &png_bytes,
+            jpeg: &jpeg_bytes,
+        }),
     });
     assert!(
         quality.is_pass(),
@@ -140,10 +168,28 @@ fn contract_markdown() -> String {
         "",
         "[リンク](https://example.com)",
         "",
+        "~~削除~~",
+        "",
         "> [!WARNING]",
         "> 危険です。",
         "",
+        "> 通常引用",
+        "> 本文です。",
+        "",
+        "---",
+        "",
+        "用語",
+        ": 説明",
+        "",
+        r#"<div align="left">左寄せHTML</div>"#,
+        "",
+        "<div>通常HTML</div>",
+        "",
         "- [/] 進行中",
+        "",
+        "脚注参照[^note]",
+        "",
+        "[^note]: 脚注本文",
         "",
         "inline math: $a^2 + b^2 = c^2$",
         "",
@@ -171,7 +217,10 @@ impl DiagramRenderEngine for StaticDiagramEngine {
         Ok(RenderedDiagram {
             node_id: request.node_id.to_string(),
             kind: kind.to_string(),
-            svg: format!("<svg data-test=\"{}\"></svg>", request.node_id),
+            svg: format!(
+                "<svg data-test=\"{}\"><text>Rendered diagram</text></svg>",
+                request.node_id
+            ),
         })
     }
 }

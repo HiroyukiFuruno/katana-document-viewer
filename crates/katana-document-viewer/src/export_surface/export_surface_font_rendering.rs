@@ -8,6 +8,8 @@ mod pixels;
 mod ranges;
 #[path = "export_surface_font_rendering_shapes.rs"]
 mod shapes;
+#[path = "export_surface_font_rendering_supersample.rs"]
+mod supersample;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct SpanVisualRange {
@@ -27,22 +29,16 @@ impl SpanVisualRange {
         self.end_x.saturating_sub(self.start_x).max(1)
     }
 
+    pub(super) fn end_x(self) -> u32 {
+        self.end_x
+    }
+
     fn extend(self, start_x: f32, end_x: f32) -> Self {
         Self {
             start_x: (self.start_x as f32).min(start_x) as u32,
             end_x: (self.end_x as f32).max(end_x) as u32,
         }
     }
-}
-
-pub(super) struct SurfaceGlyphPixel {
-    pub(super) origin_x: u32,
-    pub(super) origin_y: u32,
-    pub(super) glyph_x: i32,
-    pub(super) glyph_y: i32,
-    pub(super) width: u32,
-    pub(super) height: u32,
-    pub(super) color: cosmic_text::Color,
 }
 
 pub(super) fn attrs_for_span_with_metadata(
@@ -52,9 +48,7 @@ pub(super) fn attrs_for_span_with_metadata(
     attrs::attrs_for_span_with_metadata(span, metadata)
 }
 
-pub(super) fn draw_glyph_pixel(image: &mut image::RgbaImage, glyph: SurfaceGlyphPixel) {
-    pixels::draw_glyph_pixel(image, glyph);
-}
+pub(super) use supersample::{SurfaceTextSupersamples, TEXT_SUPERSAMPLE_SCALE};
 
 pub(super) fn span_visual_ranges(
     buffer: &cosmic_text::Buffer,

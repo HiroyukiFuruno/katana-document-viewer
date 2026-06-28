@@ -74,7 +74,7 @@ fn assert_katana_specific_contract(html: &str) {
         &[
             (
                 "task done marker",
-                r#"<input type="checkbox" disabled data-kdv-task-marker="[-]" data-kdv-task-state="in-progress" aria-checked="mixed">"#,
+                r#"<input type="checkbox" disabled data-kdv-task-marker="[-]" data-kdv-task-state="blocked" aria-checked="mixed">"#,
             ),
             (
                 "task in progress marker",
@@ -111,17 +111,17 @@ $A+B=C$
     let inline_svg = extract_math_svg(&html, "span", "inline").ok_or_else(|| {
         std::io::Error::other(format!("inline math should contain an svg element: {html}"))
     })?;
-    assert_math_svg_uses_color(&inline_svg, "#24292f");
+    assert_math_svg_uses_color(&inline_svg, "#242424");
     let block_svg = extract_math_svg(&html, "div", "block").ok_or_else(|| {
         std::io::Error::other(format!("math block should contain an svg element: {html}"))
     })?;
-    assert_math_svg_uses_color(&block_svg, "#24292f");
+    assert_math_svg_uses_color(&block_svg, "#242424");
     let one_line_svg = extract_math_svg(&html, "div", "dollar-block").ok_or_else(|| {
         std::io::Error::other(format!(
             "one line dollar math should contain an svg element: {html}"
         ))
     })?;
-    assert_math_svg_uses_color(&one_line_svg, "#24292f");
+    assert_math_svg_uses_color(&one_line_svg, "#242424");
     Ok(())
 }
 
@@ -136,7 +136,7 @@ fn app_supplied_complete_theme_reaches_krr_math_svg() -> Result<(), Box<dyn std:
         .ok_or("inline math should contain an svg element")?;
 
     assert_math_svg_uses_color(&inline_svg, "#123456");
-    assert!(!inline_svg.to_ascii_lowercase().contains("#24292f"));
+    assert!(!inline_svg.to_ascii_lowercase().contains("#242424"));
     Ok(())
 }
 

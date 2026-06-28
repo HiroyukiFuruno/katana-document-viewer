@@ -7,5 +7,7 @@ pub(crate) use types::{KRR_RENDER_RUNTIME_ID, KrrMathMode, KrrRenderOutput, KrrR
 pub(crate) use types::{KrrRenderRequest, KrrRenderRuntime};
 
 #[cfg(test)]
+mod test_env;
+#[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

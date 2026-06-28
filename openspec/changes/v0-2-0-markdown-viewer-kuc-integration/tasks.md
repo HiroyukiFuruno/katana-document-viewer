@@ -1,106 +1,47 @@
 # Tasks: katana-document-viewer v0.2.0 markdown viewer KUC integration
 
-## Definition of Ready (DoR)
+## 現在の完了判定
 
-- [ ] `v0.1.0` のrender/export foundationが完了している
-- [ ] KUCのstyle/theme/font/state契約が利用可能である
-- [ ] KUCのScrollArea、SplitPane、基本操作部品の完了条件が確認できている
-- [ ] KMM document model DTOが利用可能である
-- [ ] `katana-document-viewer` neutral crateへKUC型を露出しない方針が確認できている
+- `tasks.md` はOpenSpec artifactとしての完了済み作業一覧を保持する。
+- 現時点の計画書は `kdv-v0.2.0-viewer-recovery-plan.md` とする。
+- 現時点の引き継ぎ入口は `handoff-current-2026-06-13.md` とする。
+- 現時点の残Task正本は `remaining-plan.md` とする。
+- ユーザー実機指摘の未対応台帳は `user-feedback-todo.md` とする。
+- 詳細な未達履歴は `handoff-unresolved-2026-06-12.md` を参照する。
+- 既存の `handoff.md` は 2026-06-03 時点の履歴資料であり、現在の完了判定正本として扱わない。
+- `remaining-plan.md` の未完了項目が残っている間は、v0.2.0 viewer parity完了とは扱わない。
+- `user-feedback-todo.md` に未対応 `[ ]` が残っている間も、v0.2.0 viewer parity完了とは扱わない。
+- `just storybook-score-check` や個別 gate が通っていても、KatanA viewer / slideshow との visual / semantic / interaction / performance 95点以上と、ユーザー実機指摘の消し込みが揃うまでは完了扱いにしない。
 
-## Definition of Done (DoD)
+## Current Done Items
 
-- [ ] `rtk ./scripts/openspec validate v0-2-0-markdown-viewer-kuc-integration --strict --no-interactive` が通る
-- [ ] `rtk just check` が通る
-- [ ] `rtk cargo tree -p katana-document-viewer --locked` に `katana-ui-core`、`egui`、`winit`、`vello` が含まれない
-- [ ] hit-test、目次（TOC）click、hover設定、画像・図形操作commandの自動テストが通る
-- [ ] Document modeとSlideshow modeの切り替え、viewport height仮想ページング、slideshow navigation commandの自動テストが通る
-- [ ] 画面確認は補助として実施し、正しさの根拠は自動テストに置く
+- `rtk ./scripts/openspec validate v0-2-0-markdown-viewer-kuc-integration --strict --no-interactive` が通る。
+- KDV core の解析、render、viewer node 生成は UI vendor 非依存を維持する。
+- KDV UI表示の検証入口はKUCをベースにする。
+- vendor-free Storybookの実描画はローカルKUCの `UiTreeCanvasRenderer` を使う。KDV側の旧独自canvas renderer群は `tmp/archive/kdv-storybook-old-renderer-2026-06-02/` へ退避済み。
+- `just storybook` はテストだけではなく、vendor-free KUC preview windowをinteractive起動する。
+- `scripts/check-storybook-entrypoint.sh` は `just storybook` がtest-only / smoke-onlyへ戻る退化をfail fastする。
+- `storybook-content-check` はKUC Storybook feature matrix、fixture score matrix、direct source matrix、export quality、surface equivalenceを実行する。
+- `storybook-check` はentrypoint、Storybook contract、content gate、window smoke、KUC smoke、performance checkを含む。
+- `frame_tests.rs` はKUC feature matrixがStorybook preview領域の実frame pixelまたはImageSurface数へ届くことを検証する。
+- `frame_interaction_tests.rs` はsearch highlight、Slideshow mode、media control toggleがStorybook preview領域の実frame pixelへ届くことを検証する。
+- `window_tests.rs` はwindow resize検出だけでStorybook scene viewport更新対象になることを検証する。
+- `ViewerCommandFactory` はlink clickとtask checkbox/context menuをKMM metadata付きviewer commandへ正規化する。
+- `kuc-adapter-boundary-check` はKDV core / preview / KUC viewer / vendor-free Storybook / local KUC coreのvendor runtime依存混入を検出する。
+- `kuc-adapter-boundary-check` はvendor-free Storybookへ旧KDV独自renderer、独自Tree構築、vendor runtime参照が戻る退化も検出する。
+- `just check` と `just storybook-check` は `kuc-adapter-boundary-check` を含む。
+- `rtk cargo test -p kdv-storybook --locked frame -- --test-threads=1` が通る。
+- `rtk cargo test -p kdv-storybook --locked window -- --test-threads=1` が通る。
+- `rtk cargo test -p katana-document-viewer --locked commands -- --test-threads=1` が通る。
+- `rtk cargo test -p katana-document-viewer --locked viewer -- --test-threads=1` が通る。
+- `rtk just kuc-adapter-boundary-check` が通る。
+- `rtk just storybook-content-check` が通る。
+- `rtk just storybook-check` が通る。
+- `rtk cargo test -p katana-ui-core-storybook --locked ui_tree_canvas -- --test-threads=1` が通る。
+- `rtk just ast-lint` が通る。
 
----
+<!-- subagent-spark-harness-strict-start -->
 
-## 1. neutral viewer contract を固定する
-
-- [ ] 1.1 viewer input / viewer state snapshot / viewer command / hit-test responseの型を `katana-document-viewer` 側に定義する
-- [ ] 1.2 `ViewerMode::Document`、`ViewerMode::Slideshow`、`SlideshowState`、`SlideshowCommand` を定義する
-- [ ] 1.3 viewer commandにKMM node id、source range、artifact id、操作種別を含める
-- [ ] 1.4 slideshow commandにcurrent page index、max page index、close request、settings updateを含める
-- [ ] 1.5 `katana-document-viewer` public APIへKUC型を露出しないことをテストする
-- [ ] 1.6 `cargo tree -p katana-document-viewer --locked` でUI依存が入っていないことを確認する
-
----
-
-## 2. KUC viewer crate を追加する
-
-- [ ] 2.1 `crates/katana-document-viewer-kuc` を追加する
-- [ ] 2.2 `katana-ui-core = { workspace = true }` だけでKUCへ依存する
-- [ ] 2.3 KUC theme / font / state契約をviewer configへ接続する
-- [ ] 2.4 `egui_commonmark` vendor patchを正規経路にしないことを検査する
-
----
-
-## 3. Markdown本文を表示する
-
-- [ ] 3.1 `DocumentSnapshot` とartifact / diagnosticsをviewer inputとして受け取る
-- [ ] 3.2 CommonMark fixtureを表示する
-- [ ] 3.3 GFM fixtureを表示する
-- [ ] 3.4 KatanA互換fixtureを表示する
-- [ ] 3.5 外部描画成功 / 失敗artifactを表示する
-- [ ] 3.6 raw保持情報を本文から削除しない
-
----
-
-## 4. hit-test metadata を実装する
-
-- [ ] 4.1 rendered node identityを保持する
-- [ ] 4.2 rendered nodeからKMM node idへ戻る
-- [ ] 4.3 rendered nodeからsource rangeへ戻る
-- [ ] 4.4 画面座標からrendered nodeへ戻る
-- [ ] 4.5 対象なしの場合に失敗結果を返す
-
----
-
-## 5. Slideshow modeを実装する
-
-- [ ] 5.1 KatanA既存のMarkdown slideshow仕様をテストfixtureへ落とす
-- [ ] 5.2 Slideshow modeで通常previewと同じrendered contentを全画面相当領域へ表示する
-- [ ] 5.3 `1 viewport height = 1 slideshow page` としてcurrent page index / max page index / page offsetを計算する
-- [ ] 5.4 `ArrowRight`、`PageDown`、`Space`、next controlを次ページcommandへ変換する
-- [ ] 5.5 `ArrowLeft`、`PageUp`、previous controlを前ページcommandへ変換する
-- [ ] 5.6 先頭・末尾でpage indexが範囲外へ出ないことをテストする
-- [ ] 5.7 `Esc` と右上close controlをclose commandへ変換する
-- [ ] 5.8 hover highlightとdiagram controlsのSlideshow settings stateを実装する
-- [ ] 5.9 操作時にcontrolsを表示し、idle時にfadeできるstateを実装する
-- [ ] 5.10 現在themeを継承し、slideshow専用themeを作っていないことをテストする
-- [ ] 5.11 fullscreenやwindow制御をKDV内で実行していないことをテストする
-
----
-
-## 6. 目次（TOC）とscroll commandを実装する
-
-- [ ] 6.1 KMM AST由来のheading listを受け取る
-- [ ] 6.2 heading listからTOC itemを作る
-- [ ] 6.3 Markdown本文を再parseしてTOCを作っていないことをテストする
-- [ ] 6.4 TOC clickでviewerをrendered heading anchorへscrollする
-- [ ] 6.5 TOC clickでKMM node id / source range / heading anchorを含むviewer commandを返す
-- [ ] 6.6 active headingをlayout後のrendered heading anchor mapから決定する
-
----
-
-## 7. interaction設定を実装する
-
-- [ ] 7.1 `hover_highlight_enabled` を実装する
-- [ ] 7.2 `image_controls_enabled` を実装する
-- [ ] 7.3 `diagram_controls_enabled` を実装する
-- [ ] 7.4 copy / open / fit 操作をviewer commandへ変換する
-- [ ] 7.5 KDV内で副作用を起こしていないことをテストする
-
----
-
-## 8. 品質ゲートを追加する
-
-- [ ] 8.1 rendering codeの色literalを禁止するAST lintを追加する
-- [ ] 8.2 OS固有font pathの直接参照を禁止するAST lintを追加する
-- [ ] 8.3 preset直接参照を禁止するAST lintを追加する
-- [ ] 8.4 viewer regression testsをCIへ追加する
-- [ ] 8.5 `rtk just check` を実行する
+- [x] direct visual score gateの監査と修正は分離作業で実施済み。証跡: agent: `019e8377-49be-7e20-b0b3-8bfef655c636` / model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `crates/katana-document-viewer/src/export_quality/html_score_direct_visual.rs` / file: `crates/katana-document-viewer/src/export_quality/html_score_direct_visual_helper_tests.rs` / file: `crates/katana-document-viewer/src/export_quality/html_score_direct_visual_tests.rs` / file: `crates/katana-document-viewer/src/export_quality/html_score.rs` / file: `crates/katana-document-viewer/src/export_quality/html_score_tests.rs` / command: `multi_agent_v1.spawn_agent` / close: `multi_agent_v1.close_agent` / verify: `rtk cargo test -p katana-document-viewer --release --locked whitespace -- --test-threads=1`
+- [x] 分離作業ハーネスを `just check` とCIへ接続し、関連ファイルの証跡漏れをfail fastする。証跡: agent: `019e7fb2-ddac-70d0-b777-3b700c7330e1` / model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `.codex/workflows/subagent-spark-policy.md` / file: `.github/workflows/test-and-build.yml` / file: `Justfile` / file: `scripts/check-subagent-spark-harness.sh` / file: `scripts/check-subagent-spark-harness-tests.sh` / file: `scripts/check-subagent-spark-harness-edge-tests.sh` / file: `scripts/check-subagent-spark-harness-policy-tests.sh` / file: `scripts/check-subagent-spark-harness-change-tests.sh` / file: `scripts/check-subagent-spark-harness-verify-tests.sh` / file: `scripts/check-subagent-spark-harness-coverage-tests.sh` / file: `scripts/check-subagent-spark-harness-ci-tests.sh` / file: `scripts/check-subagent-spark-harness-diff-tests.sh` / file: `scripts/subagent-spark-harness-lib.sh` / file: `scripts/subagent-spark-harness-ci.sh` / file: `scripts/subagent-spark-harness-diff.sh` / file: `scripts/subagent-spark-harness-contracts.sh` / file: `scripts/subagent-spark-harness-terms.sh` / file: `scripts/subagent-spark-harness-change.sh` / file: `scripts/subagent-spark-harness-evidence.sh` / file: `scripts/subagent-spark-harness-verify.sh` / command: `multi_agent_v1.spawn_agent` / close: `multi_agent_v1.close_agent` / verify: `rtk just check-subagent-harness`
+- `storybook-content-check` を復元し、`storybook-check` の必須gateへ組み込んだ。KUC Storybook feature matrix、fixture score matrix、direct source matrix、export quality、surface equivalenceがStorybook検証から外れても通る偽陽性を塞いだ。

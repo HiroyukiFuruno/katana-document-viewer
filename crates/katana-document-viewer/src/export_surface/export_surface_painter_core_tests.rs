@@ -60,7 +60,7 @@ fn image_block() -> Option<SurfaceBlock> {
 
 fn paint_test_block(image: &mut RgbaImage, block: &SurfaceBlock, y: u32) {
     let palette = SurfacePaintPalette::from_theme(&KdvThemeSnapshot::katana_light());
-    let mut painter = None;
+    let mut painter = crate::export_surface_font::SurfaceTextPainter::from_system_fonts();
     SurfacePainter::paint_block(image, block, y, &mut painter, &palette);
 }
 
@@ -79,4 +79,18 @@ fn paint_block_dispatches_table_and_image_blocks() {
     }
 
     assert!(has_painted_pixel(&image));
+}
+
+#[test]
+fn paint_stacks_surface_blocks_without_implicit_gap() {
+    let theme = KdvThemeSnapshot::katana_light();
+    let background = SurfaceHelpers::parse_color(&theme.background);
+    let mut image = RgbaImage::from_pixel(SURFACE_WIDTH, 220, background);
+    let blocks = vec![SurfaceBlock::Rule, SurfaceBlock::Rule];
+
+    SurfacePainter::paint(&mut image, &blocks, &theme);
+
+    let rule_height = SurfaceBlock::Rule.height();
+    let second_rule_y = PAGE_PADDING + rule_height + rule_height / 2;
+    assert_ne!(background, *image.get_pixel(PAGE_PADDING, second_rule_y));
 }

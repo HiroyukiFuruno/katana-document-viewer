@@ -15,6 +15,8 @@ pub struct SourceRevision(pub String);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SourceKind {
     Markdown,
+    Html,
+    Diagram,
     Image,
     Pdf,
     Binary,
@@ -23,6 +25,8 @@ pub enum SourceKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DocumentKind {
     Markdown,
+    Html,
+    Diagram,
     Image,
     Pdf,
     Office,
@@ -78,10 +82,18 @@ pub struct DocumentSnapshotFactory;
 
 impl DocumentSnapshotFactory {
     pub fn from_kmm(source: DocumentSource, document: KmmDocument) -> DocumentSnapshot {
+        Self::from_kmm_with_kind(source, document, DocumentKind::Markdown)
+    }
+
+    pub fn from_kmm_with_kind(
+        source: DocumentSource,
+        document: KmmDocument,
+        kind: DocumentKind,
+    ) -> DocumentSnapshot {
         let outline = DocumentOutlineBuilder::build(&document);
         DocumentSnapshot {
             id: DocumentId(document.fingerprint.value.clone()),
-            kind: DocumentKind::Markdown,
+            kind,
             source_uri: source.uri,
             revision: source.revision,
             source_path: document.path.clone(),

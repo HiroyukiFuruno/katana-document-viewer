@@ -35,5 +35,6 @@ pub(crate) struct SurfaceTextStyle {
     pub(crate) strikethrough: bool,
     pub(crate) highlight: bool,
     pub(crate) inline_code: bool,
+    pub(crate) emoji: bool,
     pub(crate) color: Option<Rgba<u8>>,
 }

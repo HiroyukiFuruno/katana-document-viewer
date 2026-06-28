@@ -1,13 +1,17 @@
 use crate::document::{DocumentId, SourceRevision};
 use serde::{Deserialize, Serialize};
 
+#[path = "artifact/factory.rs"]
+mod factory;
+pub use factory::ArtifactFactory;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArtifactId(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArtifactUri(pub String);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ArtifactKind {
     Preview,
     Export,
@@ -23,6 +27,9 @@ pub enum ArtifactFormat {
     Pdf,
     Png,
     Jpeg,
+    Gif,
+    Webp,
+    Bmp,
     Svg,
     OfficePlaceholder,
 }
@@ -30,6 +37,11 @@ pub enum ArtifactFormat {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactBytes {
     pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactTextExtraction {
+    pub text: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,108 +79,15 @@ pub struct Artifact {
     pub manifest: ArtifactManifest,
     pub uri: ArtifactUri,
     pub bytes: ArtifactBytes,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_extraction: Option<ArtifactTextExtraction>,
 }
 
-pub struct ArtifactFactory;
-
-impl ArtifactFactory {
-    pub fn preview(
-        document_id: DocumentId,
-        source_revision: SourceRevision,
-        bytes: ArtifactBytes,
-    ) -> Artifact {
-        Self::artifact(
-            ArtifactKind::Preview,
-            ArtifactFormat::RenderTree,
-            document_id,
-            source_revision,
-            bytes,
-            "katana-document-viewer",
-            ArtifactDiagnostics {
-                entries: Vec::new(),
-            },
-        )
-    }
-
-    pub fn export(
-        format: ArtifactFormat,
-        document_id: DocumentId,
-        source_revision: SourceRevision,
-        bytes: ArtifactBytes,
-    ) -> Artifact {
-        Self::export_with_backend(
-            format,
-            document_id,
-            source_revision,
-            bytes,
-            "katana-document-viewer",
-            ArtifactDiagnostics {
-                entries: Vec::new(),
-            },
-        )
-    }
-
-    pub fn export_with_backend(
-        format: ArtifactFormat,
-        document_id: DocumentId,
-        source_revision: SourceRevision,
-        bytes: ArtifactBytes,
-        backend: &str,
-        diagnostics: ArtifactDiagnostics,
-    ) -> Artifact {
-        Self::artifact(
-            ArtifactKind::Export,
-            format,
-            document_id,
-            source_revision,
-            bytes,
-            backend,
-            diagnostics,
-        )
-    }
-
-    pub fn image_with_backend(
-        format: ArtifactFormat,
-        document_id: DocumentId,
-        source_revision: SourceRevision,
-        bytes: ArtifactBytes,
-        backend: &str,
-        diagnostics: ArtifactDiagnostics,
-    ) -> Artifact {
-        Self::artifact(
-            ArtifactKind::Image,
-            format,
-            document_id,
-            source_revision,
-            bytes,
-            backend,
-            diagnostics,
-        )
-    }
-
-    fn artifact(
-        kind: ArtifactKind,
-        format: ArtifactFormat,
-        document_id: DocumentId,
-        source_revision: SourceRevision,
-        bytes: ArtifactBytes,
-        backend: &str,
-        diagnostics: ArtifactDiagnostics,
-    ) -> Artifact {
-        let id = ArtifactId(format!("{}:{:?}", document_id.0, format));
-        Artifact {
-            uri: ArtifactUri(format!("kdv://artifact/{}", id.0)),
-            manifest: ArtifactManifest {
-                id,
-                kind,
-                format,
-                document_id,
-                source_revision,
-                backend: backend.to_string(),
-                diagnostics,
-            },
-            bytes,
-        }
+impl Artifact {
+    #[must_use]
+    pub fn with_text_extraction(mut self, text: impl Into<String>) -> Self {
+        self.text_extraction = Some(ArtifactTextExtraction { text: text.into() });
+        self
     }
 }
 

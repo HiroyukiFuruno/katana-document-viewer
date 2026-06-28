@@ -7,13 +7,23 @@ use image::RgbaImage;
 
 impl SurfacePainter {
     pub(crate) fn paint(image: &mut RgbaImage, blocks: &[SurfaceBlock], theme: &KdvThemeSnapshot) {
+        Self::paint_at(image, blocks, theme, PAGE_PADDING);
+    }
+
+    fn paint_at(
+        image: &mut RgbaImage,
+        blocks: &[SurfaceBlock],
+        theme: &KdvThemeSnapshot,
+        start_y: u32,
+    ) {
         let palette = SurfacePaintPalette::from_theme(theme);
-        let mut painter = SurfaceTextPainter::from_system_fonts();
-        let mut y = PAGE_PADDING;
-        for block in blocks {
-            Self::paint_block(image, block, y, &mut painter, &palette);
-            y += block.height();
-        }
+        SurfaceTextPainter::with_system_fonts(|painter| {
+            let mut y = start_y;
+            for block in blocks {
+                Self::paint_block(image, block, y, painter, &palette);
+                y += block.height();
+            }
+        });
     }
 
     pub(crate) fn paint_pages(
@@ -21,26 +31,27 @@ impl SurfacePainter {
         theme: &KdvThemeSnapshot,
     ) -> SurfacePaintPages {
         let palette = SurfacePaintPalette::from_theme(theme);
-        let mut painter = SurfaceTextPainter::from_system_fonts();
         let background = SurfaceHelpers::parse_color(&theme.background);
         let mut pages = Vec::new();
         let mut link_annotations = Vec::new();
         let mut link_anchors = Vec::new();
         let plan = SurfacePagePlan::from_blocks(blocks);
-        for (page_index, block_indexes) in plan.pages.iter().enumerate() {
-            let request = SurfacePagePaintRequest {
-                blocks,
-                block_indexes,
-                page_index,
-                painter: &mut painter,
-                palette: &palette,
-                links: SurfacePageLinkMetadata {
-                    annotations: &mut link_annotations,
-                    anchors: &mut link_anchors,
-                },
-            };
-            pages.push(Self::paint_page(request, background));
-        }
+        SurfaceTextPainter::with_system_fonts(|painter| {
+            for (page_index, block_indexes) in plan.pages.iter().enumerate() {
+                let request = SurfacePagePaintRequest {
+                    blocks,
+                    block_indexes,
+                    page_index,
+                    painter,
+                    palette: &palette,
+                    links: SurfacePageLinkMetadata {
+                        annotations: &mut link_annotations,
+                        anchors: &mut link_anchors,
+                    },
+                };
+                pages.push(Self::paint_page(request, background));
+            }
+        });
         (pages, link_annotations, link_anchors)
     }
 
@@ -73,7 +84,7 @@ impl SurfacePainter {
         image: &mut RgbaImage,
         block: &SurfaceBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         match block {
@@ -81,7 +92,9 @@ impl SurfacePainter {
             SurfaceBlock::Code(code) => Self::paint_code_block(image, code, y, painter, palette),
             SurfaceBlock::Math(math) => Self::paint_math_block(image, math, y, painter, palette),
             SurfaceBlock::Table(table) => Self::paint_table(image, table, y, painter, palette),
-            SurfaceBlock::Diagram(diagram) => Self::paint_diagram(image, diagram, y, palette),
+            SurfaceBlock::Diagram(diagram) => {
+                Self::paint_diagram(image, diagram, y, painter, palette)
+            }
             SurfaceBlock::Image(local_image) => Self::paint_image(image, local_image, y),
             SurfaceBlock::BadgeRow(row) => Self::paint_badge_row(image, row, y, painter, palette),
             SurfaceBlock::Alert(alert) => Self::paint_alert(image, alert, y, painter, palette),

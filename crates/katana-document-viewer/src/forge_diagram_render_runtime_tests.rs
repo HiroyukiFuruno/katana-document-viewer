@@ -2,7 +2,12 @@ use super::*;
 use crate::KdvThemeSnapshot;
 use std::env;
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::Mutex;
+use std::sync::{
+    Arc, Barrier, Mutex,
+    atomic::{AtomicUsize, Ordering},
+};
+use std::thread;
+use std::time::Duration;
 
 static RUNTIME_ENV_LOCK: Mutex<()> = Mutex::new(());
 
@@ -106,4 +111,89 @@ fn diagram_render_engine_plantuml_request_propagates_renderer_result() {
 
     let result = engine.render(request);
     assert!(result.is_err() || result.is_ok());
+}
+
+#[test]
+fn plantuml_render_lock_serializes_renderer_calls() {
+    let active = Arc::new(AtomicUsize::new(0));
+    let max_active = Arc::new(AtomicUsize::new(0));
+    let start = Arc::new(Barrier::new(3));
+    let handles = (0..2)
+        .map(|_| {
+            spawn_plantuml_render_lock_probe(
+                Arc::clone(&active),
+                Arc::clone(&max_active),
+                Arc::clone(&start),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    start.wait();
+    for handle in handles {
+        join_plantuml_render_lock_probe(handle);
+    }
+
+    assert_eq!(1, max_active.load(Ordering::SeqCst));
+    assert_eq!(0, active.load(Ordering::SeqCst));
+}
+
+fn spawn_plantuml_render_lock_probe(
+    active: Arc<AtomicUsize>,
+    max_active: Arc<AtomicUsize>,
+    start: Arc<Barrier>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        start.wait();
+        with_krr_plantuml_render_lock(|| {
+            let now = active.fetch_add(1, Ordering::SeqCst) + 1;
+            max_active.fetch_max(now, Ordering::SeqCst);
+            thread::sleep(Duration::from_millis(20));
+            active.fetch_sub(1, Ordering::SeqCst);
+        });
+    })
+}
+
+fn join_plantuml_render_lock_probe(handle: thread::JoinHandle<()>) {
+    if let Err(error) = handle.join() {
+        std::panic::resume_unwind(error);
+    }
+}
+
+#[test]
+fn krr_diagram_render_cache_options_include_runtime_asset_versions() {
+    let options = KrrDiagramRenderEngine.cache_options();
+
+    assert_eq!(96, options.dpi);
+    assert_ne!("default", options.renderer_options);
+    assert!(options.renderer_options.contains(env!("CARGO_PKG_VERSION")));
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::mermaid_renderer::MERMAID_JS_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::mermaid_renderer::MERMAID_JS_CHECKSUM)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::drawio_renderer::DRAWIO_JS_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::drawio_renderer::DRAWIO_JS_CHECKSUM)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::plantuml_renderer::PLANTUML_JAR_VERSION)
+    );
+    assert!(
+        options
+            .renderer_options
+            .contains(katana_render_runtime::markdown::plantuml_renderer::PLANTUML_JAR_CHECKSUM)
+    );
 }

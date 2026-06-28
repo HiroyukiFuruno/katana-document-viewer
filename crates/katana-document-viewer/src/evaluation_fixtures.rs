@@ -1,7 +1,8 @@
 use crate::evaluation::{CoverageStatus, EvaluationFixture, FixtureCategory};
 
-const COMMONMARK_FIXTURE: &str = "fixtures/rendering/commonmark.md";
-const GFM_FIXTURE: &str = "fixtures/rendering/gfm.md";
+const KATANA_BASIC_FIXTURE: &str = "assets/fixtures/katana/sample_basic.md";
+const KATANA_COMPAT_FIXTURE: &str = "assets/fixtures/katana/sample.ja.md";
+const KATANA_DIAGRAM_FIXTURE: &str = "assets/fixtures/katana/sample_diagrams.md";
 const COMMONMARK_FIXTURE_COUNT: usize = 2;
 const GFM_FIXTURE_COUNT: usize = 3;
 const COMPATIBILITY_FIXTURE_COUNT: usize = 1;
@@ -23,14 +24,14 @@ impl V01EvaluationFixtureFactory {
         [
             Self::fixture(
                 "commonmark-blocks",
-                COMMONMARK_FIXTURE,
+                KATANA_BASIC_FIXTURE,
                 FixtureCategory::CommonMark,
-                "Markdown標準の全記法をKMM入力として評価する",
+                "KatanA fixtureでMarkdown標準の全記法をKMM入力として評価する",
                 CoverageStatus::KmmDto,
             ),
             Self::fixture(
                 "commonmark-inline-gap",
-                COMMONMARK_FIXTURE,
+                KATANA_BASIC_FIXTURE,
                 FixtureCategory::CommonMark,
                 "KMM coverage gapを補完parseしない",
                 CoverageStatus::MissingImplementation,
@@ -42,21 +43,21 @@ impl V01EvaluationFixtureFactory {
         [
             Self::fixture(
                 "gfm-table-task",
-                GFM_FIXTURE,
+                KATANA_BASIC_FIXTURE,
                 FixtureCategory::Gfm,
-                "CommonMark / GFM / KatanA互換fixtureを評価する",
+                "KatanA fixtureでCommonMark / GFM / KatanA互換を評価する",
                 CoverageStatus::KmmDto,
             ),
             Self::fixture(
                 "gfm-alerts",
-                GFM_FIXTURE,
+                KATANA_BASIC_FIXTURE,
                 FixtureCategory::GitHubAlert,
                 "数式とGitHub alertを評価対象に含める",
                 CoverageStatus::KmmDto,
             ),
             Self::fixture(
                 "math-mixed",
-                "fixtures/rendering/math.md",
+                KATANA_BASIC_FIXTURE,
                 FixtureCategory::Math,
                 "数式とGitHub alertを評価対象に含める",
                 CoverageStatus::MissingImplementation,
@@ -67,7 +68,7 @@ impl V01EvaluationFixtureFactory {
     fn compatibility() -> [EvaluationFixture; COMPATIBILITY_FIXTURE_COUNT] {
         [Self::fixture(
             "katana-compat",
-            "fixtures/rendering/katana-compat.md",
+            KATANA_COMPAT_FIXTURE,
             FixtureCategory::KatanaCompatibility,
             "KatanA独自解釈を評価対象に含める",
             CoverageStatus::KmmDto,
@@ -78,14 +79,14 @@ impl V01EvaluationFixtureFactory {
         [
             Self::fixture(
                 "external-success",
-                "fixtures/rendering/external-success.md",
+                KATANA_DIAGRAM_FIXTURE,
                 FixtureCategory::ExternalRendering,
                 "外部描画失敗時にsourceを失わない",
                 CoverageStatus::KmmDto,
             ),
             Self::fixture(
                 "external-failure",
-                "fixtures/rendering/external-failure.md",
+                KATANA_DIAGRAM_FIXTURE,
                 FixtureCategory::ExternalRendering,
                 "KRRのPlantUML direct renderingを評価する",
                 CoverageStatus::KrrDirect,

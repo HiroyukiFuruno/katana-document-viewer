@@ -1,0 +1,5 @@
+@startuml
+actor User
+User -> Viewer: open .plantuml
+Viewer --> User: diagram node
+@enduml

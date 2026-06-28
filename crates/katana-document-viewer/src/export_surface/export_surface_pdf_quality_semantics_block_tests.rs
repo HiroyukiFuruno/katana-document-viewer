@@ -2,6 +2,10 @@ use crate::export_surface::SurfaceBlock;
 use crate::export_surface::SurfaceBlockFactory;
 use crate::export_surface::test_modules::test_support::SurfaceTestSupport;
 
+#[path = "export_surface_pdf_quality_semantics_block_fixtures.rs"]
+mod fixtures;
+use fixtures::{details_markdown, list_markdown, pipe_sentence_markdown, task_markdown};
+
 #[test]
 fn pdf_surface_wraps_long_rich_list_items_before_next_item()
 -> Result<(), Box<dyn std::error::Error>> {
@@ -9,11 +13,15 @@ fn pdf_surface_wraps_long_rich_list_items_before_next_item()
 }
 
 #[test]
+fn pdf_surface_wraps_japanese_without_spaces_before_next_heading()
+-> Result<(), Box<dyn std::error::Error>> {
+    PdfSurfaceJapaneseParagraphCase::assert_wraps()
+}
+
+#[test]
 fn pdf_surface_expands_details_body() -> Result<(), Box<dyn std::error::Error>> {
-    let text = SurfaceTestSupport::surface_text(&SurfaceTestSupport::graph_from_markdown(
-        "details.md",
-        details_markdown(),
-    )?);
+    let graph = SurfaceTestSupport::graph_from_markdown("details.md", details_markdown())?;
+    let text = SurfaceTestSupport::surface_text(&graph);
 
     SurfaceTestSupport::assert_contains_all(
         &text,
@@ -117,53 +125,47 @@ impl PdfSurfaceLongListItemCase {
     }
 }
 
-fn details_markdown() -> String {
-    [
-        "<details><summary>詳細を見る</summary>",
-        "",
-        "- 刀",
-        "  - 孫六兼元",
-        "  - 菊一文字則宗",
-        "",
-        "</details>",
-    ]
-    .join("\n")
-}
+struct PdfSurfaceJapaneseParagraphCase;
 
-fn pipe_sentence_markdown() -> String {
-    [
-        r#"<p align="center"><a href="sample.md">English</a> | 日本語</p>"#,
-        "",
-        "↑ 「English | 日本語」が中央揃えの同一行に表示されること。",
-    ]
-    .join("\n")
-}
+impl PdfSurfaceJapaneseParagraphCase {
+    fn assert_wraps() -> Result<(), Box<dyn std::error::Error>> {
+        let long_paragraph =
+            "これはPDF出力の日本語折り返しを確認するための合成テキストです。".repeat(12);
+        let graph = SurfaceTestSupport::graph_from_markdown(
+            "japanese-wrap.md",
+            [
+                "# PDF overlap repro".to_string(),
+                String::new(),
+                "## 職務要約".to_string(),
+                String::new(),
+                long_paragraph,
+                String::new(),
+                "## 次の見出し".to_string(),
+                String::new(),
+                "ここは前の段落より下に独立して表示される必要があります。".to_string(),
+            ]
+            .join("\n"),
+        )?;
 
-fn list_markdown() -> String {
-    [
-        "# list",
-        "",
-        "- 項目 1",
-        "- 項目 2",
-        "  - ネストされた項目 2-1",
-        "  - ネストされた項目 2-2",
-        "    - さらにネスト 2-2-1",
-        "",
-        "1. 最初の項目",
-        "2. 次の項目",
-        "   1. ネストされた番号 2-1",
-    ]
-    .join("\n")
-}
+        let blocks = SurfaceBlockFactory::create(&graph, &graph.theme);
+        let paragraph_line = Self::first_line_index(&blocks, "これはPDF出力")
+            .ok_or_else(|| std::io::Error::other("Japanese paragraph should be emitted"))?;
+        let next_heading_line = Self::first_line_index(&blocks, "次の見出し")
+            .ok_or_else(|| std::io::Error::other("next heading should be emitted"))?;
+        assert!(
+            next_heading_line > paragraph_line + 1,
+            "Japanese paragraph must reserve wrapped surface lines before next heading"
+        );
+        Ok(())
+    }
 
-fn task_markdown() -> String {
-    [
-        "# tasks",
-        "",
-        "- [x] 完了タスク",
-        "- [ ] 未完了タスク",
-        "- [-] 保留タスク",
-        "- [/] 進行中タスク",
-    ]
-    .join("\n")
+    fn first_line_index(blocks: &[SurfaceBlock], marker: &str) -> Option<usize> {
+        blocks
+            .iter()
+            .enumerate()
+            .find_map(|(index, block)| match block {
+                SurfaceBlock::Line(line) if line.text.contains(marker) => Some(index),
+                _ => None,
+            })
+    }
 }

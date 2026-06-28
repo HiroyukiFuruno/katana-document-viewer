@@ -56,7 +56,37 @@ fn has_center_alignment_detects_html_alignment_hints() {
     assert!(SurfaceHtmlMarkup::has_center_alignment(
         "<p style=\"text-align: center\">text</p>"
     ));
+    assert!(SurfaceHtmlMarkup::has_center_alignment(
+        "<H2 ALIGN='CENTER'>text</H2>"
+    ));
+    assert!(SurfaceHtmlMarkup::has_center_alignment(
+        "<p align=center>text</p>"
+    ));
     assert!(!SurfaceHtmlMarkup::has_center_alignment("<p>text</p>"));
+}
+
+#[test]
+fn has_right_alignment_detects_html_alignment_hints() {
+    assert!(SurfaceHtmlMarkup::has_right_alignment(
+        "<p style=\"text-align: right\">text</p>"
+    ));
+    assert!(SurfaceHtmlMarkup::has_right_alignment(
+        "<P ALIGN='RIGHT'>text</P>"
+    ));
+    assert!(!SurfaceHtmlMarkup::has_right_alignment("<p>text</p>"));
+}
+
+#[test]
+fn starts_with_block_tag_detects_paragraph_html_blocks() {
+    assert!(SurfaceHtmlMarkup::starts_with_block_tag(
+        "<H2 ALIGN='CENTER'>text</H2>"
+    ));
+    assert!(SurfaceHtmlMarkup::starts_with_block_tag(
+        "  <section>text</section>"
+    ));
+    assert!(!SurfaceHtmlMarkup::starts_with_block_tag(
+        "<span>inline</span>"
+    ));
 }
 
 #[test]

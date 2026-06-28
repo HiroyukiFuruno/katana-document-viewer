@@ -13,7 +13,7 @@ fn app_export_requires_complete_theme_snapshot() -> Result<(), Box<dyn std::erro
         HtmlContractTestSupport::export_html_with_graph(graph, KdvThemeSnapshot::katana_light())?;
 
     assert!(html.contains(r#"<html lang="ja" data-kdv-theme="katana-light">"#));
-    assert!(html.contains("--kdv-text:#24292f;"));
+    assert!(html.contains("--kdv-text:#242424;"));
     assert!(html.contains("--kdv-background:#ffffff;"));
     Ok(())
 }
@@ -53,7 +53,7 @@ fn cli_export_uses_katana_dark_when_dark_mode_is_selected() -> Result<(), Box<dy
     let html = String::from_utf8(output.artifact.bytes.bytes)?;
 
     assert!(html.contains(r#"data-kdv-theme="katana-dark""#));
-    assert!(html.contains("--kdv-background:#0d1117;"));
+    assert!(html.contains("--kdv-background:#1e1e1e;"));
     Ok(())
 }
 

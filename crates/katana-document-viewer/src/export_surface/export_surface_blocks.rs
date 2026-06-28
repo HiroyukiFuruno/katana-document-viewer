@@ -1,22 +1,25 @@
-use crate::export_surface_line::SurfaceLine;
+use crate::export_surface_line::{SurfaceLine, SurfaceTypographyConfig};
+use crate::viewer::ViewerCodeBlockMetrics;
 
 #[path = "export_surface_blocks_badge_alert.rs"]
 mod badge_alert;
 #[path = "export_surface_blocks_data_image.rs"]
 mod data_image;
+#[path = "export_surface_blocks_image.rs"]
+mod image;
 #[path = "export_surface_blocks_media.rs"]
 mod media;
 #[path = "export_surface_blocks_table.rs"]
 mod table;
 
 pub(crate) use self::badge_alert::{SurfaceAlertBlock, SurfaceBadge, SurfaceBadgeRowBlock};
+pub(crate) use self::image::SurfaceImageBlock;
 pub(crate) use self::media::{
-    SurfaceCodeBlock, SurfaceDiagramBlock, SurfaceImageBlock, SurfaceMathBlock, SurfaceSpanMetrics,
+    SurfaceCodeBlock, SurfaceDiagramBlock, SurfaceMathBlock, SurfaceSpanMetrics,
 };
 pub(crate) use self::table::{SurfaceTableBlock, SurfaceTableCellPaint, SurfaceTableLayout};
 
-const CODE_VERTICAL_PADDING: u32 = 6;
-const CODE_BLOCK_MARGIN: u32 = 14;
+const CODE_BLOCK_MARGIN: u32 = ViewerCodeBlockMetrics::BLOCK_MARGIN_PX;
 const DIAGRAM_MAX_WIDTH: u32 = 860;
 const DIAGRAM_VERTICAL_MARGIN: u32 = 18;
 const TABLE_ROW_HEIGHT: u32 = 52;
@@ -28,9 +31,8 @@ const BADGE_HEIGHT: u32 = 26;
 const BADGE_VERTICAL_MARGIN: u32 = 10;
 const BADGE_HORIZONTAL_GAP: u32 = 10;
 const BADGE_HORIZONTAL_PADDING: u32 = 12;
-const CODE_EMPTY_BLOCK_MIN_HEIGHT: u32 = 56;
 const BADGE_SEGMENT_MIN_WIDTH: u32 = 38;
-const DIAGRAM_FALLBACK_HEIGHT: u32 = 38;
+const DIAGRAM_FALLBACK_HEIGHT: u32 = 120;
 const MATH_VERTICAL_MARGIN: u32 = 18;
 const MATH_FALLBACK_HEIGHT: u32 = 74;
 
@@ -47,6 +49,20 @@ pub(crate) enum SurfaceBlock {
 }
 
 impl SurfaceBlock {
+    pub(crate) fn apply_typography(&mut self, typography: SurfaceTypographyConfig) {
+        match self {
+            SurfaceBlock::Line(line) => line.apply_typography(typography),
+            SurfaceBlock::Code(code) => code.apply_typography(typography),
+            SurfaceBlock::Alert(alert) => alert.apply_typography(typography),
+            SurfaceBlock::Math(math) => math.apply_typography(typography),
+            SurfaceBlock::Table(table) => table.apply_typography(typography),
+            SurfaceBlock::Diagram(_)
+            | SurfaceBlock::Image(_)
+            | SurfaceBlock::BadgeRow(_)
+            | SurfaceBlock::Rule => {}
+        }
+    }
+
     pub(crate) fn height(&self) -> u32 {
         match self {
             SurfaceBlock::Line(line) => line.line_height(),

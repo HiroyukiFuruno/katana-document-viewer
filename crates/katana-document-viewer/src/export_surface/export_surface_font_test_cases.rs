@@ -10,8 +10,7 @@ mod tests {
     #[test]
     fn emoji_characters_are_not_rendered_as_blank_advance() -> Result<(), Box<dyn std::error::Error>>
     {
-        let mut painter =
-            SurfaceTextPainter::from_system_fonts().ok_or("system font must be available")?;
+        let mut painter = SurfaceTextPainter::from_system_fonts();
         let background = Rgba([255, 255, 255, 255]);
         let mut image = RgbaImage::from_pixel(96, 64, background);
 
@@ -29,6 +28,26 @@ mod tests {
 
         assert!(image.pixels().any(|pixel| *pixel != background));
         Ok(())
+    }
+
+    #[test]
+    fn emoji_span_preserves_color_pixels() {
+        let mut painter = SurfaceTextPainter::from_system_fonts();
+        let background = Rgba([16, 16, 16, 255]);
+        let mut image = RgbaImage::from_pixel(120, 96, background);
+        let spans = vec![SurfaceTextSpan::styled(
+            "🔥",
+            SurfaceTextStyle::default().emoji(),
+        )];
+
+        painter.draw_spans(&mut image, &spans, 16, 12, 64.0, Rgba([245, 245, 245, 255]));
+
+        let chromatic_pixels = image
+            .pixels()
+            .filter(|pixel| **pixel != background)
+            .filter(|pixel| is_chromatic(**pixel))
+            .count();
+        assert!(chromatic_pixels > 32);
     }
 
     #[test]
@@ -70,8 +89,7 @@ mod tests {
     #[test]
     fn link_underline_starts_at_actual_glyph_range_after_cjk_text()
     -> Result<(), Box<dyn std::error::Error>> {
-        let mut painter =
-            SurfaceTextPainter::from_system_fonts().ok_or("system font must be available")?;
+        let mut painter = SurfaceTextPainter::from_system_fonts();
         let mut image = RgbaImage::from_pixel(720, 96, Rgba([255, 255, 255, 255]));
         let spans = vec![
             SurfaceTextSpan::plain("これは脚注付きのテキストです"),
@@ -97,8 +115,7 @@ mod tests {
     #[test]
     fn backlink_underline_stays_on_backlink_marker_only() -> Result<(), Box<dyn std::error::Error>>
     {
-        let mut painter =
-            SurfaceTextPainter::from_system_fonts().ok_or("system font must be available")?;
+        let mut painter = SurfaceTextPainter::from_system_fonts();
         let mut image = RgbaImage::from_pixel(720, 96, Rgba([255, 255, 255, 255]));
         let spans = vec![
             SurfaceTextSpan::linked("[1] ↩", "#fnref-1", SurfaceTextStyle::default().link()),
@@ -125,8 +142,7 @@ mod tests {
     #[test]
     fn monospace_japanese_span_uses_readable_fallback_font()
     -> Result<(), Box<dyn std::error::Error>> {
-        let mut painter =
-            SurfaceTextPainter::from_system_fonts().ok_or("system font must be available")?;
+        let mut painter = SurfaceTextPainter::from_system_fonts();
         let background = Rgba([255, 255, 255, 255]);
         let mut image = RgbaImage::from_pixel(480, 96, background);
         let spans = vec![SurfaceTextSpan::styled(
@@ -149,5 +165,9 @@ mod tests {
 
     fn link_color() -> Rgba<u8> {
         Rgba([9, 105, 218, 255])
+    }
+
+    fn is_chromatic(pixel: Rgba<u8>) -> bool {
+        pixel[0] != pixel[1] || pixel[1] != pixel[2]
     }
 }

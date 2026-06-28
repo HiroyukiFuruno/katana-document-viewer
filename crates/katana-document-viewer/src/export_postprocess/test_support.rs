@@ -1,4 +1,5 @@
 use super::*;
+use crate::export_postprocess::test_pdf_fixture::PostprocessPdfFixture;
 use crate::export_quality::ExportQualityArtifacts;
 use image::ImageEncoder;
 
@@ -42,6 +43,8 @@ impl FixtureArtifacts {
                 pdf: &self.pdf,
                 png: &self.png,
                 jpeg: &self.jpeg,
+                source_markdown: "[link](https://example.com)",
+                surface_equivalence: None,
             },
             baseline_pdf_generation_millis: BASELINE_PDF_GENERATION_MILLIS,
         }
@@ -75,20 +78,7 @@ impl FixtureArtifacts {
     }
 
     pub(crate) fn base_pdf() -> Vec<u8> {
-        concat!(
-            "%PDF-1.4\n",
-            "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
-            "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
-            "3 0 obj << /Type /Page /Parent 2 0 R /Resources << ",
-            "/XObject << /Im5 5 0 R >> >> /Annots [6 0 R 7 0 R] >> endobj\n",
-            "5 0 obj << /Type /XObject /Subtype /Image >> stream\nabc\nendstream endobj\n",
-            "6 0 obj << /Type /Annot /Subtype /Link /Dest [3 0 R /XYZ 0 0 null] >> endobj\n",
-            "7 0 obj << /Type /Annot /Subtype /Link /A << /S /URI ",
-            "/URI (https://example.com) >> >> endobj\n",
-            "%%EOF\n"
-        )
-        .as_bytes()
-        .to_vec()
+        PostprocessPdfFixture::base_pdf()
     }
 }
 
@@ -138,35 +128,39 @@ impl PdfPostprocessAdapter for StaticPostprocessAdapter {
 }
 
 fn png_bytes(width: u32, height: u32) -> Result<Vec<u8>, image::ImageError> {
-    let image = image::RgbImage::from_pixel(
-        width,
-        height,
-        image::Rgb([RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE]),
-    );
+    let image = fixture_image(width, height);
     let mut bytes = Vec::new();
-    let encode_result = image::codecs::png::PngEncoder::new(&mut bytes).write_image(
+    image::codecs::png::PngEncoder::new(&mut bytes).write_image(
         image.as_raw(),
         width,
         height,
         image::ColorType::Rgb8.into(),
-    );
-    assert!(encode_result.is_ok(), "png fixture encode failed");
+    )?;
     Ok(bytes)
 }
 
 fn jpeg_bytes(width: u32, height: u32) -> Result<Vec<u8>, image::ImageError> {
-    let image = image::RgbImage::from_pixel(
-        width,
-        height,
-        image::Rgb([RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE]),
-    );
+    let image = fixture_image(width, height);
     let mut bytes = Vec::new();
-    let encode_result = image::codecs::jpeg::JpegEncoder::new(&mut bytes).write_image(
+    image::codecs::jpeg::JpegEncoder::new(&mut bytes).write_image(
         image.as_raw(),
         width,
         height,
         image::ColorType::Rgb8.into(),
-    );
-    assert!(encode_result.is_ok(), "jpeg fixture encode failed");
+    )?;
     Ok(bytes)
+}
+
+fn fixture_image(width: u32, height: u32) -> image::RgbImage {
+    let mut image = image::RgbImage::from_pixel(
+        width,
+        height,
+        image::Rgb([RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE, RGB_CHANNEL_VALUE]),
+    );
+    for y in 80..96 {
+        for x in 72..260 {
+            image.put_pixel(x, y, image::Rgb([24, 24, 24]));
+        }
+    }
+    image
 }

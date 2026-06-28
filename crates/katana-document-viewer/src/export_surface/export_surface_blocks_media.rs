@@ -1,14 +1,15 @@
 use super::{
-    CODE_BLOCK_MARGIN, CODE_EMPTY_BLOCK_MIN_HEIGHT, CODE_VERTICAL_PADDING, DIAGRAM_FALLBACK_HEIGHT,
-    DIAGRAM_MAX_WIDTH, DIAGRAM_VERTICAL_MARGIN, MATH_FALLBACK_HEIGHT, MATH_VERTICAL_MARGIN,
+    CODE_BLOCK_MARGIN, DIAGRAM_FALLBACK_HEIGHT, DIAGRAM_MAX_WIDTH, DIAGRAM_VERTICAL_MARGIN,
+    MATH_FALLBACK_HEIGHT, MATH_VERTICAL_MARGIN,
 };
-use crate::export_surface_helpers::SURFACE_CONTENT_WIDTH;
-use crate::export_surface_line::SurfaceLine;
+use crate::export_surface_line::{SurfaceLine, SurfaceTypographyConfig};
 use crate::export_surface_span::SurfaceTextSpan;
 use crate::export_surface_svg::{SurfaceSvgImage, SurfaceSvgRasterizer};
 use crate::render_runtime::{KrrMathMode, KrrRenderOutput, KrrRenderRuntimeAdapter};
-use image::RgbaImage;
+use crate::viewer::ViewerCodeBlockMetrics;
 use katana_render_runtime::RenderThemeSnapshot;
+
+const MATH_RAW_TEXT_SIZE: f32 = 28.0;
 
 pub(crate) struct SurfaceCodeBlock {
     pub(crate) lines: Vec<SurfaceLine>,
@@ -30,9 +31,20 @@ impl SurfaceCodeBlock {
     }
 
     pub(crate) fn box_height(&self) -> u32 {
-        let content_height = self.lines.iter().map(SurfaceLine::line_height).sum::<u32>()
-            + CODE_VERTICAL_PADDING * 2;
-        content_height.max(CODE_EMPTY_BLOCK_MIN_HEIGHT)
+        ViewerCodeBlockMetrics::box_height_from_line_count_with_scale_px(
+            self.lines.len().max(1),
+            self.code_scale(),
+        )
+    }
+
+    pub(crate) fn apply_typography(&mut self, typography: SurfaceTypographyConfig) {
+        for line in &mut self.lines {
+            line.apply_typography(typography);
+        }
+    }
+
+    fn code_scale(&self) -> f32 {
+        self.lines.first().map_or(1.0, SurfaceLine::font_scale)
     }
 
     #[cfg(test)]
@@ -56,6 +68,7 @@ impl SurfaceCodeBlock {
 pub(crate) struct SurfaceMathBlock {
     pub(crate) image: Option<SurfaceSvgImage>,
     fallback_text: String,
+    typography: SurfaceTypographyConfig,
 }
 
 impl SurfaceMathBlock {
@@ -75,6 +88,7 @@ impl SurfaceMathBlock {
         Self {
             image,
             fallback_text: math_fallback_text(expression, &output),
+            typography: SurfaceTypographyConfig::default(),
         }
     }
 
@@ -97,11 +111,20 @@ impl SurfaceMathBlock {
         &self.fallback_text
     }
 
+    pub(crate) fn raw_text_size(&self) -> f32 {
+        MATH_RAW_TEXT_SIZE * self.typography.body_scale()
+    }
+
+    pub(crate) fn apply_typography(&mut self, typography: SurfaceTypographyConfig) {
+        self.typography = typography;
+    }
+
     #[cfg(test)]
-    pub(crate) fn for_tests(image: Option<RgbaImage>, fallback_text: String) -> Self {
+    pub(crate) fn for_tests(image: Option<image::RgbaImage>, fallback_text: String) -> Self {
         Self {
-            image: image.map(|image| SurfaceSvgImage { image }),
+            image: image.map(SurfaceSvgImage::from_image),
             fallback_text,
+            typography: SurfaceTypographyConfig::default(),
         }
     }
 }
@@ -126,6 +149,13 @@ impl SurfaceDiagramBlock {
         }
     }
 
+    pub(crate) fn raw(source: &str) -> Self {
+        Self {
+            image: None,
+            fallback_text: source.trim().to_string(),
+        }
+    }
+
     pub(crate) fn height(&self) -> u32 {
         let content_height = self
             .image
@@ -138,50 +168,6 @@ impl SurfaceDiagramBlock {
     pub(crate) fn fallback_text(&self) -> &str {
         &self.fallback_text
     }
-}
-
-pub(crate) struct SurfaceImageBlock {
-    pub(crate) image: RgbaImage,
-    pub(crate) _alt: String,
-}
-
-impl SurfaceImageBlock {
-    pub(crate) fn from_path(
-        path: &std::path::Path,
-        requested_width: Option<u32>,
-        alt: String,
-    ) -> Option<Self> {
-        let image = image::open(path).ok()?.to_rgba8();
-        let image = scaled_image(image, requested_width);
-        Some(Self { image, _alt: alt })
-    }
-
-    pub(crate) fn height(&self) -> u32 {
-        self.image.height() + super::super::IMAGE_VERTICAL_MARGIN * 2
-    }
-
-    #[cfg(test)]
-    pub(crate) fn alt_for_tests(&self) -> String {
-        self._alt.clone()
-    }
-}
-
-fn scaled_image(image: RgbaImage, requested_width: Option<u32>) -> RgbaImage {
-    let max_width = requested_width
-        .unwrap_or(image.width())
-        .min(SURFACE_CONTENT_WIDTH);
-    if image.width() <= max_width {
-        return image;
-    }
-    let height = (image.height() as f32 * max_width as f32 / image.width() as f32)
-        .round()
-        .max(1.0) as u32;
-    image::imageops::resize(
-        &image,
-        max_width,
-        height,
-        image::imageops::FilterType::Lanczos3,
-    )
 }
 
 pub(crate) struct SurfaceSpanMetrics;

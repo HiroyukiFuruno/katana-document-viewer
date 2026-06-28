@@ -4,8 +4,12 @@ use super::SurfaceHelpers;
 
 impl SurfaceHelpers {
     pub(crate) fn surface_block_height(block_heights: impl Iterator<Item = u32>) -> u32 {
-        let content_height = block_heights.sum::<u32>() + super::PAGE_PADDING * 2;
+        let content_height = Self::block_stack_height(block_heights) + super::PAGE_PADDING * 2;
         content_height.max(super::SURFACE_MIN_HEIGHT)
+    }
+
+    pub(crate) fn block_stack_height(block_heights: impl Iterator<Item = u32>) -> u32 {
+        block_heights.sum()
     }
 
     pub(crate) fn parse_color(value: &str) -> Rgba<u8> {
@@ -47,9 +51,17 @@ impl SurfaceHelpers {
         height: u32,
         color: Rgba<u8>,
     ) {
-        for dy in 0..height {
-            for dx in 0..width {
-                Self::put_pixel_if_inside(image, x + dx, y + dy, color);
+        let Some(rect) = ClippedRect::from_image(image, x, y, width, height) else {
+            return;
+        };
+        let row_width = image.width() as usize;
+        let channels = color.0;
+        let buffer = image.as_mut();
+        for row in rect.y..rect.bottom {
+            let start = (row * row_width + rect.x) * RGBA_CHANNEL_COUNT;
+            let end = start + rect.width * RGBA_CHANNEL_COUNT;
+            for pixel in buffer[start..end].chunks_exact_mut(RGBA_CHANNEL_COUNT) {
+                pixel.copy_from_slice(&channels);
             }
         }
     }
@@ -98,23 +110,6 @@ impl SurfaceHelpers {
         }
     }
 
-    pub(crate) fn draw_fallback_text(
-        image: &mut RgbaImage,
-        x: u32,
-        y: u32,
-        text: &str,
-        color: Rgba<u8>,
-    ) {
-        let width = (text.chars().count() as u32)
-            .saturating_mul(FALLBACK_CHAR_WIDTH)
-            .min(FALLBACK_MAX_WIDTH);
-        for dy in 0..FALLBACK_LINE_HEIGHT {
-            for dx in 0..width {
-                Self::put_pixel_if_inside(image, x + dx, y + dy, color);
-            }
-        }
-    }
-
     fn blend_channel(foreground: u8, background: u8, alpha: u16, inverse_alpha: u16) -> u8 {
         let blended = foreground as u16 * alpha + background as u16 * inverse_alpha;
         (blended / MAX_ALPHA_U16) as u8
@@ -142,6 +137,27 @@ const COLOR_GREEN_START: usize = 2;
 const COLOR_BLUE_START: usize = 4;
 const ALPHA_CHANNEL_INDEX: usize = 3;
 const SUPER_SMALL_ICON_SPAN: u32 = 4;
-const FALLBACK_CHAR_WIDTH: u32 = 10;
-const FALLBACK_MAX_WIDTH: u32 = 720;
-const FALLBACK_LINE_HEIGHT: u32 = 18;
+const RGBA_CHANNEL_COUNT: usize = 4;
+
+struct ClippedRect {
+    x: usize,
+    y: usize,
+    width: usize,
+    bottom: usize,
+}
+
+impl ClippedRect {
+    fn from_image(image: &RgbaImage, x: u32, y: u32, width: u32, height: u32) -> Option<Self> {
+        let end_x = x.saturating_add(width).min(image.width());
+        let end_y = y.saturating_add(height).min(image.height());
+        if x >= end_x || y >= end_y {
+            return None;
+        }
+        Some(Self {
+            x: x as usize,
+            y: y as usize,
+            width: (end_x - x) as usize,
+            bottom: end_y as usize,
+        })
+    }
+}

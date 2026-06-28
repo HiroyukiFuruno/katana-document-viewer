@@ -7,6 +7,7 @@ const HEADING_2_TOP_MARGIN: u32 = 14;
 const HEADING_DEFAULT_TOP_MARGIN: u32 = 12;
 const BODY_TOP_MARGIN: u32 = 5;
 const CODE_TOP_MARGIN: u32 = 0;
+const COMPACT_BODY_TOP_MARGIN_SCALE_MAX: f32 = 14.0 / 24.0;
 
 impl SurfaceLine {
     pub(crate) fn aligns_with_list_marker(&self) -> bool {
@@ -36,13 +37,18 @@ impl SurfaceLine {
     }
 
     pub(super) fn top_margin(&self) -> u32 {
-        match self.level {
+        if matches!(self.level, SurfaceLineLevel::Body)
+            && self.font_scale() <= COMPACT_BODY_TOP_MARGIN_SCALE_MAX
+        {
+            return 0;
+        }
+        self.scale_dimension(match self.level {
             SurfaceLineLevel::Heading(1) => HEADING_1_TOP_MARGIN,
             SurfaceLineLevel::Heading(2) => HEADING_2_TOP_MARGIN,
             SurfaceLineLevel::Heading(_) => HEADING_DEFAULT_TOP_MARGIN,
             SurfaceLineLevel::Body => BODY_TOP_MARGIN,
             SurfaceLineLevel::Code => CODE_TOP_MARGIN,
-        }
+        })
     }
 }
 

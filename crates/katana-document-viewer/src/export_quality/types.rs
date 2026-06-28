@@ -1,3 +1,4 @@
+use crate::export_quality::surface_equivalence::SurfaceEquivalenceArtifacts;
 use crate::forge::ExportFormat;
 
 pub(super) const FORMAT_SCORE_MAX: u16 = 100;
@@ -10,6 +11,8 @@ pub struct ExportQualityArtifacts<'a> {
     pub pdf: &'a [u8],
     pub png: &'a [u8],
     pub jpeg: &'a [u8],
+    pub source_markdown: &'a str,
+    pub surface_equivalence: Option<SurfaceEquivalenceArtifacts<'a>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -61,13 +61,29 @@ impl SurfaceHtmlMarkup {
     }
 
     pub(crate) fn has_center_alignment(fragment: &str) -> bool {
-        fragment.contains("align=\"center\"")
-            || fragment.contains("align='center'")
-            || fragment.contains("text-align:center")
-            || fragment.contains("text-align: center")
+        let normalized = alignment_source(fragment);
+        normalized.contains("align=\"center\"")
+            || normalized.contains("align=center")
+            || normalized.contains("text-align:center")
     }
 
-    pub(crate) fn centered_html_spans(fragment: &str) -> Vec<SurfaceTextSpan> {
+    pub(crate) fn has_right_alignment(fragment: &str) -> bool {
+        let normalized = alignment_source(fragment);
+        normalized.contains("align=\"right\"")
+            || normalized.contains("align=right")
+            || normalized.contains("text-align:right")
+    }
+
+    pub(crate) fn starts_with_block_tag(fragment: &str) -> bool {
+        let lower = fragment.trim_start().to_ascii_lowercase();
+        [
+            "<h1", "<h2", "<h3", "<h4", "<h5", "<h6", "<p", "<div", "<section", "<article",
+        ]
+        .iter()
+        .any(|tag| lower.starts_with(tag))
+    }
+
+    pub(crate) fn html_spans(fragment: &str) -> Vec<SurfaceTextSpan> {
         let mut spans = Vec::new();
         let mut rest = fragment;
         while let Some(link_start) = rest.find("<a") {
@@ -80,6 +96,10 @@ impl SurfaceHtmlMarkup {
         }
         push_plain_html_text(&mut spans, rest);
         spans
+    }
+
+    pub(crate) fn centered_html_spans(fragment: &str) -> Vec<SurfaceTextSpan> {
+        Self::html_spans(fragment)
     }
 }
 
@@ -121,6 +141,14 @@ fn quoted_attribute_value(tag: &str, name: &str) -> Option<String> {
 
 fn empty_attribute_value() -> String {
     String::new()
+}
+
+fn alignment_source(fragment: &str) -> String {
+    fragment
+        .to_ascii_lowercase()
+        .split_whitespace()
+        .collect::<String>()
+        .replace('\'', "\"")
 }
 
 fn append_centered_link_span<'a>(

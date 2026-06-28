@@ -73,6 +73,48 @@ fn resolves_file_url_with_absolute_src() {
 }
 
 #[test]
+fn resolves_absolute_file_uri_as_local_path() -> Result<(), Box<dyn std::error::Error>> {
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, "file:///tmp/icon.png");
+
+    assert_eq!(
+        resolved,
+        Some(expected_root_relative_file_uri_path("/tmp/icon.png")?)
+    );
+    Ok(())
+}
+
+#[test]
+fn resolves_relative_file_uri_against_current_directory() -> Result<(), Box<dyn std::error::Error>>
+{
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved = ExportAssetResolver::resolve_file_path(&source_uri, "file://assets/icon.png");
+
+    assert_eq!(
+        resolved,
+        Some(std::env::current_dir()?.join("assets/icon.png"))
+    );
+    Ok(())
+}
+
+#[test]
+fn resolves_file_uri_with_query_and_fragment_as_local_path()
+-> Result<(), Box<dyn std::error::Error>> {
+    let source_uri = SourceUri("file:///workspace/docs/notes.md".to_string());
+
+    let resolved =
+        ExportAssetResolver::resolve_file_path(&source_uri, "file:///tmp/icon.png?cache=1#preview");
+
+    assert_eq!(
+        resolved,
+        Some(expected_root_relative_file_uri_path("/tmp/icon.png")?)
+    );
+    Ok(())
+}
+
+#[test]
 fn resolves_file_url_for_root_relative_source() {
     let source_uri = SourceUri("file:///README.md".to_string());
     let url = ExportAssetResolver::resolve_file_url(&source_uri, "icon.png");
@@ -117,4 +159,14 @@ fn absolute_asset_file_url() -> &'static str {
 #[cfg(windows)]
 fn absolute_asset_file_url() -> &'static str {
     "file:///C:/tmp/assets/icon.png"
+}
+
+#[cfg(unix)]
+fn expected_root_relative_file_uri_path(value: &str) -> std::io::Result<std::path::PathBuf> {
+    Ok(std::path::PathBuf::from(value))
+}
+
+#[cfg(windows)]
+fn expected_root_relative_file_uri_path(value: &str) -> std::io::Result<std::path::PathBuf> {
+    Ok(std::env::current_dir()?.join(std::path::Path::new(value)))
 }

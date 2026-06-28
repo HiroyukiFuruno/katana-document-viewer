@@ -1,0 +1,18 @@
+[package]
+name = "kdv-storybook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+
+[dependencies]
+katana-document-viewer = { path = "../../crates/katana-document-viewer" }
+katana-ui-core.workspace = true
+katana-ui-core-storybook.workspace = true
+image.workspace = true
+minifb.workspace = true
+
+[dev-dependencies]
+katana-markdown-model.workspace = true

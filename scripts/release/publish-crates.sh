@@ -3,6 +3,14 @@ set -euo pipefail
 
 version="$(bash "$(dirname "$0")/verify-version.sh" "${1:-}" | awk -F= '$1 == "version_bare" { print $2 }')"
 
+require_clean_worktree() {
+  if git diff --quiet && git diff --cached --quiet; then
+    return
+  fi
+  echo "working tree must be clean before publishing." >&2
+  exit 1
+}
+
 require_token() {
   if [[ -n "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     return
@@ -16,6 +24,7 @@ if cargo info "katana-document-viewer@${version}" --registry crates-io >/dev/nul
   exit 0
 fi
 
+require_clean_worktree
 require_token
 cargo publish -p katana-document-viewer --locked --token "${CARGO_REGISTRY_TOKEN}"
 for _ in {1..30}; do

@@ -16,6 +16,9 @@ impl ExportHtmlOps {
             .iter()
             .rposition(|line| Self::fence_line(line))
             .unwrap_or(lines.len());
+        if body_end == 0 {
+            return text.to_string();
+        }
         lines[1..body_end]
             .iter()
             .map(|line| Self::strip_indent(line, indent))
@@ -101,7 +104,8 @@ impl ExportHtmlOps {
     }
 
     fn fence_line(line: &str) -> bool {
-        line.trim_start().starts_with("```")
+        let trimmed = line.trim_start();
+        trimmed.starts_with("```") || trimmed.starts_with("~~~")
     }
 
     fn line_indent(line: &str) -> usize {
@@ -134,6 +138,16 @@ mod tests {
     fn fenced_body_removes_fence_and_prefix_quotes() {
         let input = "> ```rust\n>   fn main() {}\n> ```";
         assert_eq!(ExportHtmlOps::fenced_body(input), "fn main() {}");
+    }
+
+    #[test]
+    fn fenced_body_keeps_unclosed_fence_text() {
+        assert_eq!(ExportHtmlOps::fenced_body("```"), "```");
+    }
+
+    #[test]
+    fn fenced_body_keeps_unclosed_multiline_fence_text() {
+        assert_eq!(ExportHtmlOps::fenced_body("```\nbody"), "```\nbody");
     }
 
     #[test]

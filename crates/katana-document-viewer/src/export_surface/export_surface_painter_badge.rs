@@ -11,7 +11,7 @@ impl SurfacePainter {
         image: &mut RgbaImage,
         row: &SurfaceBadgeRowBlock,
         y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
         let mut x = Self::badge_row_start_x(row);
@@ -30,7 +30,7 @@ impl SurfacePainter {
         badge: &SurfaceBadge,
         x: u32,
         badge_y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) -> u32 {
         let label_width = badge.label_width();
@@ -75,13 +75,9 @@ impl SurfacePainter {
         badge: &SurfaceBadge,
         x: u32,
         badge_y: u32,
-        painter: &mut Option<SurfaceTextPainter>,
+        painter: &mut SurfaceTextPainter,
     ) {
-        if let Some(it) = painter {
-            Self::paint_badge_label_texts(it, image, badge, x, badge_y);
-            return;
-        }
-        Self::paint_fallback_badge_label(image, badge, x, badge_y);
+        Self::paint_badge_label_texts(painter, image, badge, x, badge_y);
     }
 
     pub(super) fn paint_badge_label_texts(
@@ -109,21 +105,6 @@ impl SurfacePainter {
                 badge.message_width().max(BADGE_HORIZONTAL_PADDING),
             );
         }
-    }
-
-    pub(super) fn paint_fallback_badge_label(
-        image: &mut RgbaImage,
-        badge: &SurfaceBadge,
-        x: u32,
-        badge_y: u32,
-    ) {
-        SurfaceHelpers::draw_fallback_text(
-            image,
-            x + BADGE_HORIZONTAL_PADDING,
-            badge_y + BADGE_TEXT_Y_OFFSET,
-            &badge.text(),
-            BADGE_TEXT_COLOR,
-        );
     }
 
     pub(super) fn paint_badge_text(

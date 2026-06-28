@@ -122,4 +122,5 @@ fn append_node_without_fallback_handles_html_math_and_emoji_variants() {
     assert!(!spans[1].text.contains(r"\frac"));
     assert!(!spans[1].text.is_empty());
     assert_eq!(spans[2].text, "✨");
+    assert!(spans[2].style.emoji);
 }

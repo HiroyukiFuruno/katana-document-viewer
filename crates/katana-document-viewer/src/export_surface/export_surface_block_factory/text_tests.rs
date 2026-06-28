@@ -1,3 +1,5 @@
+use crate::export_surface_font::SurfaceTextPainter;
+use crate::export_surface_line::BODY_FONT_SIZE;
 use crate::export_surface_span::SurfaceTextSpan;
 use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::{
@@ -83,6 +85,42 @@ fn line_wrapper_handles_whitespace_and_wraps() {
     let long = SurfaceTextSpan::plain("tok ".repeat(200));
     let wrapped_many = SurfaceInlineLineWrapper::wrap(vec![long], 20);
     assert!(wrapped_many.len() > 1);
+}
+
+#[test]
+fn line_wrapper_wraps_japanese_without_spaces_before_next_block() {
+    let text = "これはPDF出力の日本語折り返しを確認するための合成テキストです。".repeat(12);
+    let wrapped = SurfaceInlineLineWrapper::wrap(vec![SurfaceTextSpan::plain(text)], 240);
+
+    assert!(
+        wrapped.len() > 1,
+        "Japanese text without spaces must reserve multiple surface lines"
+    );
+    assert!(
+        wrapped.iter().all(|line| !line.is_empty()),
+        "each wrapped surface line should keep visible text"
+    );
+}
+
+#[test]
+fn line_wrapper_keeps_japanese_lines_within_measured_width() {
+    let text = "これはPDF出力の日本語折り返しを確認するための合成テキストです。".repeat(4);
+    let wrapped =
+        SurfaceInlineLineWrapper::wrap(vec![SurfaceTextSpan::plain(text)], WIDE_WRAP_WIDTH);
+
+    let measured_widths = SurfaceTextPainter::with_system_fonts(|painter| {
+        wrapped
+            .iter()
+            .map(|line| painter.measure_spans_width(line, BODY_FONT_SIZE, 2000.0))
+            .collect::<Vec<_>>()
+    });
+
+    assert!(
+        measured_widths
+            .iter()
+            .all(|width| *width <= WIDE_WRAP_WIDTH),
+        "wrapped Japanese lines must fit measured width: {measured_widths:?}"
+    );
 }
 
 #[test]

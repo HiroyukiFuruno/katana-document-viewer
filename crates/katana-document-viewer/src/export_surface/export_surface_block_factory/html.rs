@@ -1,16 +1,15 @@
-use crate::export_assets::ExportAssetResolver;
-use crate::export_semantics::EvaluatedMarkdownFragment;
 use crate::export_surface_text::SurfaceTextParser;
 use crate::forge::BuildGraph;
 use crate::html_sanitizer::HtmlFragmentNormalizer;
 use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::{HtmlBlockRole, KmmNode};
 
-use super::super::markup::{SurfaceDetailsParts, SurfaceHtmlMarkup};
-use super::super::{SurfaceBadgeRowBlock, SurfaceBlock, SurfaceImageBlock};
+use super::super::markup::SurfaceHtmlMarkup;
+use super::super::{SurfaceBadgeRowBlock, SurfaceBlock};
 use super::SurfaceBlockFactory;
 use crate::export_surface_helpers::{BODY_MAX_CHARS, WrappedText};
 use crate::export_surface_line::SurfaceLine;
+use crate::export_surface_span::SurfaceTextSpan;
 
 impl SurfaceBlockFactory {
     pub(super) fn append_html(
@@ -30,12 +29,66 @@ impl SurfaceBlockFactory {
             Self::append_badge_row(blocks, &fragment);
             return;
         }
-        let text = Self::normalized_html_text(&fragment);
-        if Self::is_centered_html(role, &fragment) {
-            Self::append_centered_html(blocks, &fragment, text);
+        Self::append_textual_html(blocks, role, &fragment, quote_depth, list_depth);
+    }
+
+    fn append_textual_html(
+        blocks: &mut Vec<SurfaceBlock>,
+        role: &HtmlBlockRole,
+        fragment: &str,
+        quote_depth: u32,
+        list_depth: u32,
+    ) {
+        let text = Self::normalized_html_text(fragment);
+        if Self::append_heading_html(blocks, fragment, text.clone()) {
+            return;
+        }
+        if Self::is_centered_html(role, fragment) {
+            Self::append_centered_html(blocks, fragment, text);
+            return;
+        }
+        if SurfaceHtmlMarkup::has_right_alignment(fragment) {
+            Self::append_right_html(blocks, fragment);
+            return;
+        }
+        if Self::append_linked_html(blocks, fragment, quote_depth, list_depth) {
             return;
         }
         Self::append_wrapped(blocks, text, quote_depth, list_depth);
+    }
+
+    fn append_heading_html(blocks: &mut Vec<SurfaceBlock>, fragment: &str, text: String) -> bool {
+        if Self::heading_level(fragment).is_none() {
+            return false;
+        }
+        let spans = Self::html_heading_spans(fragment, text);
+        let line = if SurfaceHtmlMarkup::has_right_alignment(fragment) {
+            SurfaceLine::right_spans(spans)
+        } else if SurfaceHtmlMarkup::has_center_alignment(fragment) {
+            SurfaceLine::centered_spans(spans)
+        } else {
+            SurfaceLine::body_spans(spans, 0)
+        };
+        blocks.push(SurfaceBlock::Line(line));
+        true
+    }
+
+    fn html_heading_spans(fragment: &str, text: String) -> Vec<SurfaceTextSpan> {
+        let spans = SurfaceHtmlMarkup::html_spans(fragment);
+        if !spans.is_empty() {
+            return spans;
+        }
+        vec![SurfaceTextSpan::plain(text)]
+    }
+
+    fn heading_level(fragment: &str) -> Option<u8> {
+        let normalized = fragment.trim_start().to_ascii_lowercase();
+        for level in 1..=6 {
+            if normalized.starts_with(&format!("<h{level}")) {
+                return Some(level);
+            }
+        }
+        None
     }
 
     fn append_special_html(
@@ -85,81 +138,47 @@ impl SurfaceBlockFactory {
         }
     }
 
-    fn local_html_image_block(graph: &BuildGraph, fragment: &str) -> Option<SurfaceImageBlock> {
-        let image = SurfaceHtmlMarkup::extract_img_refs(fragment)
-            .into_iter()
-            .find(|image| {
-                ExportAssetResolver::resolve_file_path(&graph.snapshot.source_uri, &image.src)
-                    .is_some_and(|path| path.exists())
-            })?;
-        let path = ExportAssetResolver::resolve_file_path(&graph.snapshot.source_uri, &image.src)?;
-        SurfaceImageBlock::from_path(&path, image.width, image.alt)
+    fn append_right_html(blocks: &mut Vec<SurfaceBlock>, fragment: &str) {
+        let spans = SurfaceHtmlMarkup::html_spans(fragment);
+        if !spans.is_empty() {
+            blocks.push(SurfaceBlock::Line(SurfaceLine::right_spans(spans)));
+        }
     }
 
-    fn data_html_image_block(fragment: &str) -> Option<SurfaceImageBlock> {
-        let image = SurfaceHtmlMarkup::extract_img_refs(fragment)
-            .into_iter()
-            .find(|image| image.src.starts_with("data:image/"))?;
-        SurfaceImageBlock::from_data_uri(&image.src, image.width, image.alt)
-    }
-
-    fn append_details(
+    fn append_linked_html(
         blocks: &mut Vec<SurfaceBlock>,
-        graph: &BuildGraph,
         fragment: &str,
         quote_depth: u32,
         list_depth: u32,
-        theme: &KdvThemeSnapshot,
     ) -> bool {
-        let Some(parts) = SurfaceDetailsParts::parse(fragment) else {
+        let spans = SurfaceHtmlMarkup::html_spans(fragment);
+        if !Self::has_link_span(&spans) {
             return false;
-        };
-        Self::append_details_summary(blocks, &parts, quote_depth, list_depth);
-        Self::append_details_body(blocks, graph, &parts, quote_depth, list_depth, theme);
+        }
+        for line_spans in super::text::SurfaceInlineLineWrapper::wrap(
+            spans,
+            Self::line_width(quote_depth, list_depth),
+        ) {
+            Self::append_rich_line_spans(blocks, line_spans, quote_depth, list_depth);
+        }
         true
     }
 
-    fn append_details_summary(
-        blocks: &mut Vec<SurfaceBlock>,
-        parts: &SurfaceDetailsParts,
-        quote_depth: u32,
-        list_depth: u32,
-    ) {
-        Self::append_wrapped(
-            blocks,
-            SurfaceHtmlMarkup::normalize_text(parts.summary),
-            quote_depth,
-            list_depth,
-        );
-    }
-
-    fn append_details_body(
-        blocks: &mut Vec<SurfaceBlock>,
-        graph: &BuildGraph,
-        parts: &SurfaceDetailsParts,
-        quote_depth: u32,
-        list_depth: u32,
-        theme: &KdvThemeSnapshot,
-    ) {
-        let fragment = EvaluatedMarkdownFragment::evaluate("surface-details.md", parts.body.trim());
-        if !fragment.has_nodes() {
-            Self::append_wrapped(
-                blocks,
-                SurfaceHtmlMarkup::normalize_text(parts.body),
-                quote_depth,
-                list_depth,
-            );
-            return;
-        }
-        for node in fragment.nodes() {
-            Self::append_node(blocks, graph, node, quote_depth, list_depth, theme);
-        }
+    fn has_link_span(spans: &[SurfaceTextSpan]) -> bool {
+        spans.iter().any(|span| span.link_target.is_some())
     }
 }
+
+#[path = "html_image_block.rs"]
+mod html_image_block;
 
 #[cfg(test)]
 #[path = "html_image_tests.rs"]
 mod image_tests;
+
+#[cfg(test)]
+#[path = "html_link_tests.rs"]
+mod link_tests;
 
 #[cfg(test)]
 #[path = "html_tests.rs"]

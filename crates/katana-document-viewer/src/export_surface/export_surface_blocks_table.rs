@@ -1,5 +1,6 @@
 use super::{TABLE_CELL_PADDING, TABLE_LINE_HEIGHT, TABLE_ROW_HEIGHT, TABLE_ROW_VERTICAL_PADDING};
 use crate::export_surface_helpers::{SURFACE_CONTENT_WIDTH, WrappedText};
+use crate::export_surface_line::SurfaceTypographyConfig;
 use crate::export_surface_text::SurfaceTextParser;
 use katana_markdown_model::{TableAlignment, TableNode, TableRow};
 
@@ -10,6 +11,7 @@ const TABLE_MIN_CELL_CHARS: usize = 8;
 pub(crate) struct SurfaceTableBlock {
     rows: Vec<Vec<String>>,
     alignments: Vec<TableAlignment>,
+    typography: SurfaceTypographyConfig,
 }
 
 impl SurfaceTableBlock {
@@ -22,6 +24,7 @@ impl SurfaceTableBlock {
                 .map(Self::row_texts)
                 .collect(),
             alignments: table.alignments.clone(),
+            typography: SurfaceTypographyConfig::default(),
         }
     }
 
@@ -33,11 +36,15 @@ impl SurfaceTableBlock {
     }
 
     pub(crate) fn height(&self) -> u32 {
-        let column_width = SURFACE_CONTENT_WIDTH / self.column_count().max(1) as u32;
+        self.height_for_width(SURFACE_CONTENT_WIDTH)
+    }
+
+    pub(crate) fn height_for_width(&self, row_width: u32) -> u32 {
+        let column_widths = self.column_widths_for_width(row_width);
         self.rows
             .iter()
             .enumerate()
-            .map(|(index, _)| self.row_height(index, column_width))
+            .map(|(index, _)| self.row_height_with_widths(index, &column_widths))
             .sum()
     }
 
@@ -60,26 +67,52 @@ impl SurfaceTableBlock {
             .join("\n")
     }
 
+    #[cfg(test)]
     pub(crate) fn row_height(&self, row_index: usize, column_width: u32) -> u32 {
+        self.row_height_with_widths(row_index, &vec![column_width; self.column_count().max(1)])
+    }
+
+    pub(crate) fn row_height_with_widths(&self, row_index: usize, column_widths: &[u32]) -> u32 {
         let line_count = self
             .rows
             .get(row_index)
-            .map(|row| Self::row_line_count(row, column_width))
+            .map(|row| Self::row_line_count(row, column_widths))
             .unwrap_or(1);
-        let dynamic_height = line_count as u32 * TABLE_LINE_HEIGHT + TABLE_ROW_VERTICAL_PADDING * 2;
+        let dynamic_height =
+            line_count as u32 * self.line_height() + TABLE_ROW_VERTICAL_PADDING * 2;
         dynamic_height.max(TABLE_ROW_HEIGHT)
     }
 
-    fn row_line_count(row: &[String], column_width: u32) -> usize {
+    fn row_line_count(row: &[String], column_widths: &[u32]) -> usize {
         row.iter()
-            .map(|cell| WrappedText::new(cell, SurfaceTableLayout::cell_max_chars(column_width)))
-            .map(Iterator::count)
+            .enumerate()
+            .map(|(index, cell)| {
+                let width = column_widths.get(index).copied().unwrap_or(0);
+                SurfaceTableLayout::cell_lines(cell, width).len()
+            })
             .max()
             .unwrap_or(1)
     }
 
     pub(crate) fn rows(&self) -> &Vec<Vec<String>> {
         &self.rows
+    }
+
+    pub(crate) fn line_height(&self) -> u32 {
+        scale_u32(TABLE_LINE_HEIGHT, self.typography.code_scale())
+    }
+
+    pub(crate) fn font_size(&self) -> f32 {
+        22.0 * self.typography.code_scale()
+    }
+
+    pub(crate) fn apply_typography(&mut self, typography: SurfaceTypographyConfig) {
+        self.typography = typography;
+    }
+
+    pub(crate) fn column_widths_for_width(&self, row_width: u32) -> Vec<u32> {
+        let column_count = self.column_count().max(1);
+        vec![row_width / column_count as u32; column_count]
     }
 }
 
@@ -111,8 +144,17 @@ impl SurfaceTableLayout {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn cell_text_y(row_height: u32, line_count: usize) -> u32 {
-        let content_height = line_count.max(1) as u32 * TABLE_LINE_HEIGHT;
+        Self::cell_text_y_with_line_height(row_height, line_count, TABLE_LINE_HEIGHT)
+    }
+
+    pub(crate) fn cell_text_y_with_line_height(
+        row_height: u32,
+        line_count: usize,
+        line_height: u32,
+    ) -> u32 {
+        let content_height = line_count.max(1) as u32 * line_height;
         row_height.saturating_sub(content_height) / 2
     }
 
@@ -126,6 +168,14 @@ impl SurfaceTableLayout {
                 }
             })
             .sum()
+    }
+
+    pub(crate) fn cell_lines(cell: &str, width: u32) -> Vec<String> {
+        let lines = WrappedText::new(cell, Self::cell_max_chars(width)).collect::<Vec<_>>();
+        if lines.is_empty() {
+            return vec![String::new()];
+        }
+        lines
     }
 
     pub(crate) fn cell_max_chars(width: u32) -> usize {
@@ -149,6 +199,13 @@ impl SurfaceTableLayout {
     }
 }
 
+fn scale_u32(value: u32, scale: f32) -> u32 {
+    if !scale.is_finite() || scale <= 0.0 {
+        return value;
+    }
+    ((value as f32) * scale).round().max(1.0) as u32
+}
+
 #[derive(Clone)]
 pub(crate) struct SurfaceTableCellPaint<'a> {
     pub(crate) cell: &'a str,
@@ -157,4 +214,76 @@ pub(crate) struct SurfaceTableCellPaint<'a> {
     pub(crate) y: u32,
     pub(crate) width: u32,
     pub(crate) row_height: u32,
+    pub(crate) table_font_size: f32,
+    pub(crate) table_line_height: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use katana_markdown_model::{
+        ByteRange, LineColumn, LineColumnRange, RawSnippet, SourceSpan, TableCell, TableRow,
+    };
+
+    #[test]
+    fn table_surface_uses_equal_width_columns_for_export_png_reference() {
+        let table = table_block(&[
+            &["Short", "Long Column Test", "Short"],
+            &[
+                "ID",
+                "This text is a very long line to verify horizontal scrolling and word wrapping are working correctly.",
+                "Notes",
+            ],
+        ]);
+        let block = SurfaceTableBlock::new(&table);
+
+        assert_eq!(vec![166, 166, 166], block.column_widths_for_width(500));
+    }
+
+    #[test]
+    fn table_surface_height_uses_export_png_equal_width_wrapping() {
+        let table = table_block(&[
+            &["Short", "Long Column Test", "Short"],
+            &[
+                "ID",
+                "This text is a very long line to verify horizontal scrolling and word wrapping are working correctly.",
+                "Notes",
+            ],
+        ]);
+        let block = SurfaceTableBlock::new(&table);
+
+        assert_eq!(
+            574,
+            block.height_for_width(500),
+            "export PNG table height must keep KatanA reference equal-width wrapping"
+        );
+    }
+
+    fn table_block(rows: &[&[&str]]) -> TableNode {
+        TableNode {
+            alignments: Vec::new(),
+            rows: rows.iter().map(|row| table_row(row)).collect(),
+        }
+    }
+
+    fn table_row(cells: &[&str]) -> TableRow {
+        TableRow {
+            cells: cells
+                .iter()
+                .map(|text| TableCell {
+                    text: (*text).to_string(),
+                    source: SourceSpan {
+                        byte_range: ByteRange { start: 0, end: 0 },
+                        line_column_range: LineColumnRange {
+                            start: LineColumn { line: 0, column: 0 },
+                            end: LineColumn { line: 0, column: 0 },
+                        },
+                        raw: RawSnippet {
+                            text: (*text).to_string(),
+                        },
+                    },
+                })
+                .collect(),
+        }
+    }
 }
