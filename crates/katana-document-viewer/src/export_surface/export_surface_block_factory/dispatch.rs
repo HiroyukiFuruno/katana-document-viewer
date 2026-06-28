@@ -137,28 +137,57 @@ impl SurfaceBlockFactory {
         context: SurfaceAppendContext<'_>,
     ) -> bool {
         match kind {
-            KmmNodeKind::Table(table) => Self::append_table(
-                blocks,
-                table,
-                &node.source.raw.text,
-                context.quote_depth,
-                context.list_depth,
-            ),
-            KmmNodeKind::HtmlBlock(role) => Self::append_html(
-                blocks,
-                context.graph,
-                node,
-                role,
-                context.quote_depth,
-                context.list_depth,
-                context.theme,
-            ),
+            KmmNodeKind::Table(table) => Self::append_remaining_table(blocks, node, table, context),
+            KmmNodeKind::HtmlBlock(role) => {
+                Self::append_remaining_html(blocks, node, role, context)
+            }
             KmmNodeKind::DollarMathBlock(math) => {
-                Self::append_math_lines(blocks, &math.expression, context.theme)
+                Self::append_remaining_math(blocks, math, context)
             }
             _ => return false,
         }
         true
+    }
+
+    fn append_remaining_table(
+        blocks: &mut Vec<SurfaceBlock>,
+        node: &KmmNode,
+        table: &katana_markdown_model::TableNode,
+        context: SurfaceAppendContext<'_>,
+    ) {
+        Self::append_table(
+            blocks,
+            table,
+            &node.source.raw.text,
+            context.quote_depth,
+            context.list_depth,
+            context.theme,
+        );
+    }
+
+    fn append_remaining_html(
+        blocks: &mut Vec<SurfaceBlock>,
+        node: &KmmNode,
+        role: &HtmlBlockRole,
+        context: SurfaceAppendContext<'_>,
+    ) {
+        Self::append_html(
+            blocks,
+            context.graph,
+            node,
+            role,
+            context.quote_depth,
+            context.list_depth,
+            context.theme,
+        );
+    }
+
+    fn append_remaining_math(
+        blocks: &mut Vec<SurfaceBlock>,
+        math: &katana_markdown_model::DollarMathBlockNode,
+        context: SurfaceAppendContext<'_>,
+    ) {
+        Self::append_math_lines(blocks, &math.expression, context.theme);
     }
 }
 

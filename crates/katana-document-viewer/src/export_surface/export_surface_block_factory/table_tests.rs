@@ -11,8 +11,9 @@ fn fallback_without_contract_becomes_wrapped_text() {
         alignments: vec![TableAlignment::Left],
         rows: vec![row(vec!["header"])],
     };
+    let theme = crate::KdvThemeSnapshot::katana_light();
 
-    SurfaceBlockFactory::append_table(&mut blocks, &table, "header", 0, 0);
+    SurfaceBlockFactory::append_table(&mut blocks, &table, "header", 0, 0, &theme);
 
     assert_eq!(blocks.len(), 1);
     assert_eq!(blocks[0].text_for_tests(), "header");
@@ -22,8 +23,9 @@ fn fallback_without_contract_becomes_wrapped_text() {
 fn quote_depth_forces_contract_table_to_wrapped_text() {
     let mut blocks = Vec::new();
     let table = contract_table();
+    let theme = crate::KdvThemeSnapshot::katana_light();
 
-    SurfaceBlockFactory::append_table(&mut blocks, &table, "fallback", 1, 0);
+    SurfaceBlockFactory::append_table(&mut blocks, &table, "fallback", 1, 0, &theme);
 
     assert!(blocks.len() >= 2);
 }
@@ -32,8 +34,9 @@ fn quote_depth_forces_contract_table_to_wrapped_text() {
 fn valid_contract_table_becomes_table_block() {
     let mut blocks = Vec::new();
     let table = contract_table();
+    let theme = crate::KdvThemeSnapshot::katana_light();
 
-    SurfaceBlockFactory::append_table(&mut blocks, &table, "fallback", 0, 0);
+    SurfaceBlockFactory::append_table(&mut blocks, &table, "fallback", 0, 0, &theme);
 
     assert_eq!(blocks.len(), 1);
     assert!(matches!(blocks[0], super::super::SurfaceBlock::Table(_)));

@@ -67,6 +67,39 @@ impl ExportPayloadContractTestMarkDowns {
         }
         lines.join("\n")
     }
+
+    pub(crate) fn japanese_overlap_repro_markdown() -> String {
+        let long_paragraph =
+            "これはPDF出力の日本語折り返しを確認するための合成テキストです。".repeat(12);
+        [
+            "# PDF overlap repro".to_string(),
+            String::new(),
+            "## 職務要約".to_string(),
+            String::new(),
+            long_paragraph,
+            String::new(),
+            "## 次の見出し".to_string(),
+            String::new(),
+            "ここは前の段落より下に独立して表示される必要があります。".to_string(),
+        ]
+        .join("\n")
+    }
+
+    pub(crate) fn export_fidelity_repro_markdown() -> String {
+        [
+            "# Export fidelity repro",
+            "",
+            "A normal markdown link: [KatanA](https://example.com/katana)",
+            "",
+            "A bare URL that should be link-capable: https://example.com/docs",
+            "",
+            "| Feature | Expected | Link |",
+            "| --- | --- | --- |",
+            "| PDF table | rendered as table grid with header/body styling | [PDF docs](https://example.com/pdf) |",
+            "| HTML link | clickable anchor | https://example.com/html |",
+        ]
+        .join("\n")
+    }
 }
 
 const TALL_DOC_LINE_COUNT: usize = 120;

@@ -7,6 +7,8 @@ use katana_markdown_model::{KmmNode, KmmNodeKind};
 
 pub(crate) struct InlineHtmlWriter;
 
+use export_inline_payload_autolink::{append_autolinked_text, next_url_start};
+
 impl InlineHtmlWriter {
     pub(crate) fn append_children(html: &mut String, node: &KmmNode, theme: &KdvThemeSnapshot) {
         for child in &node.children {
@@ -17,7 +19,11 @@ impl InlineHtmlWriter {
     pub(crate) fn append_fragment(html: &mut String, markdown: &str, theme: &KdvThemeSnapshot) {
         let fragment = EvaluatedMarkdownFragment::evaluate("table-cell.md", markdown);
         if !fragment.has_nodes() {
-            html.push_str(&ExportHtmlOps::escape_html(markdown));
+            append_autolinked_text(html, markdown);
+            return;
+        }
+        if !fragment.contains_structured_inline() && next_url_start(markdown).is_some() {
+            append_autolinked_text(html, markdown);
             return;
         }
         for node in fragment.nodes() {
@@ -53,11 +59,11 @@ impl InlineHtmlWriter {
     pub(crate) fn append_text(html: &mut String, text: &str, theme: &KdvThemeSnapshot) {
         let fragment = EvaluatedMarkdownFragment::evaluate("inline-text.md", text);
         if !fragment.contains_inline_markdown() {
-            html.push_str(&ExportHtmlOps::render_text(text));
+            append_autolinked_text(html, text);
             return;
         }
         if !Self::try_append_inline_text(html, &fragment, theme) {
-            html.push_str(&ExportHtmlOps::render_text(text));
+            append_autolinked_text(html, text);
         }
     }
 
@@ -103,7 +109,7 @@ impl InlineHtmlWriter {
         match &node.kind {
             KmmNodeKind::Paragraph => {
                 if node.children.is_empty() {
-                    html.push_str(&ExportHtmlOps::render_text(&node.source.raw.text));
+                    append_autolinked_text(html, &node.source.raw.text);
                 } else {
                     Self::append_children(html, node, theme);
                 }
@@ -180,6 +186,9 @@ impl InlineHtmlWriter {
         MathHtmlWriter::append_inline(html, expression, theme);
     }
 }
+
+#[path = "export_inline_payload_autolink.rs"]
+mod export_inline_payload_autolink;
 
 #[cfg(test)]
 #[path = "export_inline_payload_tests.rs"]

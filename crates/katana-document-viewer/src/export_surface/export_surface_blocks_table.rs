@@ -1,7 +1,9 @@
 use super::{TABLE_CELL_PADDING, TABLE_LINE_HEIGHT, TABLE_ROW_HEIGHT, TABLE_ROW_VERTICAL_PADDING};
 use crate::export_surface_helpers::{SURFACE_CONTENT_WIDTH, WrappedText};
 use crate::export_surface_line::SurfaceTypographyConfig;
+use crate::export_surface_span::{SurfaceInlineSpans, SurfaceTextSpan};
 use crate::export_surface_text::SurfaceTextParser;
+use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::{TableAlignment, TableNode, TableRow};
 
 const ASCII_CELL_CHAR_WIDTH: u32 = 12;
@@ -10,18 +12,30 @@ const TABLE_MIN_CELL_CHARS: usize = 8;
 
 pub(crate) struct SurfaceTableBlock {
     rows: Vec<Vec<String>>,
+    cell_spans: Vec<Vec<Vec<SurfaceTextSpan>>>,
     alignments: Vec<TableAlignment>,
     typography: SurfaceTypographyConfig,
 }
 
 impl SurfaceTableBlock {
+    #[cfg(test)]
     pub(crate) fn new(table: &TableNode) -> Self {
+        Self::new_with_theme(table, &KdvThemeSnapshot::katana_light())
+    }
+
+    pub(crate) fn new_with_theme(table: &TableNode, theme: &KdvThemeSnapshot) -> Self {
         Self {
             rows: table
                 .rows
                 .iter()
                 .filter(|row| !SurfaceTableLayout::is_separator_row(row))
                 .map(Self::row_texts)
+                .collect(),
+            cell_spans: table
+                .rows
+                .iter()
+                .filter(|row| !SurfaceTableLayout::is_separator_row(row))
+                .map(|row| Self::row_spans(row, theme))
                 .collect(),
             alignments: table.alignments.clone(),
             typography: SurfaceTypographyConfig::default(),
@@ -32,6 +46,13 @@ impl SurfaceTableBlock {
         row.cells
             .iter()
             .map(|cell| SurfaceTextParser::inline_markdown_text(&cell.text))
+            .collect()
+    }
+
+    fn row_spans(row: &TableRow, theme: &KdvThemeSnapshot) -> Vec<Vec<SurfaceTextSpan>> {
+        row.cells
+            .iter()
+            .map(|cell| SurfaceInlineSpans::from_markdown(&cell.text, theme))
             .collect()
     }
 
@@ -96,6 +117,14 @@ impl SurfaceTableBlock {
 
     pub(crate) fn rows(&self) -> &Vec<Vec<String>> {
         &self.rows
+    }
+
+    pub(crate) fn cell_spans(&self, row_index: usize, column_index: usize) -> &[SurfaceTextSpan] {
+        self.cell_spans
+            .get(row_index)
+            .and_then(|row| row.get(column_index))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
 
     pub(crate) fn line_height(&self) -> u32 {

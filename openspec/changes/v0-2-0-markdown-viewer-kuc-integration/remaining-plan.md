@@ -1,6 +1,15 @@
 # v0.2.0 残Task計画
 
-## 直近更新: 2026-06-26
+## 直近更新: 2026-06-28
+
+- [/] 2026-06-28 追補35: v0.2.1 release 対象を KDV #7 / #9 に限定し、KDV #6 は抱き合わせず open 維持する。
+  - 判断: v0.2.1 は KatanA 0.22.30 側で露出した export blocker の修正 release とする。対象は KDV #7 `PDF export overlaps Japanese long paragraphs without spaces` と KDV #9 `KDV export: markdown links and tables are not represented correctly in HTML/PDF`。KDV #6 `Direct visual source files should export to HTML/PDF/PNG/JPEG` は direct visual source の別 minor scope として今回の release に含めない。
+  - #7 対応: `non_html_payloads_use_wrapped_surface_for_japanese_no_space_paragraphs` を追加し、HTML 以外の PDF / PNG / JPEG export が同じ wrapped surface を使って日本語空白なし長文の高さを確保することを固定した。
+  - #9 対応: HTML export は table cell の bare URL を autolink し、PDF export は table cell markdown link / bare URL を `SurfaceTableBlock` の inline span metadata から link annotation として出す。KDV側で fallback renderer や HTML/PDF別の偽装出力には逃がさない。
+  - 検証: KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked export_payload_preserves_markdown_links_and_table_link_fidelity -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked table -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked export_payload -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked export_html -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked japanese -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p katana-document-viewer --locked -- --test-threads=1` は通過した。
+  - release gate: KDV `/opt/homebrew/bin/rtk cargo clippy -p katana-document-viewer --all-targets --all-features --locked -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::todo -D clippy::unimplemented -D clippy::dbg_macro -D clippy::panic -D clippy::wildcard_imports`、KDV `/opt/homebrew/bin/rtk cargo fmt -p katana-document-viewer --check`、KDV `/opt/homebrew/bin/rtk cargo package -p katana-document-viewer --locked --allow-dirty`、KDV `/opt/homebrew/bin/rtk cargo publish -p katana-document-viewer --dry-run --locked --allow-dirty`、KDV `/opt/homebrew/bin/rtk just VERSION=v0.2.1 release-target-check`、KDV `/opt/homebrew/bin/rtk just storybook-release-acceptance-artifacts` は通過した。
+  - artifact: 最新 acceptance artifact は `target/acceptance/kdv-storybook-scroll-performance.txt` で `fixture=katana/sample_drawio_performance.md` / `elapsed_ms=33.571` / `max_frame_ms=5.233` / `full_preview_redraw_fallback_count=0`、live log で `source=headless` / `changed_pixels=4725958` / `bright_delta=4508044` / `dark_delta=4317339` を記録している。
+  - issue運用: v0.2.1 公開後に #7 / #9 へ release evidence をコメントして close する。#6 は今回の release には含めず open のまま維持する。
 
 - [/] 2026-06-26 追補34: Special Characters / OS emoji selection 契約を KUC/KDV 独自仕様として修正し、KUC `v0.1.4` を公開・KDVへ取り込んだ。release はまだ不可。
   - 仕様固定: Special Characters / emoji は KatanA/egui の白黒化や共通化を踏襲しない。KUC/KDV 独自仕様として OS 依存の文字・絵文字をそのまま表示し、selection / clipboard copy は可視テキストの text flow と一致させる。

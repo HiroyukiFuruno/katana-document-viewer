@@ -1,4 +1,5 @@
 use crate::export_surface_text::SurfaceTextParser;
+use crate::theme::KdvThemeSnapshot;
 use katana_markdown_model::TableNode;
 
 use super::super::{SurfaceBlock, SurfaceTableBlock, SurfaceTableLayout};
@@ -11,16 +12,19 @@ impl SurfaceBlockFactory {
         fallback_text: &str,
         quote_depth: u32,
         list_depth: u32,
+        theme: &KdvThemeSnapshot,
     ) {
         if !SurfaceTableLayout::has_contract(table) {
             Self::append_table_fallback(blocks, fallback_text, quote_depth, list_depth);
             return;
         }
         if quote_depth > 0 {
-            Self::append_table_as_text(blocks, table, quote_depth, list_depth);
+            Self::append_table_as_text(blocks, table, quote_depth, list_depth, theme);
             return;
         }
-        blocks.push(SurfaceBlock::Table(SurfaceTableBlock::new(table)));
+        blocks.push(SurfaceBlock::Table(SurfaceTableBlock::new_with_theme(
+            table, theme,
+        )));
     }
 
     fn append_table_fallback(
@@ -42,8 +46,12 @@ impl SurfaceBlockFactory {
         table: &TableNode,
         quote_depth: u32,
         list_depth: u32,
+        theme: &KdvThemeSnapshot,
     ) {
-        for line in SurfaceTableBlock::new(table).text().lines() {
+        for line in SurfaceTableBlock::new_with_theme(table, theme)
+            .text()
+            .lines()
+        {
             Self::append_wrapped(blocks, line.to_string(), quote_depth, list_depth);
         }
     }

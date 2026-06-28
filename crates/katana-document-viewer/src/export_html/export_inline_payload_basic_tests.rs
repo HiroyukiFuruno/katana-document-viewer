@@ -20,6 +20,19 @@ fn append_fragment_parses_and_writes_nodes() {
 }
 
 #[test]
+fn append_fragment_autolinks_bare_urls_in_table_cells() {
+    let mut html = String::new();
+    let theme = KdvThemeSnapshot::katana_light();
+
+    InlineHtmlWriter::append_fragment(&mut html, "https://example.com/html", &theme);
+
+    assert_eq!(
+        html,
+        r#"<a href="https://example.com/html" data-kdv-autolink="true">https://example.com/html</a>"#
+    );
+}
+
+#[test]
 fn append_node_falls_back_for_unknown_kind() {
     let mut html = String::new();
     let theme = KdvThemeSnapshot::katana_light();
