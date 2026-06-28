@@ -211,6 +211,7 @@ fn ci_workflows_pin_plantuml_graphviz_runtime_for_katana_reference_scores()
     let root = workspace_root()?;
     let ci = std::fs::read_to_string(root.join(".github/workflows/test-and-build.yml"))?;
     let preflight = std::fs::read_to_string(root.join(".github/workflows/release-preflight.yml"))?;
+    let release = std::fs::read_to_string(root.join(".github/workflows/release.yml"))?;
 
     assert_contains_all(
         "CI PlantUML runtime",
@@ -221,6 +222,11 @@ fn ci_workflows_pin_plantuml_graphviz_runtime_for_katana_reference_scores()
         "release preflight PlantUML runtime",
         &preflight,
         PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS,
+    );
+    assert_contains_all(
+        "Release workflow acceptance runtime",
+        &release,
+        RELEASE_WORKFLOW_RUNTIME_REQUIRED_SNIPPETS,
     );
     Ok(())
 }
@@ -601,6 +607,23 @@ const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "GRAPHVIZ_DOT",
     "storybook-release-acceptance-artifacts",
     "release-check",
+];
+
+const RELEASE_WORKFLOW_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
+    "JAVA_TOOL_OPTIONS",
+    "-Xss16m",
+    "-Djava.awt.headless=true",
+    "-Djdk.lang.processReaperUseDefaultStackSize=true",
+    "Install acceptance artifact dependencies",
+    "apt-get install -y graphviz imagemagick xvfb xclip",
+    "command -v magick",
+    "/usr/local/bin/magick",
+    "exec convert",
+    "/opt/local/bin/dot",
+    "GRAPHVIZ_DOT",
+    "xvfb-run -a just storybook-release-acceptance-artifacts",
+    "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION=",
+    "release-verify",
 ];
 
 const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
@@ -1017,7 +1040,9 @@ const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
     "native fullscreen ledger scanner must allow historical superseded notes",
     "native fullscreen ledger:",
     "def release_test_entrypoint_isolation_errors",
+    "def release_workflow_acceptance_runtime_errors",
     "def just_recipe_body",
+    "release workflow runtime:",
     "release test entrypoint scanner must reject generic kdv-storybook workspace tests",
     "release test entrypoint:",
 ];

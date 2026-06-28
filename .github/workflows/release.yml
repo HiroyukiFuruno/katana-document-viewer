@@ -26,6 +26,7 @@ permissions:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
 
 jobs:
   release:
@@ -61,6 +62,30 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Install acceptance artifact dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz imagemagick xvfb xclip
+          sudo mkdir -p /opt/local/bin
+          sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+          if ! command -v magick >/dev/null 2>&1; then
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'set -euo pipefail' \
+              'case "${1:-}" in' \
+              '  identify|compare|montage)' \
+              '    command="$1"' \
+              '    shift' \
+              '    exec "$command" "$@"' \
+              '    ;;' \
+              '  *)' \
+              '    exec convert "$@"' \
+              '    ;;' \
+              'esac' | sudo tee /usr/local/bin/magick >/dev/null
+            sudo chmod +x /usr/local/bin/magick
+          fi
+          echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+
       - name: Resolve version
         id: version
         shell: bash
@@ -70,7 +95,10 @@ jobs:
             "${{ inputs.version }}" \
             "${{ github.event.pull_request.head.ref }}"
 
-      - run: just VERSION="${{ steps.version.outputs.version }}" release-verify
+      - name: Release verify
+        run: |
+          xvfb-run -a just storybook-release-acceptance-artifacts
+          KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify
 
       - name: Create release tag
         env:

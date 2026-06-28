@@ -21,6 +21,7 @@ REMAINING_PLAN = CHANGE / "remaining-plan.md"
 STORYBOOK_USER_ACCEPTANCE = CHANGE / "storybook-user-acceptance.md"
 CI_WORKFLOW = ROOT / ".github/workflows/test-and-build.yml"
 PREFLIGHT_WORKFLOW = ROOT / ".github/workflows/release-preflight.yml"
+RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
 HANDOFF_FEEDBACK_LEDGER_FILES = (
     ROOT / "handoff-kdv-v0.2.0-viewer-recovery-2026-06-13.md",
     ROOT / "handoff-kdv-v0.2.0-work-instruction-2026-06-13.md",
@@ -1144,6 +1145,9 @@ def main() -> int:
         CI_WORKFLOW.read_text(encoding="utf-8"),
         PREFLIGHT_WORKFLOW.read_text(encoding="utf-8"),
     )
+    release_workflow_errors = release_workflow_acceptance_runtime_errors(
+        RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    )
     release_test_entrypoint_errors = release_test_entrypoint_isolation_errors(
         (ROOT / "Justfile").read_text(encoding="utf-8")
     )
@@ -1165,6 +1169,7 @@ def main() -> int:
         or source_integrity_errors
         or artifact_file_errors
         or plantuml_ci_errors
+        or release_workflow_errors
         or release_test_entrypoint_errors
     ):
         print(
@@ -1197,6 +1202,8 @@ def main() -> int:
             print(f"release acceptance artifact: {error}", file=sys.stderr)
         for error in plantuml_ci_errors:
             print(f"release PlantUML runtime: {error}", file=sys.stderr)
+        for error in release_workflow_errors:
+            print(f"release workflow runtime: {error}", file=sys.stderr)
         for error in release_test_entrypoint_errors:
             print(f"release test entrypoint: {error}", file=sys.stderr)
         if open_feedback_items:
@@ -3107,6 +3114,34 @@ steps:
         failures.append(
             "PlantUML CI runtime scanner must reject missing ImageMagick magick shim"
         )
+    valid_release_runtime = """
+env:
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
+steps:
+  - name: Install acceptance artifact dependencies
+    run: |
+      sudo apt-get install -y graphviz imagemagick xvfb xclip
+      sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+      if ! command -v magick >/dev/null 2>&1; then
+        sudo tee /usr/local/bin/magick >/dev/null
+        exec convert "$@"
+      fi
+      echo "GRAPHVIZ_DOT=/opt/local/bin/dot" >> "$GITHUB_ENV"
+  - name: Release verify
+    run: |
+      xvfb-run -a just storybook-release-acceptance-artifacts
+      KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION="${VERSION}" release-verify
+"""
+    if release_workflow_acceptance_runtime_errors(valid_release_runtime):
+        failures.append("Release workflow runtime scanner must allow complete artifact runtime")
+    if not release_workflow_acceptance_runtime_errors(
+        valid_release_runtime.replace("KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 ", "")
+    ):
+        failures.append("Release workflow runtime scanner must reject missing freshness skip")
+    if not release_workflow_acceptance_runtime_errors(
+        valid_release_runtime.replace("storybook-release-acceptance-artifacts", "storybook")
+    ):
+        failures.append("Release workflow runtime scanner must reject missing artifact generation")
     valid_just_test = """
 test:
     {{CARGO}} test --workspace --all-targets --all-features --locked --exclude kdv-storybook
@@ -3966,6 +4001,32 @@ def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> lis
                 + "."
             )
     return errors
+
+
+def release_workflow_acceptance_runtime_errors(release_workflow: str) -> list[str]:
+    required = (
+        "JAVA_TOOL_OPTIONS",
+        "-Xss16m",
+        "-Djava.awt.headless=true",
+        "-Djdk.lang.processReaperUseDefaultStackSize=true",
+        "Install acceptance artifact dependencies",
+        "apt-get install -y graphviz imagemagick xvfb xclip",
+        "command -v magick",
+        "/usr/local/bin/magick",
+        "exec convert",
+        "/opt/local/bin/dot",
+        "GRAPHVIZ_DOT",
+        "xvfb-run -a just storybook-release-acceptance-artifacts",
+        "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION=",
+        "release-verify",
+    )
+    missing = [token for token in required if token not in release_workflow]
+    if not missing:
+        return []
+    return [
+        "Release workflow must generate acceptance artifacts under xvfb before "
+        "release-verify: missing " + ", ".join(missing) + "."
+    ]
 
 
 def release_test_entrypoint_isolation_errors(justfile: str) -> list[str]:
