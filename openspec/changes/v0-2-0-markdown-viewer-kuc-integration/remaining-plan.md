@@ -2,6 +2,12 @@
 
 ## 直近更新: 2026-06-28
 
+- [/] 2026-06-28 追補36: v0.2.1 PR #10 Windows CI の direct fixture path / file URI 正規化 failure を修正した。
+  - 原因: `tools/kdv-storybook/src/preview_build_support.rs` が image fixture source を `format!("file://{document_id}")` で作り、Windows の `D:\...` path を invalid `file://D:\...` として渡していた。document id も backslash のままになり、direct image / SVG / diagram / HTML role / media host action / task location label が generic Windows `kdv-storybook` test で連鎖 failure した。
+  - 対応: fixture source の document id を `/` 区切りに正規化し、Windows drive path は `file:///D:/...` として渡す helper を追加した。KDV Storybook 側で座標補正、action parse、独自 widget、fallback renderer は追加していない。
+  - 検証: KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked preview_build_support -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked direct_image -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked preview_build_direct_html_keeps_alignment_roles -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked media_host_action_reads_typed_surface_control_payload -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked -- --test-threads=1` は通過した。
+  - release 判定: #7 / #9 の release scope は変更しない。#6 は引き続き v0.2.1 に抱き合わせず open のまま維持する。GitHub Actions PR #10 checks で再確認する。
+
 - [/] 2026-06-28 追補35: v0.2.1 release 対象を KDV #7 / #9 に限定し、KDV #6 は抱き合わせず open 維持する。
   - 判断: v0.2.1 は KatanA 0.22.30 側で露出した export blocker の修正 release とする。対象は KDV #7 `PDF export overlaps Japanese long paragraphs without spaces` と KDV #9 `KDV export: markdown links and tables are not represented correctly in HTML/PDF`。KDV #6 `Direct visual source files should export to HTML/PDF/PNG/JPEG` は direct visual source の別 minor scope として今回の release に含めない。
   - #7 対応: `non_html_payloads_use_wrapped_surface_for_japanese_no_space_paragraphs` を追加し、HTML 以外の PDF / PNG / JPEG export が同じ wrapped surface を使って日本語空白なし長文の高さを確保することを固定した。

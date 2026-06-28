@@ -61,6 +61,13 @@
   - release検証: KDV strict clippy、fmt、package、publish dry-run、`/opt/homebrew/bin/rtk just VERSION=v0.2.1 release-target-check`、`/opt/homebrew/bin/rtk just storybook-release-acceptance-artifacts` は通過した。acceptance artifact は scroll `elapsed_ms=33.571` / `max_frame_ms=5.233` / `full_preview_redraw_fallback_count=0`、live `source=headless` / `changed_pixels=4725958` を記録している。
   - release後処理: v0.2.1 公開確認後、#7 / #9 へ release evidence をコメントして close する。#6 は direct visual source export の別 minor scope として close しない。
 
+- [/] PR #10 Windows CI の direct fixture path / file URI 正規化 failure を修正した。
+  - 原因: image fixture source が Windows path を invalid `file://D:\...` として渡し、document id も backslash のままになっていたため、direct image / SVG / diagram / HTML role / media host action / task location label の generic Windows tests が連鎖 failure した。
+  - 対応ファイル: KDV `/Users/hiroyuki_furuno/works/private/katana-document-viewer/tools/kdv-storybook/src/preview_build_support.rs`。
+  - 対応: fixture source の document id を `/` 区切りに正規化し、Windows drive path は `file:///D:/...` として渡す helper を追加した。KDV Storybook 側で座標補正、action parse、独自 widget、fallback renderer は追加していない。
+  - 検証: KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked preview_build_support -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked direct_image -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked preview_build_direct_html_keeps_alignment_roles -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked media_host_action_reads_typed_surface_control_payload -- --test-threads=1`、KDV `/opt/homebrew/bin/rtk cargo test -p kdv-storybook --locked -- --test-threads=1` は通過した。
+  - issue運用: #7 / #9 の v0.2.1 release scope は変更しない。#6 は今回の release へ抱き合わせず open のまま維持する。
+
 ### 2026-06-27 追補対応: release PR CI / Linux clipboard smoke
 
 - [/] release PR gate の macOS/Ubuntu fmt failure と Ubuntu preflight clipboard failure を修正した。
