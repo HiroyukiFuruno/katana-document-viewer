@@ -39,9 +39,9 @@ impl PreviewBuildSupport {
         fixture: &StorybookFixture,
     ) -> Result<MarkdownSource, Box<dyn std::error::Error>> {
         let source_path = fixture.path.canonicalize()?;
-        let document_id = source_path.display().to_string();
+        let document_id = Self::document_id_for_path(&source_path);
         let content = if Self::is_image_fixture(&source_path) {
-            format!("file://{document_id}")
+            Self::file_uri_for_document_id(&document_id)
         } else {
             std::fs::read_to_string(&source_path)?
         };
@@ -195,6 +195,31 @@ impl PreviewBuildSupport {
                     "bmp" | "gif" | "jpeg" | "jpg" | "png" | "svg" | "webp"
                 )
             })
+    }
+
+    fn document_id_for_path(path: &Path) -> String {
+        path.display().to_string().replace('\\', "/")
+    }
+
+    fn file_uri_for_document_id(document_id: &str) -> String {
+        if document_id.starts_with("file://") {
+            return document_id.to_string();
+        }
+        if document_id.starts_with('/') {
+            return format!("file://{document_id}");
+        }
+        if Self::starts_with_windows_drive(document_id) {
+            return format!("file:///{document_id}");
+        }
+        format!("file://{document_id}")
+    }
+
+    fn starts_with_windows_drive(value: &str) -> bool {
+        let bytes = value.as_bytes();
+        bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'/' | b'\\')
     }
 }
 
@@ -352,18 +377,19 @@ mod tests {
     {
         let path = std::env::temp_dir().join("kdv storybook direct image.png");
         std::fs::write(&path, b"image bytes")?;
-        let expected_path = path.canonicalize()?;
+        let expected_path = path
+            .canonicalize()?
+            .display()
+            .to_string()
+            .replace('\\', "/");
         let source = PreviewBuildSupport::source_for_fixture(&crate::catalog::StorybookFixture {
             label: "direct/kdv-icon.png".to_string(),
             path: path.clone(),
         })?;
 
+        assert_eq!(Some(expected_path.clone()), source.document_id);
         assert_eq!(
-            Some(expected_path.display().to_string()),
-            source.document_id
-        );
-        assert_eq!(
-            format!("file://{}", expected_path.display()),
+            PreviewBuildSupport::file_uri_for_document_id(&expected_path),
             source.content
         );
         let _ = std::fs::remove_file(path);
@@ -379,18 +405,29 @@ mod tests {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::write(&relative_path, b"image bytes")?;
-        let absolute_path = relative_path.canonicalize()?;
+        let absolute_path = relative_path
+            .canonicalize()?
+            .display()
+            .to_string()
+            .replace('\\', "/");
         let source = PreviewBuildSupport::source_for_fixture(&crate::catalog::StorybookFixture {
             label: "direct/kdv-icon.png".to_string(),
             path: relative_path.clone(),
         })?;
 
         assert!(source.content.starts_with("file:///"));
-        assert_eq!(
-            Some(absolute_path.display().to_string()),
-            source.document_id
-        );
+        assert_eq!(Some(absolute_path), source.document_id);
         let _ = std::fs::remove_file(relative_path);
         Ok(())
+    }
+
+    #[test]
+    fn windows_direct_image_fixture_source_uses_valid_file_uri() {
+        let document_id = "D:/a/katana-document-viewer/assets/fixtures/direct/kdv-icon.png";
+
+        assert_eq!(
+            "file:///D:/a/katana-document-viewer/assets/fixtures/direct/kdv-icon.png",
+            PreviewBuildSupport::file_uri_for_document_id(document_id)
+        );
     }
 }

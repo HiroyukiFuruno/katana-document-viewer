@@ -175,5 +175,7 @@ mod media;
 mod rule;
 #[path = "export_surface_painter_table.rs"]
 mod table;
+#[path = "export_surface_painter_table_links.rs"]
+mod table_links;
 #[path = "export_surface_painter_task_markers.rs"]
 mod task_markers;

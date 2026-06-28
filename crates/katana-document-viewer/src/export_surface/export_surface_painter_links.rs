@@ -19,6 +19,9 @@ impl SurfacePainter {
             SurfaceBlock::BadgeRow(row) => {
                 Self::append_badge_link_annotations(annotations, row, page_index, y)
             }
+            SurfaceBlock::Table(table) => {
+                Self::append_table_link_annotations(annotations, table, page_index, y)
+            }
             _ => {}
         }
     }
