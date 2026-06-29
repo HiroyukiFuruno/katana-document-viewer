@@ -66,8 +66,26 @@ fn paint_table_row_background_colors_header_and_even_rows() {
 
 #[test]
 fn paint_table_cell_line_advances_text_y_with_table_line_height() {
-    let cell = SurfaceTableCellPaint {
-        cell: "value",
+    let mut image = image::RgbaImage::from_pixel(200, 80, Rgba([255, 255, 255, 255]));
+    let spans = vec![crate::export_surface_span::SurfaceTextSpan::plain("value")];
+    let cell = table_cell_paint_for_test(&spans);
+    let mut next_text_y = cell.y + 2;
+
+    paint_value_cell_line(&mut image, &cell, &mut next_text_y);
+
+    assert_eq!(next_text_y, 44);
+    assert!(
+        image
+            .pixels()
+            .any(|pixel| *pixel != Rgba([255, 255, 255, 255]))
+    );
+}
+
+fn table_cell_paint_for_test<'a>(
+    spans: &'a [crate::export_surface_span::SurfaceTextSpan],
+) -> SurfaceTableCellPaint<'a> {
+    SurfaceTableCellPaint {
+        spans,
         alignment: TableAlignment::Left,
         x: 10,
         y: 8,
@@ -75,24 +93,23 @@ fn paint_table_cell_line_advances_text_y_with_table_line_height() {
         row_height: 40,
         table_font_size: 22.0,
         table_line_height: 34,
-    };
-    let mut image = image::RgbaImage::from_pixel(200, 80, Rgba([255, 255, 255, 255]));
-    let mut next_text_y = cell.y + 2;
+    }
+}
+
+fn paint_value_cell_line(
+    image: &mut image::RgbaImage,
+    cell: &SurfaceTableCellPaint<'_>,
+    next_text_y: &mut u32,
+) {
     let mut painter = system_text_painter();
     SurfacePainter::paint_table_cell_line(
-        &mut image,
-        &cell,
-        "value",
+        image,
+        cell,
+        vec![crate::export_surface_span::SurfaceTextSpan::plain("value")],
+        *next_text_y,
         next_text_y,
-        &mut next_text_y,
         &mut painter,
         &palette(),
-    );
-    assert_eq!(next_text_y, 44);
-    assert!(
-        image
-            .pixels()
-            .any(|pixel| *pixel != Rgba([255, 255, 255, 255]))
     );
 }
 

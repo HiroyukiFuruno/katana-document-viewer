@@ -1,5 +1,5 @@
 use super::{TABLE_CELL_PADDING, TABLE_LINE_HEIGHT, TABLE_ROW_HEIGHT, TABLE_ROW_VERTICAL_PADDING};
-use crate::export_surface_helpers::{SURFACE_CONTENT_WIDTH, WrappedText};
+use crate::export_surface_helpers::SURFACE_CONTENT_WIDTH;
 use crate::export_surface_line::SurfaceTypographyConfig;
 use crate::export_surface_span::{SurfaceInlineSpans, SurfaceTextSpan};
 use crate::export_surface_text::SurfaceTextParser;
@@ -9,7 +9,6 @@ use katana_markdown_model::{TableAlignment, TableNode, TableRow};
 const ASCII_CELL_CHAR_WIDTH: u32 = 12;
 const WIDE_CELL_CHAR_WIDTH: u32 = 22;
 const TABLE_MIN_CELL_CHARS: usize = 8;
-
 pub(crate) struct SurfaceTableBlock {
     rows: Vec<Vec<String>>,
     cell_spans: Vec<Vec<Vec<SurfaceTextSpan>>>,
@@ -94,24 +93,25 @@ impl SurfaceTableBlock {
     }
 
     pub(crate) fn row_height_with_widths(&self, row_index: usize, column_widths: &[u32]) -> u32 {
-        let line_count = self
-            .rows
-            .get(row_index)
-            .map(|row| Self::row_line_count(row, column_widths))
-            .unwrap_or(1);
+        let line_count = self.row_line_count(row_index, column_widths);
         let dynamic_height =
             line_count as u32 * self.line_height() + TABLE_ROW_VERTICAL_PADDING * 2;
         dynamic_height.max(TABLE_ROW_HEIGHT)
     }
 
-    fn row_line_count(row: &[String], column_widths: &[u32]) -> usize {
-        row.iter()
-            .enumerate()
-            .map(|(index, cell)| {
-                let width = column_widths.get(index).copied().unwrap_or(0);
-                SurfaceTableLayout::cell_lines(cell, width).len()
+    fn row_line_count(&self, row_index: usize, column_widths: &[u32]) -> usize {
+        self.rows
+            .get(row_index)
+            .map(|row| {
+                row.iter()
+                    .enumerate()
+                    .map(|(index, _cell)| {
+                        let width = column_widths.get(index).copied().unwrap_or(0);
+                        self.cell_span_line_count(row_index, index, width)
+                    })
+                    .max()
+                    .unwrap_or(1)
             })
-            .max()
             .unwrap_or(1)
     }
 
@@ -125,6 +125,43 @@ impl SurfaceTableBlock {
             .and_then(|row| row.get(column_index))
             .map(Vec::as_slice)
             .unwrap_or(&[])
+    }
+
+    pub(crate) fn cell_span_lines(
+        &self,
+        row_index: usize,
+        column_index: usize,
+        width: u32,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
+        let spans = self.cell_spans(row_index, column_index).to_vec();
+        if spans.is_empty() {
+            return vec![vec![SurfaceTextSpan::plain(String::new())]];
+        }
+        Self::wrap_cell_spans(spans, width)
+    }
+
+    pub(crate) fn wrap_cell_spans(
+        spans: Vec<SurfaceTextSpan>,
+        width: u32,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
+        SurfaceTableSpanLines::wrap(spans, SurfaceTableLayout::cell_max_chars(width))
+    }
+
+    pub(crate) fn cell_span_line_count(
+        &self,
+        row_index: usize,
+        column_index: usize,
+        width: u32,
+    ) -> usize {
+        self.cell_span_lines(row_index, column_index, width).len()
+    }
+
+    pub(crate) fn cell_line_text(spans: &[SurfaceTextSpan]) -> String {
+        spans
+            .iter()
+            .map(|span| span.text.as_str())
+            .collect::<Vec<_>>()
+            .join("")
     }
 
     pub(crate) fn line_height(&self) -> u32 {
@@ -199,15 +236,7 @@ impl SurfaceTableLayout {
             .sum()
     }
 
-    pub(crate) fn cell_lines(cell: &str, width: u32) -> Vec<String> {
-        let lines = WrappedText::new(cell, Self::cell_max_chars(width)).collect::<Vec<_>>();
-        if lines.is_empty() {
-            return vec![String::new()];
-        }
-        lines
-    }
-
-    pub(crate) fn cell_max_chars(width: u32) -> usize {
+    fn cell_max_chars(width: u32) -> usize {
         (width.saturating_sub(TABLE_CELL_PADDING * 2) / WIDE_CELL_CHAR_WIDTH)
             .max(TABLE_MIN_CELL_CHARS as u32)
             .try_into()
@@ -228,6 +257,74 @@ impl SurfaceTableLayout {
     }
 }
 
+struct SurfaceTableSpanLines;
+
+impl SurfaceTableSpanLines {
+    fn wrap(spans: Vec<SurfaceTextSpan>, max_chars: usize) -> Vec<Vec<SurfaceTextSpan>> {
+        let mut state = SurfaceTableSpanLineState::new(max_chars);
+        for span in spans {
+            state.push_span(&span);
+        }
+        state.finish()
+    }
+}
+
+struct SurfaceTableSpanLineState {
+    max_chars: usize,
+    lines: Vec<Vec<SurfaceTextSpan>>,
+    current_line: Vec<SurfaceTextSpan>,
+    current_chars: usize,
+}
+
+impl SurfaceTableSpanLineState {
+    fn new(max_chars: usize) -> Self {
+        Self {
+            max_chars: max_chars.max(1),
+            lines: Vec::new(),
+            current_line: Vec::new(),
+            current_chars: 0,
+        }
+    }
+
+    fn push_span(&mut self, span: &SurfaceTextSpan) {
+        let mut text = String::new();
+        for character in span.text.chars() {
+            if self.current_chars == self.max_chars {
+                self.push_segment(span, &mut text);
+                self.start_new_line();
+            }
+            text.push(character);
+            self.current_chars += 1;
+        }
+        self.push_segment(span, &mut text);
+    }
+
+    fn push_segment(&mut self, span: &SurfaceTextSpan, text: &mut String) {
+        if text.is_empty() {
+            return;
+        }
+        let mut segment = span.clone();
+        segment.text = std::mem::take(text);
+        self.current_line.push(segment);
+    }
+
+    fn start_new_line(&mut self) {
+        if self.current_line.is_empty() {
+            return;
+        }
+        self.lines.push(std::mem::take(&mut self.current_line));
+        self.current_chars = 0;
+    }
+
+    fn finish(mut self) -> Vec<Vec<SurfaceTextSpan>> {
+        self.start_new_line();
+        if self.lines.is_empty() {
+            return vec![vec![SurfaceTextSpan::plain(String::new())]];
+        }
+        self.lines
+    }
+}
+
 fn scale_u32(value: u32, scale: f32) -> u32 {
     if !scale.is_finite() || scale <= 0.0 {
         return value;
@@ -237,7 +334,7 @@ fn scale_u32(value: u32, scale: f32) -> u32 {
 
 #[derive(Clone)]
 pub(crate) struct SurfaceTableCellPaint<'a> {
-    pub(crate) cell: &'a str,
+    pub(crate) spans: &'a [SurfaceTextSpan],
     pub(crate) alignment: TableAlignment,
     pub(crate) x: u32,
     pub(crate) y: u32,

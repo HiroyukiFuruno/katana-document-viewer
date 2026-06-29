@@ -11,7 +11,7 @@ use super::SurfaceBlockFactory;
 
 #[path = "text/wrap.rs"]
 mod wrap;
-pub(super) use wrap::SurfaceInlineLineWrapper;
+pub(crate) use wrap::SurfaceInlineLineWrapper;
 
 impl SurfaceBlockFactory {
     pub(super) fn append_wrapped(
