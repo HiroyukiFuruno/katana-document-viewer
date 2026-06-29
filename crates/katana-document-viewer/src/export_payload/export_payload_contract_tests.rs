@@ -6,5 +6,7 @@ mod cases_annotations;
 mod cases_export_fidelity;
 #[path = "export_payload_contract_tests_cases_japanese.rs"]
 mod cases_japanese;
+#[path = "export_payload_contract_tests_cases_wrapped_links.rs"]
+mod cases_wrapped_links;
 #[path = "export_payload_contract_tests_support.rs"]
 mod support;

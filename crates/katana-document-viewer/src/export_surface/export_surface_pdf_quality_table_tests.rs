@@ -61,6 +61,40 @@ fn pdf_surface_table_uses_html_like_padding_and_theme_colors()
 }
 
 #[test]
+fn pdf_surface_table_paints_active_theme_table_colors() -> Result<(), Box<dyn std::error::Error>> {
+    let theme = active_table_theme();
+    let surface = themed_table_surface(&theme)?;
+
+    assert_surface_has_theme_color(&surface.image, &theme.table_header_background, 500);
+    assert_surface_has_theme_color(&surface.image, &theme.table_even_row_background, 500);
+    assert_surface_has_theme_color(&surface.image, &theme.table_border, 100);
+    Ok(())
+}
+
+fn active_table_theme() -> KdvThemeSnapshot {
+    let mut theme = KdvThemeSnapshot::katana_dark();
+    theme.table_border = "#112233".to_string();
+    theme.table_header_background = "#223344".to_string();
+    theme.table_even_row_background = "#334455".to_string();
+    theme
+}
+
+fn themed_table_surface(
+    theme: &KdvThemeSnapshot,
+) -> Result<crate::export_surface::DocumentSurface, Box<dyn std::error::Error>> {
+    let graph = SurfaceTestSupport::graph_from_markdown("table-theme.md", table_markdown())?;
+    Ok(DocumentSurfaceFactory::create(&graph, theme))
+}
+
+fn assert_surface_has_theme_color(image: &image::RgbaImage, color: &str, min_pixels: usize) {
+    let pixel_count = count_exact_pixels(image, SurfaceHelpers::parse_color(color));
+    assert!(
+        pixel_count > min_pixels,
+        "table surface must use active theme color {color}: {pixel_count}"
+    );
+}
+
+#[test]
 fn pdf_surface_empty_code_block_keeps_visible_code_area() -> Result<(), Box<dyn std::error::Error>>
 {
     let box_height = surface_code_box_height_from_markdown(empty_code_markdown())
@@ -137,4 +171,8 @@ fn count_rows_with_code_background(image: &image::RgbaImage, color: image::Rgba<
                 > image.width() as usize / 2
         })
         .count()
+}
+
+fn count_exact_pixels(image: &image::RgbaImage, color: image::Rgba<u8>) -> usize {
+    image.pixels().filter(|pixel| **pixel == color).count()
 }

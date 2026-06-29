@@ -57,7 +57,7 @@ const STATIC_STYLE: &str = concat!(
     "th[data-align=\"center\"],td[data-align=\"center\"]{text-align:center;}",
     "th[data-align=\"right\"],td[data-align=\"right\"]{text-align:right;}",
     "pre[data-kdv-code-role=\"plain\"]{background:var(--kdv-code-bg);border:1px solid var(--kdv-code-border);border-radius:6px;padding:1rem;overflow:auto;margin:1rem 0 1.25rem;}",
-    "pre[data-kdv-code-role=\"plain\"] code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;}",
+    "pre[data-kdv-code-role=\"plain\"] code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;color:var(--kdv-text);}",
     "hr{border:0;border-top:1px solid var(--kdv-table-border);margin:2rem 0;}",
     "blockquote{border-left:4px solid var(--kdv-quote-border);margin:1rem 0;padding:.25rem 0 .25rem 1rem;color:var(--kdv-quote-text);}",
     "blockquote p:first-child{margin-top:0;}blockquote p:last-child{margin-bottom:0;}",

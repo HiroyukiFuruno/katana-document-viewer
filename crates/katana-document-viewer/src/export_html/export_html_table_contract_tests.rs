@@ -1,4 +1,5 @@
 use super::contract_test_support::HtmlContractTestSupport;
+use crate::KdvThemeSnapshot;
 
 #[test]
 fn red_detects_table_alignment_css_contract_gaps() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,6 +46,55 @@ fn assert_table_alignment_cell_contract(html: &str) {
             (
                 "right body cell",
                 r#"<td data-align="right" data-kdv-column-size="short">12345</td>"#,
+            ),
+        ],
+    );
+}
+
+#[test]
+fn table_theme_css_variables_follow_active_export_theme() -> Result<(), Box<dyn std::error::Error>>
+{
+    let style = themed_table_export_style()?;
+    assert_active_table_theme_style(&style);
+    Ok(())
+}
+
+fn themed_table_export_style() -> Result<String, Box<dyn std::error::Error>> {
+    let html = HtmlContractTestSupport::export_html_with_theme(
+        "| A | B |\n| --- | --- |\n| C | D |\n| E | F |\n",
+        active_table_theme(),
+    )?;
+    let style = HtmlContractTestSupport::extract_export_style(&html)
+        .ok_or("export style block must exist")?;
+    Ok(style.to_string())
+}
+
+fn active_table_theme() -> KdvThemeSnapshot {
+    let mut theme = KdvThemeSnapshot::katana_dark();
+    theme.table_border = "#112233".to_string();
+    theme.table_header_background = "#223344".to_string();
+    theme.table_even_row_background = "#334455".to_string();
+    theme
+}
+
+fn assert_active_table_theme_style(style: &str) {
+    HtmlContractTestSupport::assert_contains_all(
+        style,
+        &[
+            ("table border var", "--kdv-table-border:#112233;"),
+            ("table header var", "--kdv-table-header:#223344;"),
+            ("table even var", "--kdv-table-even:#334455;"),
+            (
+                "table border consumes var",
+                r#"[data-kdv-table="katana"] th,[data-kdv-table="katana"] td{border:1px solid var(--kdv-table-border);"#,
+            ),
+            (
+                "table header consumes var",
+                r#"[data-kdv-table="katana"] th{background:var(--kdv-table-header);"#,
+            ),
+            (
+                "table even row consumes var",
+                r#"[data-kdv-table="katana"] tbody tr:nth-child(even) td{background:var(--kdv-table-even);"#,
             ),
         ],
     );

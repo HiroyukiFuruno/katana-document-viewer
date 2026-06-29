@@ -3,13 +3,10 @@ use crate::export_surface_span::SurfaceTextSpan;
 
 const MIN_LINE_WRAP_WIDTH: u32 = 120;
 
-pub(in crate::export_surface::export_surface_block_factory) struct SurfaceInlineLineWrapper;
+pub(crate) struct SurfaceInlineLineWrapper;
 
 impl SurfaceInlineLineWrapper {
-    pub(in crate::export_surface::export_surface_block_factory) fn wrap(
-        spans: Vec<SurfaceTextSpan>,
-        max_width: u32,
-    ) -> Vec<Vec<SurfaceTextSpan>> {
+    pub(crate) fn wrap(spans: Vec<SurfaceTextSpan>, max_width: u32) -> Vec<Vec<SurfaceTextSpan>> {
         let max_width = max_width.max(MIN_LINE_WRAP_WIDTH);
         let mut state = LineWrapState::new(max_width);
         for segment in spans

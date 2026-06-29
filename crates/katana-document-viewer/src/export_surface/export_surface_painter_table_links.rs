@@ -35,7 +35,7 @@ impl SurfacePainter {
         request: TableRowLinkMetadataRequest<'_>,
     ) {
         let mut cell_x = PAGE_PADDING;
-        for (column_index, cell) in request.row.iter().enumerate() {
+        for (column_index, _cell) in request.row.iter().enumerate() {
             let width = request
                 .column_widths
                 .get(column_index)
@@ -45,7 +45,6 @@ impl SurfacePainter {
                 annotations,
                 TableCellLinkMetadataRequest {
                     table: request.table,
-                    cell,
                     row_index: request.row_index,
                     column_index,
                     page_index: request.page_index,
@@ -63,21 +62,40 @@ impl SurfacePainter {
         annotations: &mut Vec<super::SurfaceLinkAnnotation>,
         request: TableCellLinkMetadataRequest<'_>,
     ) {
-        let spans = request
-            .table
-            .cell_spans(request.row_index, request.column_index);
-        if spans.iter().all(|span| span.link_target.is_none()) {
+        let span_lines =
+            request
+                .table
+                .cell_span_lines(request.row_index, request.column_index, request.width);
+        if span_lines
+            .iter()
+            .flatten()
+            .all(|span| span.link_target.is_none())
+        {
             return;
         }
-        let mut x = table_cell_text_x(request);
+        let mut y = table_cell_text_y(request, span_lines.len());
+        for line_spans in span_lines {
+            Self::append_table_cell_line_link_annotations(annotations, request, &line_spans, y);
+            y += request.table.line_height();
+        }
+    }
+
+    fn append_table_cell_line_link_annotations(
+        annotations: &mut Vec<super::SurfaceLinkAnnotation>,
+        request: TableCellLinkMetadataRequest<'_>,
+        line_spans: &[super::SurfaceTextSpan],
+        y: u32,
+    ) {
+        let line_text = SurfaceTableBlock::cell_line_text(line_spans);
+        let mut x = table_cell_text_x(request, &line_text);
         let max_x = request
             .x
             .saturating_add(request.width)
             .saturating_sub(TABLE_CELL_PADDING);
-        for span in spans {
+        for span in line_spans {
             let span_width = SurfaceSpanMetrics::estimated_width(span, request.table.font_size());
             if let Some(target) = &span.link_target {
-                push_table_link_annotation(annotations, request, target, x, max_x, span_width);
+                push_table_link_annotation(annotations, request, target, x, y, max_x, span_width);
             }
             x += span_width;
         }
@@ -97,7 +115,6 @@ struct TableRowLinkMetadataRequest<'a> {
 #[derive(Clone, Copy)]
 struct TableCellLinkMetadataRequest<'a> {
     table: &'a SurfaceTableBlock,
-    cell: &'a str,
     row_index: usize,
     column_index: usize,
     page_index: usize,
@@ -107,8 +124,7 @@ struct TableCellLinkMetadataRequest<'a> {
     row_height: u32,
 }
 
-fn table_cell_text_y(request: TableCellLinkMetadataRequest<'_>) -> u32 {
-    let line_count = SurfaceTableLayout::cell_lines(request.cell, request.width).len();
+fn table_cell_text_y(request: TableCellLinkMetadataRequest<'_>, line_count: usize) -> u32 {
     request.y
         + SurfaceTableLayout::cell_text_y_with_line_height(
             request.row_height,
@@ -117,9 +133,9 @@ fn table_cell_text_y(request: TableCellLinkMetadataRequest<'_>) -> u32 {
         )
 }
 
-fn table_cell_text_x(request: TableCellLinkMetadataRequest<'_>) -> u32 {
+fn table_cell_text_x(request: TableCellLinkMetadataRequest<'_>, line_text: &str) -> u32 {
     SurfaceTableLayout::cell_text_x(
-        request.cell,
+        line_text,
         &request.table.alignment(request.column_index),
         request.x,
         request.width,
@@ -131,6 +147,7 @@ fn push_table_link_annotation(
     request: TableCellLinkMetadataRequest<'_>,
     target: &str,
     x: u32,
+    y: u32,
     max_x: u32,
     span_width: u32,
 ) {
@@ -140,7 +157,7 @@ fn push_table_link_annotation(
     annotations.push(super::SurfaceLinkAnnotation {
         page_index: request.page_index,
         x,
-        y: table_cell_text_y(request),
+        y,
         width: span_width.min(max_x.saturating_sub(x)),
         height: request.table.line_height(),
         target: target.to_string(),

@@ -21,10 +21,18 @@ impl SurfaceCodeHighlighter {
         body: &str,
         theme: &KdvThemeSnapshot,
     ) -> Vec<Vec<SurfaceTextSpan>> {
-        Self::highlight_with_theme_name(language, body, syntax_theme_name(theme))
+        Self::highlight_with_theme_config(language, body, syntax_theme_name(theme))
     }
 
     fn highlight_with_theme_name(
+        language: Option<&str>,
+        body: &str,
+        syntax_theme: &str,
+    ) -> Vec<Vec<SurfaceTextSpan>> {
+        Self::highlight_with_theme_config(language, body, syntax_theme)
+    }
+
+    fn highlight_with_theme_config(
         language: Option<&str>,
         body: &str,
         syntax_theme: &str,
@@ -69,12 +77,13 @@ impl SurfaceCodeHighlighter {
 }
 
 fn span_style(style: Style) -> SurfaceTextStyle {
-    SurfaceTextStyle::default().monospace().with_color(Rgba([
+    let color = Rgba([
         style.foreground.r,
         style.foreground.g,
         style.foreground.b,
         style.foreground.a,
-    ]))
+    ]);
+    SurfaceTextStyle::default().monospace().with_color(color)
 }
 
 fn syntax(language: &str) -> &'static SyntaxReference {

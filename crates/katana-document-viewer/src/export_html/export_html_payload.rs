@@ -110,7 +110,7 @@ fn append_code(
 ) {
     match role {
         CodeBlockRole::Plain { language } => {
-            CodeHtmlWriter::append_plain(html, language, &node.source.raw.text)
+            CodeHtmlWriter::append_plain(html, language, &node.source.raw.text, theme)
         }
         CodeBlockRole::Math => append_math_code(html, &node.source.raw.text, theme),
         CodeBlockRole::Diagram { kind } => append_diagram_code(html, graph, theme, node, kind),

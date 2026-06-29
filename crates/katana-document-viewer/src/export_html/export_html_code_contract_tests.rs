@@ -1,4 +1,5 @@
 use super::contract_test_support::HtmlContractTestSupport;
+use crate::KdvThemeSnapshot;
 
 #[test]
 fn red_detects_code_block_syntax_highlighting_contract_gaps()
@@ -39,6 +40,34 @@ fn assert_syntax_highlight_contract(html: &str) {
             ("toml language class", r#"<code class="language-toml">"#),
         ],
     );
+}
+
+#[test]
+fn dark_theme_code_blocks_use_dark_syntax_theme_and_plain_text_color()
+-> Result<(), Box<dyn std::error::Error>> {
+    let html = HtmlContractTestSupport::export_html_with_theme(
+        syntax_highlight_markdown(),
+        KdvThemeSnapshot::katana_dark(),
+    )?;
+
+    HtmlContractTestSupport::assert_contains_all(
+        &html,
+        &[
+            (
+                "dark syntax theme",
+                r#"data-kdv-syntax-theme="base16-ocean.dark""#,
+            ),
+            (
+                "plain code text color",
+                r#"pre[data-kdv-code-role="plain"] code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;color:var(--kdv-text);}"#,
+            ),
+        ],
+    );
+    assert!(
+        !html.contains(r#"data-kdv-syntax-theme="InspiredGitHub""#),
+        "dark HTML code export must not keep the light syntax theme: {html}"
+    );
+    Ok(())
 }
 
 #[test]

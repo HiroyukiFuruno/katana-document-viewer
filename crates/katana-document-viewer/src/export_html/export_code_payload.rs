@@ -1,4 +1,5 @@
 use crate::export_html_ops::ExportHtmlOps;
+use crate::{KdvThemeMode, KdvThemeSnapshot};
 use std::sync::LazyLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Theme, ThemeSet};
@@ -11,21 +12,28 @@ const SYNTAX_THEME: &str = "InspiredGitHub";
 pub(crate) struct CodeHtmlWriter;
 
 impl CodeHtmlWriter {
-    pub(crate) fn append_plain(html: &mut String, language: &Option<String>, text: &str) {
+    pub(crate) fn append_plain(
+        html: &mut String,
+        language: &Option<String>,
+        text: &str,
+        theme: &KdvThemeSnapshot,
+    ) {
         let body = ExportHtmlOps::fenced_body(text);
         match language.as_deref().filter(|value| !value.is_empty()) {
-            Some(language) => Self::append_highlighted(html, language, &body),
+            Some(language) => Self::append_highlighted(html, language, &body, theme),
             None => Self::append_plain_text(html, &body),
         }
     }
 
-    fn append_highlighted(html: &mut String, language: &str, body: &str) {
+    fn append_highlighted(html: &mut String, language: &str, body: &str, theme: &KdvThemeSnapshot) {
+        let syntax_theme = syntax_theme_name(theme);
         html.push_str(&format!(
-            "<pre data-kdv-code-role=\"plain\" data-kdv-code-language=\"{}\" data-kdv-code-highlighter=\"syntect\" data-kdv-syntax-theme=\"{SYNTAX_THEME}\"><code class=\"language-{}\">",
+            "<pre data-kdv-code-role=\"plain\" data-kdv-code-language=\"{}\" data-kdv-code-highlighter=\"syntect\" data-kdv-syntax-theme=\"{}\"><code class=\"language-{}\">",
             ExportHtmlOps::escape_html(language),
+            ExportHtmlOps::escape_html(syntax_theme),
             ExportHtmlOps::escape_html(language)
         ));
-        if let Some(highlighted) = Self::highlighted_html(language, body) {
+        if let Some(highlighted) = Self::highlighted_html(language, body, syntax_theme) {
             html.push_str(&highlighted);
         } else {
             html.push_str(&ExportHtmlOps::escape_html(body));
@@ -40,12 +48,12 @@ impl CodeHtmlWriter {
         ));
     }
 
-    fn highlighted_html(language: &str, body: &str) -> Option<String> {
+    fn highlighted_html(language: &str, body: &str, syntax_theme: &str) -> Option<String> {
         if body.is_empty() {
             return None;
         }
         let syntax = Self::syntax(language);
-        let mut highlighter = HighlightLines::new(syntax, theme());
+        let mut highlighter = HighlightLines::new(syntax, theme(syntax_theme));
         let mut html = String::new();
         for line in LinesWithEndings::from(body) {
             let ranges = highlighter.highlight_line(line, syntax_set()).ok()?;
@@ -74,8 +82,22 @@ fn theme_set() -> &'static ThemeSet {
     &THEME_SET
 }
 
-fn theme() -> &'static Theme {
-    &theme_set().themes[SYNTAX_THEME]
+fn theme(name: &str) -> &'static Theme {
+    theme_set()
+        .themes
+        .get(name)
+        .unwrap_or_else(|| &theme_set().themes[SYNTAX_THEME])
+}
+
+fn syntax_theme_name(theme: &KdvThemeSnapshot) -> &str {
+    let name = match theme.mode {
+        KdvThemeMode::Light => theme.syntax_theme_light.as_str(),
+        KdvThemeMode::Dark => theme.syntax_theme_dark.as_str(),
+    };
+    if name.trim().is_empty() {
+        return SYNTAX_THEME;
+    }
+    name
 }
 
 #[cfg(test)]
@@ -86,14 +108,24 @@ mod tests {
     fn append_plain_uses_plain_text_without_language() {
         let mut html = String::new();
         let language = Some(String::new());
-        CodeHtmlWriter::append_plain(&mut html, &language, "a & b");
+        CodeHtmlWriter::append_plain(
+            &mut html,
+            &language,
+            "a & b",
+            &KdvThemeSnapshot::katana_light(),
+        );
         assert!(html.contains("<pre data-kdv-code-role=\"plain\"><code>a &amp; b</code></pre>"));
     }
 
     #[test]
     fn append_plain_uses_highlighted_code_when_language_specified() {
         let mut html = String::new();
-        CodeHtmlWriter::append_plain(&mut html, &Some("rust".to_string()), "fn main() {}");
+        CodeHtmlWriter::append_plain(
+            &mut html,
+            &Some("rust".to_string()),
+            "fn main() {}",
+            &KdvThemeSnapshot::katana_light(),
+        );
         assert!(html.contains("data-kdv-code-language=\"rust\""));
         assert!(html.contains("data-kdv-code-highlighter=\"syntect\""));
     }
@@ -101,7 +133,12 @@ mod tests {
     #[test]
     fn append_plain_uses_plain_text_when_highlighted_code_is_empty() {
         let mut html = String::new();
-        CodeHtmlWriter::append_highlighted(&mut html, "rust", "");
+        CodeHtmlWriter::append_highlighted(
+            &mut html,
+            "rust",
+            "",
+            &KdvThemeSnapshot::katana_light(),
+        );
         assert!(
             html.starts_with(
                 "<pre data-kdv-code-role=\"plain\" data-kdv-code-language=\"rust\" data-kdv-code-highlighter=\"syntect\" data-kdv-syntax-theme=\"InspiredGitHub\"><code class=\"language-rust\">"
