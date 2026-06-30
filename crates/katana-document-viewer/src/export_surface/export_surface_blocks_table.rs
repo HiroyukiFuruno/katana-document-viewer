@@ -336,6 +336,7 @@ fn scale_u32(value: u32, scale: f32) -> u32 {
 pub(crate) struct SurfaceTableCellPaint<'a> {
     pub(crate) spans: &'a [SurfaceTextSpan],
     pub(crate) alignment: TableAlignment,
+    pub(crate) row_index: usize,
     pub(crate) x: u32,
     pub(crate) y: u32,
     pub(crate) width: u32,

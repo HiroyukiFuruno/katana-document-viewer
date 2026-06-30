@@ -87,6 +87,7 @@ fn table_cell_paint_for_test<'a>(
     SurfaceTableCellPaint {
         spans,
         alignment: TableAlignment::Left,
+        row_index: 1,
         x: 10,
         y: 8,
         width: 120,

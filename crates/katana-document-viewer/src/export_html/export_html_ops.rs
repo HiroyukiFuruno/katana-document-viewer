@@ -29,7 +29,7 @@ impl ExportHtmlOps {
     pub(crate) fn alert_body(text: &str) -> String {
         text.lines()
             .map(Self::strip_blockquote_marker)
-            .filter(|line| !Self::alert_marker(line))
+            .filter_map(|line| Self::alert_body_line(line.as_str()))
             .collect::<Vec<_>>()
             .join("\n")
             .trim()
@@ -103,6 +103,17 @@ impl ExportHtmlOps {
             )
     }
 
+    fn alert_body_line(line: &str) -> Option<String> {
+        let trimmed = line.trim();
+        if let Some(marker) = trimmed.strip_prefix("[!")
+            && let Some((_label, rest)) = marker.split_once(']')
+        {
+            let body = rest.trim();
+            return (!body.is_empty()).then(|| body.to_string());
+        }
+        (!Self::alert_marker(line)).then(|| line.to_string())
+    }
+
     fn fence_line(line: &str) -> bool {
         let trimmed = line.trim_start();
         trimmed.starts_with("```") || trimmed.starts_with("~~~")
@@ -154,6 +165,15 @@ mod tests {
     fn alert_body_removes_gfm_marker_and_trim() {
         let input = "> [!NOTE]\n> note body";
         assert_eq!(ExportHtmlOps::alert_body(input), "note body");
+    }
+
+    #[test]
+    fn alert_body_keeps_same_line_marker_body() {
+        let input = "> [!NOTE] same line body\n> note body";
+        assert_eq!(
+            ExportHtmlOps::alert_body(input),
+            "same line body\nnote body"
+        );
     }
 
     #[test]

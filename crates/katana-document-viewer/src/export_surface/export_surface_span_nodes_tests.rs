@@ -148,6 +148,20 @@ fn from_markdown_splits_raw_emoji_for_os_emoji_rendering() {
 }
 
 #[test]
+fn from_markdown_marks_star_variation_sequence_for_os_emoji_rendering() {
+    let spans =
+        SurfaceInlineSpans::from_markdown("Star ⭐️ mark", &KdvThemeSnapshot::katana_light());
+
+    assert_eq!(
+        spans
+            .iter()
+            .map(|span| (span.text.as_str(), span.style.emoji))
+            .collect::<Vec<_>>(),
+        vec![("Star ", false), ("⭐️", true), (" mark", false)]
+    );
+}
+
+#[test]
 fn from_markdown_empty_fragment_returns_empty_plain_span() {
     let spans = SurfaceInlineSpans::from_markdown("", &KdvThemeSnapshot::katana_light());
 

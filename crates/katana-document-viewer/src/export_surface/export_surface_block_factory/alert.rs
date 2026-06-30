@@ -22,7 +22,7 @@ impl SurfaceBlockFactory {
         }
         blocks.push(SurfaceBlock::Alert(SurfaceAlertBlock::new(
             label,
-            alert_body_lines(node),
+            alert_body_lines(node, label),
             context.quote_depth,
             context.theme,
         )));

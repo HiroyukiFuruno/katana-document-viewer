@@ -46,7 +46,7 @@ fn pdf_surface_table_right_alignment_keeps_cell_padding() {
 fn pdf_surface_table_uses_html_like_padding_and_theme_colors()
 -> Result<(), Box<dyn std::error::Error>> {
     let theme = KdvThemeSnapshot::katana_light();
-    assert_eq!(theme.table_header_background, "#f3f3f3");
+    assert_eq!(theme.export_table_header_background(), "#0078d4");
     assert_eq!(theme.table_even_row_background, "#ffffff");
 
     let (row_height, text_y) =
@@ -65,7 +65,7 @@ fn pdf_surface_table_paints_active_theme_table_colors() -> Result<(), Box<dyn st
     let theme = active_table_theme();
     let surface = themed_table_surface(&theme)?;
 
-    assert_surface_has_theme_color(&surface.image, &theme.table_header_background, 500);
+    assert_surface_has_theme_color(&surface.image, theme.export_table_header_background(), 500);
     assert_surface_has_theme_color(&surface.image, &theme.table_even_row_background, 500);
     assert_surface_has_theme_color(&surface.image, &theme.table_border, 100);
     Ok(())

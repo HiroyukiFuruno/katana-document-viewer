@@ -124,13 +124,18 @@ impl KdvThemeSnapshot {
 
     pub(crate) fn export_table_header_background(&self) -> &str {
         let preset = self.mode_preset();
-        if self.should_derive_export_table_token(
-            &self.table_header_background,
-            &preset.table_header_background,
-        ) {
-            return &self.code_background;
+        if self.table_header_background == preset.table_header_background {
+            return self.export_accent_color();
         }
         &self.table_header_background
+    }
+
+    pub(crate) fn export_table_header_text(&self) -> &str {
+        let preset = self.mode_preset();
+        if self.table_header_background == preset.table_header_background {
+            return &self.background;
+        }
+        &self.text
     }
 
     pub(crate) fn export_table_even_row_background(&self) -> &str {
@@ -146,6 +151,10 @@ impl KdvThemeSnapshot {
 
     fn should_derive_export_table_token(&self, value: &str, preset_value: &str) -> bool {
         value == preset_value && self.document_surface_roles_differ_from_mode_preset()
+    }
+
+    fn export_accent_color(&self) -> &str {
+        &self.alert_note
     }
 
     fn document_surface_roles_differ_from_mode_preset(&self) -> bool {
@@ -257,7 +266,8 @@ mod tests {
         theme.code_border = "#31475f".to_string();
 
         assert_eq!(theme.export_table_border(), "#31475f");
-        assert_eq!(theme.export_table_header_background(), "#162534");
+        assert_eq!(theme.export_table_header_background(), "#0078d4");
+        assert_eq!(theme.export_table_header_text(), "#101820");
         assert_eq!(theme.export_table_even_row_background(), "#101820");
     }
 
@@ -273,6 +283,18 @@ mod tests {
 
         assert_eq!(theme.export_table_border(), "#010203");
         assert_eq!(theme.export_table_header_background(), "#020304");
+        assert_eq!(theme.export_table_header_text(), "#242424");
         assert_eq!(theme.export_table_even_row_background(), "#030405");
+    }
+
+    #[test]
+    fn default_export_table_header_uses_theme_accent() {
+        let light = KdvThemeSnapshot::katana_light();
+        let dark = KdvThemeSnapshot::katana_dark();
+
+        assert_eq!(light.export_table_header_background(), light.alert_note);
+        assert_eq!(dark.export_table_header_background(), dark.alert_note);
+        assert_eq!(light.export_table_header_text(), light.background);
+        assert_eq!(dark.export_table_header_text(), dark.background);
     }
 }

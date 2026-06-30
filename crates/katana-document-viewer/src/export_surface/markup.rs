@@ -2,16 +2,17 @@ use super::SurfaceBadge;
 use crate::export_surface_text::SurfaceTextParser;
 use katana_markdown_model::{KmmNode, ListItemNode};
 
+#[path = "export_surface_markup_alert.rs"]
+mod export_surface_markup_alert;
 #[path = "export_surface_markup_html.rs"]
 mod export_surface_markup_html;
 
+pub(super) use self::export_surface_markup_alert::{
+    alert_body_lines, alert_color, alert_label_text,
+};
+#[cfg(test)]
+pub(super) use self::export_surface_markup_alert::{alert_icon_name, alert_title};
 pub(super) use self::export_surface_markup_html::SurfaceHtmlMarkup;
-
-const ALERT_COLOR_TIP: image::Rgba<u8> = image::Rgba([26, 127, 55, 255]);
-const ALERT_COLOR_IMPORTANT: image::Rgba<u8> = image::Rgba([130, 80, 223, 255]);
-const ALERT_COLOR_WARNING: image::Rgba<u8> = image::Rgba([191, 135, 0, 255]);
-const ALERT_COLOR_CAUTION: image::Rgba<u8> = image::Rgba([209, 36, 47, 255]);
-const ALERT_COLOR_DEFAULT: image::Rgba<u8> = image::Rgba([9, 105, 218, 255]);
 
 pub(super) struct SurfaceDetailsParts<'a> {
     pub(super) summary: &'a str,
@@ -73,64 +74,6 @@ fn task_marker_text(marker: &str) -> &'static str {
         "[-]" => "⊟",
         "[/]" => "◩",
         _ => "☐",
-    }
-}
-
-pub(super) fn alert_title(label: &str) -> &str {
-    match label {
-        "TIP" => "Tip",
-        "IMPORTANT" => "Important",
-        "WARNING" => "Warning",
-        "CAUTION" => "Caution",
-        _ => "Note",
-    }
-}
-
-pub(super) fn alert_label_text(label: &str) -> String {
-    alert_title(label).to_string()
-}
-
-#[cfg(test)]
-pub(super) fn alert_icon_name(label: &str) -> &str {
-    match label {
-        "TIP" => "tip-bulb",
-        "IMPORTANT" => "important-callout",
-        "WARNING" => "warning-triangle",
-        "CAUTION" => "caution-circle-slash",
-        _ => "note-circle",
-    }
-}
-
-pub(super) fn alert_body_lines(node: &KmmNode) -> Vec<String> {
-    let lines = node
-        .children
-        .iter()
-        .map(SurfaceTextParser::inline_text)
-        .map(|text| text.trim().to_string())
-        .filter(|text| !text.is_empty())
-        .collect::<Vec<_>>();
-    if !lines.is_empty() {
-        return lines;
-    }
-    node.source
-        .raw
-        .text
-        .lines()
-        .filter_map(|line| line.trim_start().strip_prefix('>'))
-        .map(str::trim)
-        .filter(|line| !line.starts_with("[!"))
-        .filter(|line| !line.is_empty())
-        .map(SurfaceTextParser::inline_markdown_text)
-        .collect()
-}
-
-pub(super) fn alert_color(label: &str) -> image::Rgba<u8> {
-    match label {
-        "TIP" => ALERT_COLOR_TIP,
-        "IMPORTANT" => ALERT_COLOR_IMPORTANT,
-        "WARNING" => ALERT_COLOR_WARNING,
-        "CAUTION" => ALERT_COLOR_CAUTION,
-        _ => ALERT_COLOR_DEFAULT,
     }
 }
 
