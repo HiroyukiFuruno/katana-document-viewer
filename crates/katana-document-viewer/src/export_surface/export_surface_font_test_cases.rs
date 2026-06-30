@@ -51,6 +51,25 @@ mod tests {
     }
 
     #[test]
+    fn issue_14_emoji_sequence_paints_visible_pixels() {
+        let mut painter = SurfaceTextPainter::from_system_fonts();
+        let background = Rgba([255, 255, 255, 255]);
+        let mut image = RgbaImage::from_pixel(720, 120, background);
+        let spans = vec![SurfaceTextSpan::styled(
+            "🧪 ✨ ✅ ⚠️ 🛠️ 🧑‍💻",
+            SurfaceTextStyle::default().emoji(),
+        )];
+
+        painter.draw_spans(&mut image, &spans, 12, 16, 32.0, Rgba([36, 36, 36, 255]));
+
+        let painted_pixels = image.pixels().filter(|pixel| **pixel != background).count();
+        assert!(
+            painted_pixels > 64,
+            "issue #14 emoji sequence must not render as missing blank glyphs"
+        );
+    }
+
+    #[test]
     fn cjk_underline_width_tracks_full_width_text() {
         let width = estimated_text_width("下線", 24.0);
 

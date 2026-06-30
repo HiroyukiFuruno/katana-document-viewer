@@ -9,22 +9,22 @@ impl SurfaceBlockFactory {
         blocks: &mut Vec<SurfaceBlock>,
         node: &KmmNode,
         label: &str,
-        quote_depth: u32,
-        list_depth: u32,
+        context: super::dispatch::SurfaceAppendContext<'_>,
     ) {
         if let Some((title, body)) = legacy_note_children(&node.children) {
             Self::append_wrapped(
                 blocks,
                 format!("{title} {body}"),
-                quote_depth + 1,
-                list_depth,
+                context.quote_depth + 1,
+                context.list_depth,
             );
             return;
         }
         blocks.push(SurfaceBlock::Alert(SurfaceAlertBlock::new(
             label,
             alert_body_lines(node),
-            quote_depth,
+            context.quote_depth,
+            context.theme,
         )));
     }
 }

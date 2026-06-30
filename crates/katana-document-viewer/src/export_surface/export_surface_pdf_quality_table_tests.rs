@@ -71,11 +71,32 @@ fn pdf_surface_table_paints_active_theme_table_colors() -> Result<(), Box<dyn st
     Ok(())
 }
 
+#[test]
+fn pdf_surface_table_derives_default_table_tokens_from_generic_document_surface()
+-> Result<(), Box<dyn std::error::Error>> {
+    let theme = generic_document_theme_without_table_tokens();
+    let surface = themed_table_surface(&theme)?;
+    let even = theme.export_table_even_row_background();
+
+    assert_surface_has_theme_color(&surface.image, theme.export_table_header_background(), 500);
+    assert_surface_has_theme_color(&surface.image, even, 500);
+    assert_surface_has_theme_color(&surface.image, theme.export_table_border(), 100);
+    Ok(())
+}
+
 fn active_table_theme() -> KdvThemeSnapshot {
     let mut theme = KdvThemeSnapshot::katana_dark();
     theme.table_border = "#112233".to_string();
     theme.table_header_background = "#223344".to_string();
     theme.table_even_row_background = "#334455".to_string();
+    theme
+}
+
+fn generic_document_theme_without_table_tokens() -> KdvThemeSnapshot {
+    let mut theme = KdvThemeSnapshot::katana_light();
+    theme.background = "#101820".to_string();
+    theme.code_background = "#162534".to_string();
+    theme.code_border = "#31475f".to_string();
     theme
 }
 

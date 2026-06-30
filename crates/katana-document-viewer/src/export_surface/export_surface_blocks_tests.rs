@@ -1,4 +1,5 @@
 use super::{SurfaceAlertBlock, SurfaceBlock, SurfaceDiagramBlock, SurfaceImageBlock};
+use crate::theme::KdvThemeSnapshot;
 use image::Rgba;
 use image::RgbaImage;
 
@@ -40,7 +41,12 @@ fn block_debug_uses_expected_kind_prefixes() -> Result<(), Box<dyn std::error::E
     let image = SurfaceImageBlock::from_path(&path, None, "a".to_string())
         .ok_or(std::io::Error::other("debug image block"))?;
     let image_block = SurfaceBlock::Image(image);
-    let alert_block = SurfaceBlock::Alert(SurfaceAlertBlock::new("TIP", vec!["ok".to_string()], 0));
+    let alert_block = SurfaceBlock::Alert(SurfaceAlertBlock::new(
+        "TIP",
+        vec!["ok".to_string()],
+        0,
+        &KdvThemeSnapshot::katana_light(),
+    ));
 
     assert!(image_block.debug_for_tests().starts_with("image"));
     assert!(alert_block.debug_for_tests().starts_with("alert:"));

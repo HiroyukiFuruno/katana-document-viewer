@@ -1,4 +1,5 @@
 use super::{SurfaceAlertBlock, SurfaceBadge, SurfaceBadgeRowBlock};
+use crate::KdvThemeSnapshot;
 
 #[test]
 fn badge_row_height_text_and_total_width_calculated_from_badges() {
@@ -61,10 +62,30 @@ fn alert_block_renders_title_and_body_text() {
         "WARNING",
         vec!["line one".to_string(), "line two".to_string()],
         0,
+        &KdvThemeSnapshot::katana_light(),
     );
 
     assert!(alert.text().starts_with("Warning"));
     assert!(alert.text().contains("line one"));
     assert!(alert.text().contains("line two"));
     assert!(alert.height() > 0);
+}
+
+#[test]
+fn alert_body_uses_available_surface_width_before_wrapping() {
+    let alert = SurfaceAlertBlock::new(
+        "NOTE",
+        vec![
+            "Highlights information that users should take into account, even when skimming."
+                .to_string(),
+        ],
+        0,
+        &KdvThemeSnapshot::katana_light(),
+    );
+
+    assert_eq!(alert.body.len(), 1);
+    assert_eq!(
+        alert.body[0].text,
+        "Highlights information that users should take into account, even when skimming."
+    );
 }

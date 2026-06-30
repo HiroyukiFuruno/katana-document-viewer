@@ -7,6 +7,7 @@ fn red_detects_export_stylesheet_contract_gaps() -> Result<(), Box<dyn std::erro
     assert_export_table_base_styles(&html);
     assert_export_table_column_styles(&html);
     assert_export_block_styles(&html);
+    assert_export_font_stack(&html);
     assert_export_task_list_styles(&html);
     assert_export_task_visual_styles(&html);
     Ok(())
@@ -66,6 +67,16 @@ fn assert_export_block_styles(html: &str) {
                 r#"[data-github-alert="NOTE"]{border-left-color:var(--kdv-alert-note);"#,
             ),
         ],
+    );
+}
+
+fn assert_export_font_stack(html: &str) {
+    HtmlContractTestSupport::assert_contains_all(
+        html,
+        &[(
+            "emoji fallback font stack",
+            "font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\",sans-serif;",
+        )],
     );
 }
 

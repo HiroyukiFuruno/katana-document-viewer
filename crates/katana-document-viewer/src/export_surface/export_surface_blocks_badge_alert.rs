@@ -2,12 +2,16 @@ use super::{
     BADGE_HEIGHT, BADGE_HORIZONTAL_GAP, BADGE_HORIZONTAL_PADDING, BADGE_SEGMENT_MIN_WIDTH,
     BADGE_VERTICAL_MARGIN,
 };
-use crate::export_surface_helpers::{BODY_MAX_CHARS, SurfaceHelpers, WrappedText};
+use crate::export_surface_helpers::{QUOTE_INDENT, SURFACE_CONTENT_WIDTH, SurfaceHelpers};
 use crate::export_surface_line::{SurfaceLine, SurfaceTypographyConfig};
-use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+use crate::export_surface_span::{SurfaceInlineSpans, SurfaceTextSpan, SurfaceTextStyle};
+use crate::theme::KdvThemeSnapshot;
+
+use super::super::export_surface_block_factory::SurfaceInlineLineWrapper;
 
 const BADGE_TEXT_APPROX_CHAR_WIDTH: u32 = 10;
 const ALERT_VERTICAL_PADDING: u32 = 32;
+const ALERT_BODY_X_OFFSET: u32 = 28;
 
 pub(crate) struct SurfaceBadgeRowBlock {
     badges: Vec<SurfaceBadge>,
@@ -114,7 +118,12 @@ pub(crate) struct SurfaceAlertBlock {
 mod tests;
 
 impl SurfaceAlertBlock {
-    pub(crate) fn new(label: &str, body_lines: Vec<String>, quote_depth: u32) -> Self {
+    pub(crate) fn new(
+        label: &str,
+        body_lines: Vec<String>,
+        quote_depth: u32,
+        theme: &KdvThemeSnapshot,
+    ) -> Self {
         let title = SurfaceLine::body_spans(
             vec![SurfaceTextSpan::styled(
                 super::super::markup::alert_label_text(label),
@@ -126,8 +135,7 @@ impl SurfaceAlertBlock {
         );
         let body = body_lines
             .into_iter()
-            .flat_map(|line| WrappedText::new(&line, BODY_MAX_CHARS))
-            .map(|line| SurfaceLine::body_with_quote(line, 0))
+            .flat_map(|line| Self::body_surface_lines(&line, quote_depth, theme))
             .collect();
         Self {
             label: label.to_string(),
@@ -135,6 +143,24 @@ impl SurfaceAlertBlock {
             body,
             quote_depth,
         }
+    }
+
+    fn body_surface_lines(
+        line: &str,
+        quote_depth: u32,
+        theme: &KdvThemeSnapshot,
+    ) -> Vec<SurfaceLine> {
+        let spans = SurfaceInlineSpans::from_markdown(line, theme);
+        SurfaceInlineLineWrapper::wrap(spans, Self::body_max_width(quote_depth))
+            .into_iter()
+            .map(|spans| SurfaceLine::body_spans(spans, 0))
+            .collect()
+    }
+
+    fn body_max_width(quote_depth: u32) -> u32 {
+        SURFACE_CONTENT_WIDTH
+            .saturating_sub(quote_depth * QUOTE_INDENT)
+            .saturating_sub(ALERT_BODY_X_OFFSET)
     }
 
     pub(crate) fn height(&self) -> u32 {
