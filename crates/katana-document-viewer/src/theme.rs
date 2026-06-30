@@ -114,6 +114,54 @@ impl KdvThemeSnapshot {
         snapshot
     }
 
+    pub(crate) fn export_table_border(&self) -> &str {
+        let preset = self.mode_preset();
+        if self.should_derive_export_table_token(&self.table_border, &preset.table_border) {
+            return &self.code_border;
+        }
+        &self.table_border
+    }
+
+    pub(crate) fn export_table_header_background(&self) -> &str {
+        let preset = self.mode_preset();
+        if self.should_derive_export_table_token(
+            &self.table_header_background,
+            &preset.table_header_background,
+        ) {
+            return &self.code_background;
+        }
+        &self.table_header_background
+    }
+
+    pub(crate) fn export_table_even_row_background(&self) -> &str {
+        let preset = self.mode_preset();
+        if self.should_derive_export_table_token(
+            &self.table_even_row_background,
+            &preset.table_even_row_background,
+        ) {
+            return &self.background;
+        }
+        &self.table_even_row_background
+    }
+
+    fn should_derive_export_table_token(&self, value: &str, preset_value: &str) -> bool {
+        value == preset_value && self.document_surface_roles_differ_from_mode_preset()
+    }
+
+    fn document_surface_roles_differ_from_mode_preset(&self) -> bool {
+        let preset = self.mode_preset();
+        self.background != preset.background
+            || self.code_background != preset.code_background
+            || self.code_border != preset.code_border
+    }
+
+    fn mode_preset(&self) -> Self {
+        match self.mode {
+            KdvThemeMode::Light => Self::katana_light(),
+            KdvThemeMode::Dark => Self::katana_dark(),
+        }
+    }
+
     fn krr_drawio_label_color(&self) -> String {
         match self.mode {
             KdvThemeMode::Light => "#333333".to_string(),
@@ -199,5 +247,32 @@ mod tests {
         assert_eq!(dark.text, "#d4d4d4");
         assert_eq!(dark.preview_text, "#d4d4d4");
         assert_eq!(dark.plantuml_note_text, "#E0E0E0");
+    }
+
+    #[test]
+    fn export_table_tokens_derive_from_custom_document_surface_when_left_on_preset_defaults() {
+        let mut theme = KdvThemeSnapshot::katana_light();
+        theme.background = "#101820".to_string();
+        theme.code_background = "#162534".to_string();
+        theme.code_border = "#31475f".to_string();
+
+        assert_eq!(theme.export_table_border(), "#31475f");
+        assert_eq!(theme.export_table_header_background(), "#162534");
+        assert_eq!(theme.export_table_even_row_background(), "#101820");
+    }
+
+    #[test]
+    fn export_table_tokens_keep_explicit_table_values() {
+        let mut theme = KdvThemeSnapshot::katana_light();
+        theme.background = "#101820".to_string();
+        theme.code_background = "#162534".to_string();
+        theme.code_border = "#31475f".to_string();
+        theme.table_border = "#010203".to_string();
+        theme.table_header_background = "#020304".to_string();
+        theme.table_even_row_background = "#030405".to_string();
+
+        assert_eq!(theme.export_table_border(), "#010203");
+        assert_eq!(theme.export_table_header_background(), "#020304");
+        assert_eq!(theme.export_table_even_row_background(), "#030405");
     }
 }

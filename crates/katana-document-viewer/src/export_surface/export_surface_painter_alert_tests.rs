@@ -39,7 +39,12 @@ fn paint_alert_line_uses_system_painter() {
 fn paint_alert_background_keeps_body_area_unfilled_and_uses_left_rule() {
     let background = Rgba([12, 13, 14, 255]);
     let mut image = image::RgbaImage::from_pixel(240, 120, background);
-    let alert = SurfaceAlertBlock::new("WARNING", vec!["warning".to_string()], 0);
+    let alert = SurfaceAlertBlock::new(
+        "WARNING",
+        vec!["warning".to_string()],
+        0,
+        &KdvThemeSnapshot::katana_light(),
+    );
 
     SurfacePainter::paint_alert_background(&mut image, &alert, 0);
 

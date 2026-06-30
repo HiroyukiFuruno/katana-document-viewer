@@ -12,9 +12,9 @@ impl HtmlExportStyle {
         html.push_str(":root{");
         Self::append_var(html, "text", &theme.text);
         Self::append_var(html, "background", &theme.background);
-        Self::append_var(html, "table-border", &theme.table_border);
-        Self::append_var(html, "table-header", &theme.table_header_background);
-        Self::append_var(html, "table-even", &theme.table_even_row_background);
+        Self::append_var(html, "table-border", theme.export_table_border());
+        Self::append_var(html, "table-header", theme.export_table_header_background());
+        Self::append_var(html, "table-even", theme.export_table_even_row_background());
         Self::append_var(html, "quote-border", &theme.quote_border);
         Self::append_var(html, "quote-text", &theme.quote_text);
         Self::append_var(html, "alert-bg", &theme.alert_background);
@@ -41,7 +41,7 @@ impl HtmlExportStyle {
 }
 
 const STATIC_STYLE: &str = concat!(
-    "body{background:var(--kdv-background);color:var(--kdv-text);font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;}",
+    "body{background:var(--kdv-background);color:var(--kdv-text);font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\",sans-serif;}",
     "main{max-width:980px;margin:0 auto;padding:32px;}",
     "em{font-style:italic;}",
     ":not(pre)>code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--kdv-code-bg);border:1px solid var(--kdv-code-border);border-radius:4px;padding:.12em .32em;white-space:break-spaces;}",

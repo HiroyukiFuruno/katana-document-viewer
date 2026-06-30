@@ -5,11 +5,11 @@ use super::{
 use katana_markdown_model::HtmlBlockRole;
 
 #[derive(Clone, Copy)]
-struct SurfaceAppendContext<'a> {
-    graph: &'a BuildGraph,
-    quote_depth: u32,
-    list_depth: u32,
-    theme: &'a KdvThemeSnapshot,
+pub(super) struct SurfaceAppendContext<'a> {
+    pub(super) graph: &'a BuildGraph,
+    pub(super) quote_depth: u32,
+    pub(super) list_depth: u32,
+    pub(super) theme: &'a KdvThemeSnapshot,
 }
 
 impl SurfaceBlockFactory {
@@ -122,9 +122,7 @@ impl SurfaceBlockFactory {
                 context.list_depth,
                 context.theme,
             ),
-            KmmNodeKind::Alert { label } => {
-                Self::append_alert(blocks, node, label, context.quote_depth, context.list_depth)
-            }
+            KmmNodeKind::Alert { label } => Self::append_alert(blocks, node, label, context),
             _ => return false,
         }
         true

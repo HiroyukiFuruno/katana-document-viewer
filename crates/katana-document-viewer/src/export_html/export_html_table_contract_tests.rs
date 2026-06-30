@@ -101,6 +101,37 @@ fn assert_active_table_theme_style(style: &str) {
 }
 
 #[test]
+fn table_theme_css_variables_derive_from_generic_document_surface_when_table_tokens_are_default()
+-> Result<(), Box<dyn std::error::Error>> {
+    let html = HtmlContractTestSupport::export_html_with_theme(
+        "| A | B |\n| --- | --- |\n| C | D |\n| E | F |\n",
+        generic_document_theme_without_table_tokens(),
+    )?;
+    let style = HtmlContractTestSupport::extract_export_style(&html)
+        .ok_or("export style block must exist")?;
+
+    HtmlContractTestSupport::assert_contains_all(
+        style,
+        &[
+            ("derived table border", "--kdv-table-border:#31475f;"),
+            ("derived table header", "--kdv-table-header:#162534;"),
+            ("derived table even", "--kdv-table-even:#101820;"),
+        ],
+    );
+    Ok(())
+}
+
+fn generic_document_theme_without_table_tokens() -> KdvThemeSnapshot {
+    let mut theme = KdvThemeSnapshot::katana_light();
+    theme.name = "generic-document".to_string();
+    theme.background = "#101820".to_string();
+    theme.text = "#f2f4f8".to_string();
+    theme.code_background = "#162534".to_string();
+    theme.code_border = "#31475f".to_string();
+    theme
+}
+
+#[test]
 fn red_detects_table_cell_markdown_and_short_column_width_gaps()
 -> Result<(), Box<dyn std::error::Error>> {
     let html = HtmlContractTestSupport::export_html(

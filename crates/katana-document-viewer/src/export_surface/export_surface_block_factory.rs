@@ -34,6 +34,8 @@ mod text;
 
 pub(crate) struct SurfaceBlockFactory;
 
+pub(crate) use self::text::SurfaceInlineLineWrapper;
+
 impl SurfaceBlockFactory {
     pub(crate) fn create(graph: &BuildGraph, theme: &KdvThemeSnapshot) -> Vec<SurfaceBlock> {
         Self::create_with_typography(graph, theme, SurfaceTypographyConfig::default())
