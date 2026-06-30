@@ -14,6 +14,7 @@ impl HtmlExportStyle {
         Self::append_var(html, "background", &theme.background);
         Self::append_var(html, "table-border", theme.export_table_border());
         Self::append_var(html, "table-header", theme.export_table_header_background());
+        Self::append_var(html, "table-header-text", theme.export_table_header_text());
         Self::append_var(html, "table-even", theme.export_table_even_row_background());
         Self::append_var(html, "quote-border", &theme.quote_border);
         Self::append_var(html, "quote-text", &theme.quote_text);
@@ -47,7 +48,7 @@ const STATIC_STYLE: &str = concat!(
     ":not(pre)>code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:var(--kdv-code-bg);border:1px solid var(--kdv-code-border);border-radius:4px;padding:.12em .32em;white-space:break-spaces;}",
     "[data-kdv-table=\"katana\"]{width:100%;border-collapse:collapse;table-layout:fixed;margin:1rem 0;}",
     "[data-kdv-table=\"katana\"] th,[data-kdv-table=\"katana\"] td{border:1px solid var(--kdv-table-border);padding:6px 10px;vertical-align:top;}",
-    "[data-kdv-table=\"katana\"] th{background:var(--kdv-table-header);font-weight:600;}",
+    "[data-kdv-table=\"katana\"] th{background:var(--kdv-table-header);color:var(--kdv-table-header-text);font-weight:600;}",
     "[data-kdv-table=\"katana\"] tbody tr:nth-child(even) td{background:var(--kdv-table-even);}",
     "col[data-kdv-column-size=\"short\"]{width:12em;}",
     "col[data-kdv-column-size=\"wide\"]{width:auto;}",

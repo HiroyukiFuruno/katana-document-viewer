@@ -1,13 +1,11 @@
 mod export_surface_font_metrics;
 mod export_surface_font_rendering;
-
+use self::export_surface_font_metrics::{buffer_text_color, span_ranges_width};
+use self::export_surface_font_rendering as rendering;
 use crate::export_surface_span::SurfaceTextSpan;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics, Shaping, SwashCache};
 use image::{Rgba, RgbaImage};
 use std::cell::RefCell;
-
-use self::export_surface_font_metrics::{buffer_text_color, span_ranges_width};
-use self::export_surface_font_rendering as rendering;
 
 const FONT_LINE_HEIGHT_MULTIPLIER: f32 = 1.45;
 const FONT_BUFFER_HEIGHT_SCALE: f32 = 1.8;
@@ -194,6 +192,8 @@ impl SurfaceTextPainter {
     }
 }
 
+#[cfg(test)]
+mod export_surface_font_emoji_tests;
 #[cfg(test)]
 mod export_surface_font_test_cases;
 #[cfg(test)]

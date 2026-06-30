@@ -101,4 +101,17 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn split_keeps_star_variation_selector_as_one_emoji_run() {
+        let segments = EmojiTextSegments::split("Star ⭐️ mark");
+
+        assert_eq!(
+            segments
+                .iter()
+                .map(|segment| (segment.text, segment.emoji))
+                .collect::<Vec<_>>(),
+            vec![("Star ", false), ("⭐️", true), (" mark", false)]
+        );
+    }
 }

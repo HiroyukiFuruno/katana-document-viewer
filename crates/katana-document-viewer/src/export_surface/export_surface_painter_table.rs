@@ -91,6 +91,7 @@ impl SurfacePainter {
         SurfaceTableCellPaint {
             spans: request.table.cell_spans(request.row_index, column_index),
             alignment: request.table.alignment(column_index),
+            row_index: request.row_index,
             x,
             y: request.row_y,
             width,
@@ -153,7 +154,12 @@ impl SurfacePainter {
     ) {
         let line_text = SurfaceTableBlock::cell_line_text(&line);
         let x = SurfaceTableLayout::cell_text_x(&line_text, &cell.alignment, cell.x, cell.width);
-        painter.draw_spans(image, &line, x, text_y, cell.table_font_size, palette.text);
+        let color = if cell.row_index == 0 {
+            palette.table_header_text
+        } else {
+            palette.text
+        };
+        painter.draw_spans(image, &line, x, text_y, cell.table_font_size, color);
         *next_text_y += cell.table_line_height;
     }
 }

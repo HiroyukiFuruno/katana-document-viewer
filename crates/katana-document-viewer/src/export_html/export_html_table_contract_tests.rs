@@ -83,6 +83,7 @@ fn assert_active_table_theme_style(style: &str) {
         &[
             ("table border var", "--kdv-table-border:#112233;"),
             ("table header var", "--kdv-table-header:#223344;"),
+            ("table header text var", "--kdv-table-header-text:#d4d4d4;"),
             ("table even var", "--kdv-table-even:#334455;"),
             (
                 "table border consumes var",
@@ -90,7 +91,7 @@ fn assert_active_table_theme_style(style: &str) {
             ),
             (
                 "table header consumes var",
-                r#"[data-kdv-table="katana"] th{background:var(--kdv-table-header);"#,
+                r#"[data-kdv-table="katana"] th{background:var(--kdv-table-header);color:var(--kdv-table-header-text);"#,
             ),
             (
                 "table even row consumes var",
@@ -114,7 +115,11 @@ fn table_theme_css_variables_derive_from_generic_document_surface_when_table_tok
         style,
         &[
             ("derived table border", "--kdv-table-border:#31475f;"),
-            ("derived table header", "--kdv-table-header:#162534;"),
+            ("derived table header", "--kdv-table-header:#0078d4;"),
+            (
+                "derived table header text",
+                "--kdv-table-header-text:#101820;",
+            ),
             ("derived table even", "--kdv-table-even:#101820;"),
         ],
     );

@@ -129,19 +129,42 @@ fn alert_body_lines_takes_children_and_raw_fallback() {
         source: source_span("Note"),
         children: vec![text_node("first"), text_node(""), text_node("second")],
     };
-    let child_lines = alert_body_lines(&children_node);
+    let child_lines = alert_body_lines(&children_node, "NOTE");
     assert_eq!(child_lines, vec!["first".to_string(), "second".to_string()]);
 
     let fallback_node = KmmNode {
         id: KmmNodeId(EMPTY_ID.to_string()),
         kind: KmmNodeKind::BlockQuote,
-        source: source_span("> [!NOTE]\n> body text\n> inline **bold**"),
+        source: source_span("> [!NOTE] same line body\n> body text\n> inline **bold**"),
         children: Vec::new(),
     };
-    let fallback_lines = alert_body_lines(&fallback_node);
+    let fallback_lines = alert_body_lines(&fallback_node, "NOTE");
     assert_eq!(
         fallback_lines,
-        vec!["body text".to_string(), "inline bold".to_string()]
+        vec![
+            "same line body".to_string(),
+            "body text".to_string(),
+            "inline bold".to_string()
+        ]
+    );
+}
+
+#[test]
+fn alert_body_lines_skip_generated_title_child() {
+    let children_node = KmmNode {
+        id: KmmNodeId(EMPTY_ID.to_string()),
+        kind: KmmNodeKind::BlockQuote,
+        source: source_span("> [!WARNING]\n> body"),
+        children: vec![
+            text_node("Warning"),
+            text_node("body"),
+            text_node("Warning"),
+        ],
+    };
+
+    assert_eq!(
+        alert_body_lines(&children_node, "WARNING"),
+        vec!["body", "Warning"]
     );
 }
 
