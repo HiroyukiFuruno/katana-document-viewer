@@ -1,4 +1,7 @@
-use crate::export_surface::test_modules::test_support::SurfaceTestSupport;
+use crate::export_surface::{
+    DocumentSurfaceFactory, test_modules::test_support::SurfaceTestSupport,
+};
+use crate::export_surface_helpers::SurfaceHelpers;
 
 #[test]
 fn pdf_surface_keeps_markdown_inline_semantics() -> Result<(), Box<dyn std::error::Error>> {
@@ -63,6 +66,27 @@ fn pdf_surface_keeps_inline_markup_in_list_item() -> Result<(), Box<dyn std::err
         ],
     );
     SurfaceTestSupport::assert_not_contains_any(&debug, &["`", "*"]);
+    Ok(())
+}
+
+#[test]
+fn pdf_surface_paints_issue_17_os_dependent_emoji_sequence()
+-> Result<(), Box<dyn std::error::Error>> {
+    let theme = crate::KdvThemeSnapshot::katana_light();
+    let graph =
+        SurfaceTestSupport::graph_from_markdown("issue-17-emoji.md", "⭐️ 🧑‍💻 ⚠️ ✅".to_string())?;
+    let surface = DocumentSurfaceFactory::create(&graph, &theme);
+    let background = SurfaceHelpers::parse_color(&theme.background);
+    let painted_pixels = surface
+        .image
+        .pixels()
+        .filter(|pixel| **pixel != background)
+        .count();
+
+    assert!(
+        painted_pixels > 160,
+        "issue #17 emoji sequence must not render as blank PDF/export surface glyphs"
+    );
     Ok(())
 }
 

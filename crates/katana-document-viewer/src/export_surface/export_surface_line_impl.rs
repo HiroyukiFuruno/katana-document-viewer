@@ -61,6 +61,10 @@ impl SurfaceLine {
     pub(crate) fn font_scale(&self) -> f32 {
         self.font_scale
     }
+
+    pub(crate) fn anchor_id(&self) -> Option<&str> {
+        self.anchor_id.as_deref()
+    }
 }
 
 #[cfg(test)]

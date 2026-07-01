@@ -1,3 +1,4 @@
+mod export_surface_font_fallbacks;
 mod export_surface_font_metrics;
 mod export_surface_font_rendering;
 use self::export_surface_font_metrics::{buffer_text_color, span_ranges_width};
@@ -9,7 +10,6 @@ use std::cell::RefCell;
 
 const FONT_LINE_HEIGHT_MULTIPLIER: f32 = 1.45;
 const FONT_BUFFER_HEIGHT_SCALE: f32 = 1.8;
-
 thread_local! {
     static CACHED_TEXT_PAINTER: RefCell<SurfaceTextPainter> =
         RefCell::new(SurfaceTextPainter::from_system_fonts());
@@ -30,7 +30,7 @@ pub(crate) struct SurfaceTextPainter {
 impl SurfaceTextPainter {
     pub(crate) fn from_system_fonts() -> Self {
         Self {
-            font_system: FontSystem::new(),
+            font_system: export_surface_font_fallbacks::font_system_with_embedded_fallbacks(),
             swash_cache: SwashCache::new(),
         }
     }

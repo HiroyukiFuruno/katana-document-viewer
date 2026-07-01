@@ -35,6 +35,7 @@ impl SurfacePainter {
     ) {
         let text_y = line.text_y(y);
         let mut x = Self::line_text_x(line);
+        Self::append_explicit_line_anchor(anchors, line, page_index, x, text_y);
         let spans = Self::line_link_target_spans(line, &mut x);
         let font_size = line.font_size();
         for span in spans {
@@ -50,6 +51,23 @@ impl SurfacePainter {
                 },
                 &mut x,
             );
+        }
+    }
+
+    fn append_explicit_line_anchor(
+        anchors: &mut Vec<super::SurfaceLinkAnchor>,
+        line: &SurfaceLine,
+        page_index: usize,
+        x: u32,
+        y: u32,
+    ) {
+        if let Some(anchor_id) = line.anchor_id() {
+            anchors.push(super::SurfaceLinkAnchor {
+                id: anchor_id.to_string(),
+                page_index,
+                x,
+                y,
+            });
         }
     }
 
@@ -128,14 +146,6 @@ fn inferred_link_anchor(
     if let Some(label) = target.strip_prefix("#fn-") {
         return Some(super::SurfaceLinkAnchor {
             id: format!("fnref-{label}"),
-            page_index,
-            x,
-            y,
-        });
-    }
-    if let Some(label) = target.strip_prefix("#fnref-") {
-        return Some(super::SurfaceLinkAnchor {
-            id: format!("fn-{label}"),
             page_index,
             x,
             y,

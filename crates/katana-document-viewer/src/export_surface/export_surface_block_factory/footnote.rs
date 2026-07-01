@@ -34,7 +34,10 @@ impl SurfaceBlockFactory {
             format!("#fnref-{}", definition.label),
             SurfaceTextStyle::default().link(),
         ));
-        Some(SurfaceLine::body_spans(spans, quote_depth))
+        Some(
+            SurfaceLine::body_spans(spans, quote_depth)
+                .with_anchor_id(format!("fn-{}", definition.label)),
+        )
     }
 
     fn append_footnote_body(

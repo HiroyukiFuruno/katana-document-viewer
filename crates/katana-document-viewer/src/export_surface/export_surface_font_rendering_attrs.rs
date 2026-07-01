@@ -3,6 +3,8 @@ use cosmic_text::{Attrs, Color, Family, Style, Weight};
 
 #[cfg(target_os = "macos")]
 const APPLE_COLOR_EMOJI_FONT_FAMILY: &str = "Apple Color Emoji";
+#[cfg(not(target_os = "macos"))]
+const NOTO_EMOJI_FONT_FAMILY: &str = "Noto Emoji";
 const HIDE_IMAGE_COLOR: u8 = 0;
 const RED_CHANNEL: usize = 0;
 const GREEN_CHANNEL: usize = 1;
@@ -43,7 +45,7 @@ fn os_emoji_font_family() -> Family<'static> {
 
 #[cfg(not(target_os = "macos"))]
 fn os_emoji_font_family() -> Family<'static> {
-    Family::SansSerif
+    Family::Name(NOTO_EMOJI_FONT_FAMILY)
 }
 
 fn rgba_text_color(color: image::Rgba<u8>) -> Color {
@@ -77,5 +79,21 @@ mod tests {
         let attrs = attrs_for_span_with_metadata(&span, 1);
 
         assert_eq!(Family::Name(APPLE_COLOR_EMOJI_FONT_FAMILY), attrs.family);
+    }
+}
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    use super::{NOTO_EMOJI_FONT_FAMILY, attrs_for_span_with_metadata};
+    use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+    use cosmic_text::Family;
+
+    #[test]
+    fn emoji_span_requests_bundled_noto_emoji_font_on_non_macos() {
+        let span = SurfaceTextSpan::styled("⭐️", SurfaceTextStyle::default().emoji());
+
+        let attrs = attrs_for_span_with_metadata(&span, 1);
+
+        assert_eq!(Family::Name(NOTO_EMOJI_FONT_FAMILY), attrs.family);
     }
 }
