@@ -152,6 +152,7 @@ impl SurfacePainter {
         painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
+        let line = table_cell_line_spans(line);
         let line_text = SurfaceTableBlock::cell_line_text(&line);
         let x = SurfaceTableLayout::cell_text_x(&line_text, &cell.alignment, cell.x, cell.width);
         let color = if cell.row_index == 0 {
@@ -162,6 +163,17 @@ impl SurfacePainter {
         painter.draw_spans(image, &line, x, text_y, cell.table_font_size, color);
         *next_text_y += cell.table_line_height;
     }
+}
+
+fn table_cell_line_spans(line: Vec<super::SurfaceTextSpan>) -> Vec<super::SurfaceTextSpan> {
+    line.into_iter()
+        .map(|mut span| {
+            if span.style.inline_code {
+                span.style.inline_code = false;
+            }
+            span
+        })
+        .collect()
 }
 
 #[cfg(test)]

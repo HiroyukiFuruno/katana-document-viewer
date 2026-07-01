@@ -81,6 +81,17 @@ fn paint_table_cell_line_advances_text_y_with_table_line_height() {
     );
 }
 
+#[test]
+fn table_cell_line_spans_remove_inline_code_background_but_keep_monospace() {
+    let spans = table_cell_line_spans(vec![crate::export_surface_span::SurfaceTextSpan::styled(
+        "PreviewPane",
+        crate::export_surface_span::SurfaceTextStyle::default().inline_code(),
+    )]);
+
+    assert!(!spans[0].style.inline_code);
+    assert!(spans[0].style.monospace);
+}
+
 fn table_cell_paint_for_test<'a>(
     spans: &'a [crate::export_surface_span::SurfaceTextSpan],
 ) -> SurfaceTableCellPaint<'a> {

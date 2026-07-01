@@ -1,6 +1,8 @@
 use crate::ExportFormat;
 use crate::export_payload::ExportPayloadFactory;
-use crate::export_surface::test_modules::test_support::SurfaceTestSupport;
+use crate::export_surface::{
+    DocumentSurfaceFactory, test_modules::test_support::SurfaceTestSupport,
+};
 
 #[test]
 fn pdf_surface_footnote_definitions_have_backlinks() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,6 +38,50 @@ fn pdf_payload_uses_document_internal_links_for_footnotes() -> Result<(), Box<dy
     assert!(!text.contains("/URI (#fn-1)"), "{text}");
     assert!(!text.contains("/URI (#fnref-1)"), "{text}");
     Ok(())
+}
+
+#[test]
+fn pdf_footnote_destinations_match_html_anchor_semantics() -> Result<(), Box<dyn std::error::Error>>
+{
+    let graph = SurfaceTestSupport::graph_from_markdown("footnote.md", footnote_markdown())?;
+    let surface = DocumentSurfaceFactory::create(&graph, &crate::KdvThemeSnapshot::katana_light());
+    let definition_anchor = footnote_anchor(&surface, "fn-1")?;
+    let reference_anchor = footnote_anchor(&surface, "fnref-1")?;
+    let backlink = footnote_annotation(&surface, "#fnref-1")?;
+    let reference = footnote_annotation(&surface, "#fn-1")?;
+
+    assert_eq!(definition_anchor.page_index, backlink.page_index);
+    assert_eq!(definition_anchor.y, backlink.y);
+    assert!(
+        definition_anchor.x < backlink.x,
+        "fn-1 must point to the start of the footnote definition, not the backlink glyph"
+    );
+    assert_eq!(reference_anchor.page_index, reference.page_index);
+    assert_eq!(reference_anchor.x, reference.x);
+    assert_eq!(reference_anchor.y, reference.y);
+    Ok(())
+}
+
+fn footnote_anchor<'a>(
+    surface: &'a crate::export_surface::DocumentSurface,
+    id: &str,
+) -> Result<&'a crate::export_surface::SurfaceLinkAnchor, Box<dyn std::error::Error>> {
+    surface
+        .link_anchors
+        .iter()
+        .find(|anchor| anchor.id == id)
+        .ok_or_else(|| format!("footnote anchor {id} is missing").into())
+}
+
+fn footnote_annotation<'a>(
+    surface: &'a crate::export_surface::DocumentSurface,
+    target: &str,
+) -> Result<&'a crate::export_surface::SurfaceLinkAnnotation, Box<dyn std::error::Error>> {
+    surface
+        .link_annotations
+        .iter()
+        .find(|annotation| annotation.target == target)
+        .ok_or_else(|| format!("footnote annotation {target} is missing").into())
 }
 
 #[test]

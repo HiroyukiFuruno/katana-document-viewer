@@ -79,3 +79,19 @@ mod tests {
         assert_eq!(Family::Name(APPLE_COLOR_EMOJI_FONT_FAMILY), attrs.family);
     }
 }
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    use super::attrs_for_span_with_metadata;
+    use crate::export_surface_span::{SurfaceTextSpan, SurfaceTextStyle};
+    use cosmic_text::Family;
+
+    #[test]
+    fn emoji_span_keeps_system_color_emoji_resolution_on_non_macos() {
+        let span = SurfaceTextSpan::styled("⭐️", SurfaceTextStyle::default().emoji());
+
+        let attrs = attrs_for_span_with_metadata(&span, 1);
+
+        assert_eq!(Family::SansSerif, attrs.family);
+    }
+}

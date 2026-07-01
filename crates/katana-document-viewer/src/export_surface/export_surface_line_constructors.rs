@@ -7,6 +7,7 @@ impl SurfaceLine {
         Self {
             spans: vec![SurfaceTextSpan::plain(text.clone())],
             text,
+            anchor_id: None,
             level: SurfaceLineLevel::Heading(level),
             quote_depth: 0,
             indent_depth: 0,
@@ -27,6 +28,7 @@ impl SurfaceLine {
         Self {
             text: spans.iter().map(|span| span.text.as_str()).collect(),
             spans,
+            anchor_id: None,
             level: SurfaceLineLevel::Heading(level),
             quote_depth: 0,
             indent_depth: 0,
@@ -68,6 +70,7 @@ impl SurfaceLine {
         Self {
             text: spans.iter().map(|span| span.text.as_str()).collect(),
             spans,
+            anchor_id: None,
             level: SurfaceLineLevel::Body,
             quote_depth,
             indent_depth,
@@ -80,6 +83,7 @@ impl SurfaceLine {
         Self {
             text: spans.iter().map(|span| span.text.as_str()).collect(),
             spans,
+            anchor_id: None,
             level: SurfaceLineLevel::Code,
             quote_depth: 0,
             indent_depth: 0,
@@ -95,11 +99,17 @@ impl SurfaceLine {
         Self {
             text: spans.iter().map(|span| span.text.as_str()).collect(),
             spans,
+            anchor_id: None,
             level: SurfaceLineLevel::Body,
             quote_depth: 0,
             indent_depth: 0,
             alignment,
             font_scale: 1.0,
         }
+    }
+
+    pub(crate) fn with_anchor_id(mut self, anchor_id: String) -> Self {
+        self.anchor_id = Some(anchor_id);
+        self
     }
 }

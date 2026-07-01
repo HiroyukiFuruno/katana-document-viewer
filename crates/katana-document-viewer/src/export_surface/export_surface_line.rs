@@ -46,6 +46,7 @@ impl Default for SurfaceTypographyConfig {
 pub(crate) struct SurfaceLine {
     pub(crate) text: String,
     pub(crate) spans: Vec<SurfaceTextSpan>,
+    anchor_id: Option<String>,
     level: SurfaceLineLevel,
     quote_depth: u32,
     indent_depth: u32,
