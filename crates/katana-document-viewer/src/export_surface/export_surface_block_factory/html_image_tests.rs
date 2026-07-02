@@ -64,7 +64,7 @@ fn centered_data_svg_image_node_is_loaded_into_image_block() {
     );
 
     assert_eq!(blocks.len(), 1);
-    assert_eq!(blocks[0].debug_for_tests(), "image:16x10:fixture");
+    assert_eq!(blocks[0].debug_for_tests(), "image:16x10@32x20:fixture");
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn broken_katana_fixture_svg_data_uri_matches_export_surface_image_reference() {
     );
 
     assert_eq!(blocks.len(), 1);
-    assert_eq!(blocks[0].debug_for_tests(), "image:16x10:fixture");
+    assert_eq!(blocks[0].debug_for_tests(), "image:16x10@32x20:fixture");
 }
 
 fn image_html(image_file_name: &str) -> String {

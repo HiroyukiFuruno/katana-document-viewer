@@ -5,6 +5,9 @@ use crate::viewer::ViewerCodeBlockMetrics;
 mod badge_alert;
 #[path = "export_surface_blocks_data_image.rs"]
 mod data_image;
+#[cfg(test)]
+#[path = "export_surface_blocks_debug.rs"]
+mod debug_helpers;
 #[path = "export_surface_blocks_image.rs"]
 mod image;
 #[path = "export_surface_blocks_media.rs"]
@@ -141,7 +144,14 @@ impl SurfaceBlock {
         let size = diagram
             .image
             .as_ref()
-            .map(|image| format!("{}x{}", image.image.width(), image.image.height()))
+            .map(|image| {
+                debug_helpers::debug_size_with_raster_suffix(
+                    image.display_width_px(),
+                    image.display_height_px(),
+                    image.image.width(),
+                    image.image.height(),
+                )
+            })
             .unwrap_or_else(|| "missing".to_string());
         format!("diagram:{size}")
     }
@@ -149,9 +159,13 @@ impl SurfaceBlock {
     #[cfg(test)]
     fn debug_image_for_tests(local_image: &SurfaceImageBlock) -> String {
         format!(
-            "image:{}x{}:{}",
-            local_image.image.width(),
-            local_image.image.height(),
+            "image:{}:{}",
+            debug_helpers::debug_size_with_raster_suffix(
+                local_image.display_width,
+                local_image.display_height,
+                local_image.image.width(),
+                local_image.image.height(),
+            ),
             local_image.alt_for_tests()
         )
     }

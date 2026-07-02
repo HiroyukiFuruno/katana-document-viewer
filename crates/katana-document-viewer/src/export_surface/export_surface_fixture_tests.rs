@@ -39,7 +39,7 @@ fn sample_fixture_surface_renders_readme_header_data_svg_as_image()
         markdown,
     )?);
 
-    SurfaceTestSupport::assert_contains_all(&debug, &["image:128x128:アイコン"]);
+    SurfaceTestSupport::assert_contains_all(&debug, &["image:128x128@256x256:アイコン"]);
     SurfaceTestSupport::assert_not_contains_any(
         &debug,
         &["data:image/svg+xml", "<img", "http://www.w3.org/2000/svg"],

@@ -17,13 +17,28 @@ impl SurfacePainter {
             Self::paint_pending_diagram(image, diagram, y, painter, palette);
             return;
         };
-        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(rendered.image.width()) / 2;
-        SurfaceHelpers::paste_rgba(image, &rendered.image, x, y + DIAGRAM_VERTICAL_MARGIN);
+        let display_width = rendered.display_width_px();
+        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(display_width) / 2;
+        SurfaceHelpers::paste_rgba_resized(
+            image,
+            &rendered.image,
+            x,
+            y + DIAGRAM_VERTICAL_MARGIN,
+            display_width,
+            rendered.display_height_px(),
+        );
     }
 
     pub(super) fn paint_image(image: &mut RgbaImage, block: &SurfaceImageBlock, y: u32) {
-        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(block.image.width()) / 2;
-        SurfaceHelpers::paste_rgba(image, &block.image, x, y + IMAGE_VERTICAL_MARGIN);
+        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(block.display_width) / 2;
+        SurfaceHelpers::paste_rgba_resized(
+            image,
+            &block.image,
+            x,
+            y + IMAGE_VERTICAL_MARGIN,
+            block.display_width,
+            block.display_height,
+        );
     }
 
     fn paint_pending_diagram(

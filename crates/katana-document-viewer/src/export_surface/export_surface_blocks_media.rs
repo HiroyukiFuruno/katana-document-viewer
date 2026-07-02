@@ -79,7 +79,7 @@ impl SurfaceMathBlock {
             theme,
         );
         let image = output.svg_payload().and_then(|svg| {
-            SurfaceSvgRasterizer::rasterize_with_root_font_size(
+            SurfaceSvgRasterizer::rasterize_export_surface_with_root_font_size(
                 svg,
                 super::super::MATH_MAX_WIDTH,
                 Some(super::super::BODY_FONT_SIZE),
@@ -95,7 +95,7 @@ impl SurfaceMathBlock {
     pub(crate) fn height(&self) -> u32 {
         self.image
             .as_ref()
-            .map(|rendered| rendered.image.height() + MATH_VERTICAL_MARGIN * 2)
+            .map(|rendered| rendered.display_height_px() + MATH_VERTICAL_MARGIN * 2)
             .unwrap_or(MATH_FALLBACK_HEIGHT)
     }
 
@@ -144,7 +144,7 @@ pub(crate) struct SurfaceDiagramBlock {
 impl SurfaceDiagramBlock {
     pub(crate) fn rendered(svg: &str) -> Self {
         Self {
-            image: SurfaceSvgRasterizer::rasterize(svg, DIAGRAM_MAX_WIDTH),
+            image: SurfaceSvgRasterizer::rasterize_for_export_surface(svg, DIAGRAM_MAX_WIDTH),
             fallback_text: "Rendered diagram".to_string(),
         }
     }
@@ -160,7 +160,7 @@ impl SurfaceDiagramBlock {
         let content_height = self
             .image
             .as_ref()
-            .map(|rendered| rendered.image.height())
+            .map(SurfaceSvgImage::display_height_px)
             .unwrap_or(DIAGRAM_FALLBACK_HEIGHT);
         content_height + DIAGRAM_VERTICAL_MARGIN * 2
     }

@@ -116,8 +116,16 @@ impl SurfacePainter {
     }
 
     pub(super) fn paint_rendered_math(image: &mut RgbaImage, rendered: &SurfaceSvgImage, y: u32) {
-        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(rendered.image.width()) / 2;
-        SurfaceHelpers::paste_rgba(image, &rendered.image, x, y + MATH_VERTICAL_MARGIN);
+        let display_width = rendered.display_width_px();
+        let x = PAGE_PADDING + SURFACE_CONTENT_WIDTH.saturating_sub(display_width) / 2;
+        SurfaceHelpers::paste_rgba_resized(
+            image,
+            &rendered.image,
+            x,
+            y + MATH_VERTICAL_MARGIN,
+            display_width,
+            rendered.display_height_px(),
+        );
     }
 
     pub(super) fn paint_raw_math_text(

@@ -81,6 +81,22 @@ fn raster_target_keeps_export_surface_max_width_scaling() -> Result<(), Box<dyn 
 }
 
 #[test]
+fn export_surface_raster_target_preserves_layout_width_with_retina_pixels()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tree = parse_tree(
+        r#"<svg xmlns='http://www.w3.org/2000/svg' width='200' height='80'><rect width='200' height='80'/></svg>"#,
+    )?;
+
+    let target = RasterTarget::new_export_surface(tree.size(), 50, 200);
+
+    assert_eq!(target.display_width(), 50);
+    assert_eq!(target.display_height(), 20);
+    assert_eq!(target.width(), 100);
+    assert_eq!(target.height(), 40);
+    Ok(())
+}
+
+#[test]
 fn raster_target_clamps_at_maximum_edge() -> Result<(), Box<dyn std::error::Error>> {
     let tree = parse_tree(
         r#"<svg xmlns='http://www.w3.org/2000/svg' width='10000' height='2000'><rect width='10000' height='2000'/></svg>"#,

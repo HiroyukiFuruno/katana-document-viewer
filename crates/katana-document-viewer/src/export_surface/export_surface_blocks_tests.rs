@@ -20,6 +20,24 @@ fn block_image_height_uses_image_height_with_vertical_margin()
 }
 
 #[test]
+fn block_svg_image_uses_display_height_with_retina_raster() -> Result<(), Box<dyn std::error::Error>>
+{
+    let path = temp_image_path("kdv-blocks-image-retina.svg");
+    std::fs::write(
+        &path,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="10"><rect width="24" height="10" fill="#000"/></svg>"##,
+    )?;
+
+    let image_block = SurfaceImageBlock::from_path(&path, None, "svg".to_string())
+        .ok_or(std::io::Error::other("svg image block"))?;
+    let block = SurfaceBlock::Image(image_block);
+
+    assert_eq!(block.height(), 10 + 18 * 2);
+    assert!(block.debug_for_tests().starts_with("image:24x10@48x20"));
+    Ok(())
+}
+
+#[test]
 fn block_text_contains_fallback_for_rendered_diagram() {
     let block = SurfaceBlock::Diagram(SurfaceDiagramBlock::rendered("<svg></svg>"));
 
