@@ -161,9 +161,20 @@ fn assert_gfm_alert_icon_contract(html: &str) {
 fn assert_gfm_alert_title_style_contract(html: &str) {
     HtmlContractTestSupport::assert_contains_all(
         html,
-        &[(
-            "tip title color",
-            r#"[data-kdv-alert-title="TIP"]{color:var(--kdv-alert-tip);"#,
-        )],
+        &[
+            (
+                "tip title color",
+                r#"[data-kdv-alert-title="TIP"]{color:var(--kdv-alert-tip);"#,
+            ),
+            (
+                "important title color",
+                r#"[data-kdv-alert-title="IMPORTANT"]{color:var(--kdv-alert-important);"#,
+            ),
+            (
+                "important alert border color",
+                r#"[data-github-alert="IMPORTANT"]{border-left-color:var(--kdv-alert-important);"#,
+            ),
+            ("important theme variable", "--kdv-alert-important:#8250df;"),
+        ],
     );
 }

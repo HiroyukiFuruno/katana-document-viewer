@@ -28,3 +28,13 @@ fn code_token_color_reflects_received_syntax_style() {
         "code token colors must reflect the selected syntax theme without substitution"
     );
 }
+
+#[test]
+fn code_token_omits_transparent_default_color() {
+    let style = span_style(Style::default());
+
+    assert_eq!(
+        style.color, None,
+        "transparent syntect default colors must fall back to the PDF theme text color"
+    );
+}

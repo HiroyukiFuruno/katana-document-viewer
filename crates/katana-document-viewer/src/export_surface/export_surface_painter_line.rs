@@ -1,7 +1,7 @@
 use super::{
     LIST_MARKER_COLUMN_WIDTH, SurfaceHelpers, SurfaceLine, SurfaceListLinePaintRequest,
-    SurfaceMarkerPaintRequest, SurfacePaintPalette, SurfacePainter, SurfaceTextPainter,
-    SurfaceTextSpan,
+    SurfaceMarkerPaintRequest, SurfacePaintPalette, SurfacePainter, SurfaceSpansLayout,
+    SurfaceTextPainter, SurfaceTextSpan,
 };
 use image::RgbaImage;
 
@@ -107,7 +107,17 @@ impl SurfacePainter {
         painter: &mut SurfaceTextPainter,
         palette: &SurfacePaintPalette,
     ) {
-        painter.draw_spans(image, spans, x, y, size, palette.text);
+        painter.draw_spans_with_backgrounds(
+            image,
+            spans,
+            SurfaceSpansLayout {
+                x,
+                y,
+                size,
+                color: palette.text,
+                backgrounds: palette.text_backgrounds(),
+            },
+        );
     }
 }
 

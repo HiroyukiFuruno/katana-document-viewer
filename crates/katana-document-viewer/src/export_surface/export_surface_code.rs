@@ -77,6 +77,14 @@ impl SurfaceCodeHighlighter {
 }
 
 fn span_style(style: Style) -> SurfaceTextStyle {
+    if style.foreground.a == 0
+        || (style.foreground.r == 0
+            && style.foreground.g == 0
+            && style.foreground.b == 0
+            && style.foreground.a == 255)
+    {
+        return SurfaceTextStyle::default().monospace();
+    }
     let color = Rgba([
         style.foreground.r,
         style.foreground.g,

@@ -5,6 +5,7 @@ mod decorations;
 #[path = "export_surface_font_rendering_inline_images.rs"]
 mod inline_images;
 
+use crate::export_surface_font::SurfaceTextBackgroundPalette;
 use crate::export_surface_span::SurfaceTextSpan;
 use image::RgbaImage;
 
@@ -17,8 +18,9 @@ pub(super) fn draw_span_backgrounds(
     x: u32,
     y: u32,
     size: f32,
+    palette: SurfaceTextBackgroundPalette,
 ) {
-    backgrounds::draw_span_backgrounds(image, spans, ranges, x, y, size);
+    backgrounds::draw_span_backgrounds(image, spans, ranges, x, y, size, palette);
 }
 
 pub(super) fn draw_inline_images(

@@ -38,10 +38,19 @@ impl<'a> SurfaceDetailsParts<'a> {
 
     fn strip_div(value: &'a str) -> &'a str {
         let trimmed = value.trim();
-        if let Some(body) = trimmed.strip_prefix("<div>") {
-            return body.strip_suffix("</div>").unwrap_or(body);
+        let lower = trimmed.to_ascii_lowercase();
+        if !lower.starts_with("<div") {
+            return trimmed;
         }
-        trimmed
+        let Some(open_end) = trimmed.find('>') else {
+            return trimmed;
+        };
+        let body = &trimmed[open_end + 1..];
+        let body = body.trim_end();
+        if body.to_ascii_lowercase().ends_with("</div>") {
+            return &body[..body.len() - "</div>".len()];
+        }
+        body
     }
 }
 
@@ -123,3 +132,7 @@ fn is_legacy_note_title(title: &str) -> bool {
 #[cfg(test)]
 #[path = "markup_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "markup_details_tests.rs"]
+mod details_tests;

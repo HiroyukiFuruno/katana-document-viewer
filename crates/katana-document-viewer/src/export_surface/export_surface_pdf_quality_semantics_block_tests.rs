@@ -32,6 +32,24 @@ fn pdf_surface_expands_details_body() -> Result<(), Box<dyn std::error::Error>> 
 }
 
 #[test]
+fn pdf_surface_details_body_starts_without_extra_blank_gap()
+-> Result<(), Box<dyn std::error::Error>> {
+    let graph = SurfaceTestSupport::graph_from_markdown("details.md", details_markdown())?;
+    let blocks = SurfaceBlockFactory::create(&graph, &graph.theme);
+    let summary_index = first_block_index(&blocks, "詳細を見る")
+        .ok_or_else(|| std::io::Error::other("details summary should be emitted"))?;
+    let body_index = first_block_index(&blocks, "刀")
+        .ok_or_else(|| std::io::Error::other("details body should be emitted"))?;
+
+    assert_eq!(
+        body_index,
+        summary_index + 1,
+        "details body must follow the summary without blank surface blocks"
+    );
+    Ok(())
+}
+
+#[test]
 fn pdf_surface_keeps_pipe_sentence_as_paragraph() -> Result<(), Box<dyn std::error::Error>> {
     let debug = SurfaceTestSupport::surface_debug(&SurfaceTestSupport::graph_from_markdown(
         "pipe-sentence.md",
@@ -123,6 +141,13 @@ impl PdfSurfaceLongListItemCase {
                 _ => None,
             })
     }
+}
+
+fn first_block_index(blocks: &[SurfaceBlock], marker: &str) -> Option<usize> {
+    blocks
+        .iter()
+        .enumerate()
+        .find_map(|(index, block)| block.text_for_tests().contains(marker).then_some(index))
 }
 
 struct PdfSurfaceJapaneseParagraphCase;

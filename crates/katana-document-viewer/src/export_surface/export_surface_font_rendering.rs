@@ -64,8 +64,9 @@ pub(super) fn draw_span_backgrounds(
     x: u32,
     y: u32,
     size: f32,
+    palette: crate::export_surface_font::SurfaceTextBackgroundPalette,
 ) {
-    shapes::draw_span_backgrounds(image, spans, ranges, x, y, size);
+    shapes::draw_span_backgrounds(image, spans, ranges, x, y, size, palette);
 }
 
 pub(super) fn draw_inline_images(

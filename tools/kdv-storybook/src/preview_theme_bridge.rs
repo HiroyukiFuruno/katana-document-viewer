@@ -138,7 +138,7 @@ mod tests {
         );
         assert_eq!(Some([0, 120, 212, 255]), snapshot.color("alert-note"));
         assert_eq!(Some([64, 160, 43, 255]), snapshot.color("alert-tip"));
-        assert_eq!(Some([0, 120, 212, 255]), snapshot.color("alert-important"));
+        assert_eq!(Some([130, 80, 223, 255]), snapshot.color("alert-important"));
         assert_eq!(Some([223, 142, 29, 255]), snapshot.color("alert-warning"));
         assert_eq!(Some([210, 15, 57, 255]), snapshot.color("alert-caution"));
         assert_eq!(

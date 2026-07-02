@@ -1,4 +1,6 @@
-use crate::export_surface_font::{SurfaceTextLayout, SurfaceTextPainter};
+use crate::export_surface_font::{
+    SurfaceSpansLayout, SurfaceTextBackgroundPalette, SurfaceTextLayout, SurfaceTextPainter,
+};
 use crate::export_surface_helpers::{
     PAGE_PADDING, QUOTE_INDENT, SURFACE_CONTENT_WIDTH, SURFACE_PAGE_HEIGHT, SURFACE_WIDTH,
     SurfaceHelpers,
@@ -97,6 +99,13 @@ impl SurfacePaintPalette {
             task_empty_background: SurfaceHelpers::parse_color(&theme.task_empty_background),
             task_done_accent: SurfaceHelpers::parse_color(&theme.task_done_accent),
             task_in_progress_accent: SurfaceHelpers::parse_color(&theme.task_in_progress_accent),
+        }
+    }
+
+    fn text_backgrounds(&self) -> SurfaceTextBackgroundPalette {
+        SurfaceTextBackgroundPalette {
+            inline_code: self.code_background,
+            ..SurfaceTextBackgroundPalette::default()
         }
     }
 }

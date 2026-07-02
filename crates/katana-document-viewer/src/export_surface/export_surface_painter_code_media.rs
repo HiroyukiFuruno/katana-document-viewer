@@ -3,7 +3,7 @@ use super::{
     LINE_CENTERED_TEXT_GUESS_CHAR_WIDTH, LIST_MARKER_COLUMN_WIDTH, MATH_VERTICAL_MARGIN,
     PAGE_PADDING, QUOTE_INDENT, SURFACE_CONTENT_WIDTH, SURFACE_WIDTH, SurfaceCodeBlock,
     SurfaceHelpers, SurfaceLine, SurfaceMathBlock, SurfacePaintPalette, SurfacePainter,
-    SurfaceSvgImage, SurfaceTextLayout, SurfaceTextPainter,
+    SurfaceSpansLayout, SurfaceSvgImage, SurfaceTextLayout, SurfaceTextPainter,
 };
 use image::RgbaImage;
 
@@ -88,13 +88,16 @@ impl SurfacePainter {
         palette: &SurfacePaintPalette,
     ) {
         let x = box_x + CODE_HORIZONTAL_PADDING;
-        painter.draw_spans(
+        painter.draw_spans_with_backgrounds(
             image,
             &line.spans,
-            x,
-            line_y,
-            line.font_size(),
-            palette.text,
+            SurfaceSpansLayout {
+                x,
+                y: line_y,
+                size: line.font_size(),
+                color: palette.text,
+                backgrounds: palette.text_backgrounds(),
+            },
         );
     }
 
