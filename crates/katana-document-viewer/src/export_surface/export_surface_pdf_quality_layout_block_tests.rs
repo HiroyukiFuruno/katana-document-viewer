@@ -31,7 +31,10 @@ fn pdf_surface_caps_diagram_width() -> Result<(), Box<dyn std::error::Error>> {
         &SurfaceTestSupport::graph_with_rendered_diagram_svg(diagram_markdown(), wide_svg())?,
     );
 
-    assert!(debug.contains("diagram:860x430"), "{debug}");
+    assert!(
+        debug.contains("diagram:860x430@1720x860"),
+        "wide diagram must keep page layout width while carrying 2x raster pixels: {debug}"
+    );
     Ok(())
 }
 
@@ -42,8 +45,8 @@ fn pdf_surface_does_not_upscale_small_diagram_svg() -> Result<(), Box<dyn std::e
     );
 
     assert!(
-        debug.contains("diagram:320x160"),
-        "small diagrams must keep their natural size instead of expanding to page width: {debug}"
+        debug.contains("diagram:320x160@640x320"),
+        "small diagrams must keep their natural display size while carrying 2x raster pixels: {debug}"
     );
     Ok(())
 }

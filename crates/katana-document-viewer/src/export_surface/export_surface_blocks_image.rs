@@ -4,6 +4,8 @@ use image::RgbaImage;
 
 pub(crate) struct SurfaceImageBlock {
     pub(crate) image: RgbaImage,
+    pub(crate) display_width: u32,
+    pub(crate) display_height: u32,
     pub(crate) _alt: String,
 }
 
@@ -18,7 +20,7 @@ impl SurfaceImageBlock {
         }
         let image = image::open(path).ok()?.to_rgba8();
         let image = scaled_image(image, requested_width);
-        Some(Self { image, _alt: alt })
+        Some(Self::new_raster(image, alt))
     }
 
     fn from_svg_path(
@@ -28,18 +30,35 @@ impl SurfaceImageBlock {
     ) -> Option<Self> {
         let svg = std::fs::read_to_string(path).ok()?;
         let max_width = requested_width.unwrap_or(SURFACE_CONTENT_WIDTH);
-        let rendered = SurfaceSvgRasterizer::rasterize(&svg, max_width)?;
-        let image = scaled_image(rendered.image, requested_width);
-        Some(Self { image, _alt: alt })
+        let rendered = SurfaceSvgRasterizer::rasterize_for_export_surface(&svg, max_width)?;
+        Some(Self::new_svg(rendered, alt))
     }
 
     pub(crate) fn height(&self) -> u32 {
-        self.image.height() + super::super::IMAGE_VERTICAL_MARGIN * 2
+        self.display_height + super::super::IMAGE_VERTICAL_MARGIN * 2
     }
 
     #[cfg(test)]
     pub(crate) fn alt_for_tests(&self) -> String {
         self._alt.clone()
+    }
+
+    fn new_raster(image: RgbaImage, alt: String) -> Self {
+        Self {
+            display_width: image.width(),
+            display_height: image.height(),
+            image,
+            _alt: alt,
+        }
+    }
+
+    fn new_svg(rendered: crate::export_surface_svg::SurfaceSvgImage, alt: String) -> Self {
+        Self {
+            display_width: rendered.display_width_px(),
+            display_height: rendered.display_height_px(),
+            image: rendered.image,
+            _alt: alt,
+        }
     }
 }
 

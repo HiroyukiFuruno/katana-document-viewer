@@ -7,13 +7,16 @@ const ORIGINAL_HEIGHT: u32 = 10;
 const TINY_HEIGHT: u32 = 1;
 const SCALED_WIDTH: u32 = 8;
 const SCALED_HEIGHT: u32 = 5;
+const SVG_RASTER_SCALE: u32 = 2;
 
 #[test]
 fn from_data_uri_renders_svg_data_uri() -> Result<(), Box<dyn std::error::Error>> {
     let image = image_from_data_uri("data:image/svg+xml,", ORIGINAL_WIDTH, ORIGINAL_HEIGHT, None)?;
 
-    assert_eq!(image.image.width(), ORIGINAL_WIDTH);
-    assert_eq!(image.image.height(), ORIGINAL_HEIGHT);
+    assert_eq!(image.display_width, ORIGINAL_WIDTH);
+    assert_eq!(image.display_height, ORIGINAL_HEIGHT);
+    assert_eq!(image.image.width(), ORIGINAL_WIDTH * SVG_RASTER_SCALE);
+    assert_eq!(image.image.height(), ORIGINAL_HEIGHT * SVG_RASTER_SCALE);
     assert_eq!(image.alt_for_tests(), ALT);
     Ok(())
 }
@@ -28,8 +31,10 @@ fn from_data_uri_accepts_supported_svg_prefixes() -> Result<(), Box<dyn std::err
 
     for prefix in prefixes {
         let image = image_from_data_uri(prefix, ORIGINAL_WIDTH, ORIGINAL_HEIGHT, None)?;
-        assert_eq!(image.image.width(), ORIGINAL_WIDTH);
-        assert_eq!(image.image.height(), ORIGINAL_HEIGHT);
+        assert_eq!(image.display_width, ORIGINAL_WIDTH);
+        assert_eq!(image.display_height, ORIGINAL_HEIGHT);
+        assert_eq!(image.image.width(), ORIGINAL_WIDTH * SVG_RASTER_SCALE);
+        assert_eq!(image.image.height(), ORIGINAL_HEIGHT * SVG_RASTER_SCALE);
     }
     Ok(())
 }
@@ -43,8 +48,10 @@ fn from_data_uri_scales_requested_width() -> Result<(), Box<dyn std::error::Erro
         Some(SCALED_WIDTH),
     )?;
 
-    assert_eq!(image.image.width(), SCALED_WIDTH);
-    assert_eq!(image.image.height(), SCALED_HEIGHT);
+    assert_eq!(image.display_width, SCALED_WIDTH);
+    assert_eq!(image.display_height, SCALED_HEIGHT);
+    assert_eq!(image.image.width(), SCALED_WIDTH * SVG_RASTER_SCALE);
+    assert_eq!(image.image.height(), SCALED_HEIGHT * SVG_RASTER_SCALE);
     Ok(())
 }
 
@@ -52,8 +59,10 @@ fn from_data_uri_scales_requested_width() -> Result<(), Box<dyn std::error::Erro
 fn from_data_uri_keeps_minimum_height_when_scaled() -> Result<(), Box<dyn std::error::Error>> {
     let image = image_from_data_uri("data:image/svg+xml,", ORIGINAL_WIDTH, TINY_HEIGHT, Some(1))?;
 
-    assert_eq!(image.image.width(), 1);
-    assert_eq!(image.image.height(), 1);
+    assert_eq!(image.display_width, 1);
+    assert_eq!(image.display_height, 1);
+    assert!(image.image.width() >= image.display_width);
+    assert!(image.image.height() >= image.display_height);
     Ok(())
 }
 

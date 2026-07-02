@@ -1,6 +1,7 @@
 use super::image::SurfaceImageBlock;
 use crate::export_surface_helpers::SURFACE_CONTENT_WIDTH;
 use crate::export_surface_svg::SurfaceSvgRasterizer;
+#[cfg(test)]
 use image::RgbaImage;
 
 const SVG_DATA_PREFIXES: [&str; 3] = [
@@ -20,9 +21,11 @@ impl SurfaceImageBlock {
     ) -> Option<Self> {
         let svg = svg_payload(src)?;
         let max_width = requested_width.unwrap_or(SURFACE_CONTENT_WIDTH);
-        let rendered = SurfaceSvgRasterizer::rasterize(&svg, max_width)?;
+        let rendered = SurfaceSvgRasterizer::rasterize_for_export_surface(&svg, max_width)?;
         Some(Self {
-            image: scaled_image(rendered.image, requested_width),
+            display_width: rendered.display_width_px(),
+            display_height: rendered.display_height_px(),
+            image: rendered.image,
             _alt: alt,
         })
     }
@@ -69,6 +72,7 @@ fn hex_digit(value: u8) -> Option<u8> {
     }
 }
 
+#[cfg(test)]
 fn scaled_image(image: RgbaImage, requested_width: Option<u32>) -> RgbaImage {
     let max_width = requested_width
         .unwrap_or(image.width())

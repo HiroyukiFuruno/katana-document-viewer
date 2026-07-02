@@ -110,6 +110,26 @@ impl SurfaceHelpers {
         }
     }
 
+    pub(crate) fn paste_rgba_resized(
+        image: &mut RgbaImage,
+        source: &RgbaImage,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    ) {
+        if width == 0 || height == 0 {
+            return;
+        }
+        if source.width() == width && source.height() == height {
+            Self::paste_rgba(image, source, x, y);
+            return;
+        }
+        let resized =
+            image::imageops::resize(source, width, height, image::imageops::FilterType::Lanczos3);
+        Self::paste_rgba(image, &resized, x, y);
+    }
+
     fn blend_channel(foreground: u8, background: u8, alpha: u16, inverse_alpha: u16) -> u8 {
         let blended = foreground as u16 * alpha + background as u16 * inverse_alpha;
         (blended / MAX_ALPHA_U16) as u8

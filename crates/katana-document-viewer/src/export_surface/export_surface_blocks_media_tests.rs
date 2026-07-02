@@ -86,8 +86,10 @@ fn image_block_from_path_rasterizes_svg_file() -> Result<(), Box<dyn std::error:
     let block = SurfaceImageBlock::from_path(&path, None, "svg".to_string())
         .ok_or(std::io::Error::other("svg image block"))?;
 
-    assert_eq!(block.image.width(), 32);
-    assert_eq!(block.image.height(), 18);
+    assert_eq!(block.display_width, 32);
+    assert_eq!(block.display_height, 18);
+    assert_eq!(block.image.width(), 64);
+    assert_eq!(block.image.height(), 36);
     assert_eq!(block.alt_for_tests(), "svg");
     Ok(())
 }
