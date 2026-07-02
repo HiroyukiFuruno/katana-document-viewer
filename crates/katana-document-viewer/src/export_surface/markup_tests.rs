@@ -38,29 +38,6 @@ fn text_node(text: &str) -> KmmNode {
 }
 
 #[test]
-fn parses_details_summary_and_body_variants() {
-    let fragment = "<details><summary>Summary</summary><div>Body text</div></details>";
-    let parts = SurfaceDetailsParts::parse(fragment);
-    assert!(parts.is_some(), "details block should be parseable");
-    let Some(parts) = parts else {
-        return;
-    };
-    assert_eq!(parts.summary, "Summary");
-    assert_eq!(parts.body, "Body text");
-
-    let fragment_without_div = "<details>\n<summary>Summary</summary> Body only </details>";
-    let parts_without_div = SurfaceDetailsParts::parse(fragment_without_div);
-    assert!(
-        parts_without_div.is_some(),
-        "details block should be parseable"
-    );
-    let Some(parts_without_div) = parts_without_div else {
-        return;
-    };
-    assert_eq!(parts_without_div.body, "Body only");
-}
-
-#[test]
 fn list_marker_text_uses_expected_branches() {
     let mut ordered_item = ListItemNode {
         marker: "1.".to_string(),

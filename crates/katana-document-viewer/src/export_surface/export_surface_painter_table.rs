@@ -1,7 +1,7 @@
 use super::{
     PAGE_PADDING, SURFACE_CONTENT_WIDTH, SurfaceHelpers, SurfacePaintPalette, SurfacePainter,
-    SurfaceTableBlock, SurfaceTableCellPaint, SurfaceTableLayout, SurfaceTableRowPaintRequest,
-    SurfaceTextPainter,
+    SurfaceSpansLayout, SurfaceTableBlock, SurfaceTableCellPaint, SurfaceTableLayout,
+    SurfaceTableRowPaintRequest, SurfaceTextPainter,
 };
 use image::RgbaImage;
 
@@ -160,20 +160,23 @@ impl SurfacePainter {
         } else {
             palette.text
         };
-        painter.draw_spans(image, &line, x, text_y, cell.table_font_size, color);
+        painter.draw_spans_with_backgrounds(
+            image,
+            &line,
+            SurfaceSpansLayout {
+                x,
+                y: text_y,
+                size: cell.table_font_size,
+                color,
+                backgrounds: palette.text_backgrounds(),
+            },
+        );
         *next_text_y += cell.table_line_height;
     }
 }
 
 fn table_cell_line_spans(line: Vec<super::SurfaceTextSpan>) -> Vec<super::SurfaceTextSpan> {
-    line.into_iter()
-        .map(|mut span| {
-            if span.style.inline_code {
-                span.style.inline_code = false;
-            }
-            span
-        })
-        .collect()
+    line
 }
 
 #[cfg(test)]

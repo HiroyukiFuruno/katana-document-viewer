@@ -1005,7 +1005,7 @@ dependencies = [
 
 [[package]]
 name = "katana-document-viewer"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "cosmic-text",
  "epaint_default_fonts",
@@ -1085,7 +1085,7 @@ dependencies = [
 
 [[package]]
 name = "kdv-linter"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "ignore",
  "proc-macro2",
@@ -1096,7 +1096,7 @@ dependencies = [
 
 [[package]]
 name = "kdv-storybook"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "image",
  "katana-document-viewer",

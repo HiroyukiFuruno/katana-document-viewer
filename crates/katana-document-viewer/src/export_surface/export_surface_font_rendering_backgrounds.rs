@@ -1,10 +1,9 @@
+use crate::export_surface_font::SurfaceTextBackgroundPalette;
 use crate::export_surface_span::SurfaceTextSpan;
 use image::{Rgba, RgbaImage};
 
 use super::super::SpanVisualRange;
 
-const SPAN_BACKGROUND_COLOR: Rgba<u8> = Rgba([255, 235, 59, 255]);
-const INLINE_CODE_BACKGROUND: Rgba<u8> = Rgba([239, 242, 246, 255]);
 const HIGHLIGHT_Y_OFFSET_SCALE: f32 = 0.12;
 const HIGHLIGHT_HEIGHT_SCALE: f32 = 1.18;
 const INLINE_CODE_Y_OFFSET_SCALE: f32 = 0.08;
@@ -19,9 +18,10 @@ pub(super) fn draw_span_backgrounds(
     x: u32,
     y: u32,
     size: f32,
+    palette: SurfaceTextBackgroundPalette,
 ) {
     for (index, span) in spans.iter().enumerate() {
-        SpanBackgroundPainter::paint(image, span, ranges.get(index), x, y, size);
+        SpanBackgroundPainter::paint(image, span, ranges.get(index), x, y, size, palette);
     }
 }
 
@@ -35,31 +35,46 @@ impl SpanBackgroundPainter {
         x: u32,
         y: u32,
         size: f32,
+        palette: SurfaceTextBackgroundPalette,
     ) {
         let Some(range) = range.and_then(|range| *range) else {
             return;
         };
         if span.style.highlight {
-            Self::paint_highlight(image, range, x, y, size);
+            Self::paint_highlight(image, range, x, y, size, palette.highlight);
             return;
         }
         if span.style.inline_code {
-            Self::paint_inline_code(image, range, x, y, size);
+            Self::paint_inline_code(image, range, x, y, size, palette.inline_code);
         }
     }
 
-    fn paint_highlight(image: &mut RgbaImage, range: SpanVisualRange, x: u32, y: u32, size: f32) {
+    fn paint_highlight(
+        image: &mut RgbaImage,
+        range: SpanVisualRange,
+        x: u32,
+        y: u32,
+        size: f32,
+        color: Rgba<u8>,
+    ) {
         draw_fill_rect(
             image,
             x.saturating_add(range.start_x),
             y + (size * HIGHLIGHT_Y_OFFSET_SCALE) as u32,
             range.width(),
             (size * HIGHLIGHT_HEIGHT_SCALE) as u32,
-            SPAN_BACKGROUND_COLOR,
+            color,
         );
     }
 
-    fn paint_inline_code(image: &mut RgbaImage, range: SpanVisualRange, x: u32, y: u32, size: f32) {
+    fn paint_inline_code(
+        image: &mut RgbaImage,
+        range: SpanVisualRange,
+        x: u32,
+        y: u32,
+        size: f32,
+        color: Rgba<u8>,
+    ) {
         draw_fill_rect(
             image,
             x.saturating_add(range.start_x)
@@ -67,7 +82,7 @@ impl SpanBackgroundPainter {
             y + (size * INLINE_CODE_Y_OFFSET_SCALE) as u32,
             range.width() + INLINE_CODE_EXTRA_WIDTH,
             (size * INLINE_CODE_HEIGHT_SCALE) as u32,
-            INLINE_CODE_BACKGROUND,
+            color,
         );
     }
 }

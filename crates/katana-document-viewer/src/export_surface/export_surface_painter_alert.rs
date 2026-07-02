@@ -2,8 +2,8 @@ use super::{
     ALERT_PANEL_BODY_X_OFFSET, ALERT_PANEL_BORDER_WIDTH, ALERT_PANEL_PADDING_X,
     ALERT_PANEL_PADDING_Y, ALERT_PANEL_TEXT_Y_STEP, ALERT_PANEL_TITLE_X_OFFSET, PAGE_PADDING,
     QUOTE_INDENT, SurfaceAlertBlock, SurfaceHelpers, SurfaceLine, SurfacePaintPalette,
-    SurfacePainter, SurfaceTextPainter, alert_color, alert_title_icon_y, draw_caution_icon,
-    draw_important_icon, draw_note_icon, draw_tip_icon, draw_warning_icon,
+    SurfacePainter, SurfaceSpansLayout, SurfaceTextPainter, alert_color, alert_title_icon_y,
+    draw_caution_icon, draw_important_icon, draw_note_icon, draw_tip_icon, draw_warning_icon,
 };
 use image::RgbaImage;
 
@@ -79,13 +79,16 @@ impl SurfacePainter {
         palette: &SurfacePaintPalette,
     ) {
         let text_y = line.text_y(y);
-        painter.draw_spans(
+        painter.draw_spans_with_backgrounds(
             image,
             &line.spans,
-            x,
-            text_y,
-            line.font_size(),
-            palette.text,
+            SurfaceSpansLayout {
+                x,
+                y: text_y,
+                size: line.font_size(),
+                color: palette.text,
+                backgrounds: palette.text_backgrounds(),
+            },
         );
     }
 }

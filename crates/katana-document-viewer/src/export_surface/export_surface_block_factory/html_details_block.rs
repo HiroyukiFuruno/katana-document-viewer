@@ -54,8 +54,28 @@ impl SurfaceBlockFactory {
             );
             return;
         }
+        let body_blocks =
+            Self::details_body_blocks(graph, &fragment, quote_depth, list_depth, theme);
+        blocks.extend(Self::non_blank_detail_blocks(body_blocks));
+    }
+
+    fn details_body_blocks(
+        graph: &BuildGraph,
+        fragment: &EvaluatedMarkdownFragment,
+        quote_depth: u32,
+        list_depth: u32,
+        theme: &KdvThemeSnapshot,
+    ) -> Vec<SurfaceBlock> {
+        let mut blocks = Vec::new();
         for node in fragment.nodes() {
-            Self::append_node(blocks, graph, node, quote_depth, list_depth, theme);
+            Self::append_node(&mut blocks, graph, node, quote_depth, list_depth, theme);
         }
+        blocks
+    }
+
+    fn non_blank_detail_blocks(blocks: Vec<SurfaceBlock>) -> impl Iterator<Item = SurfaceBlock> {
+        blocks.into_iter().filter(
+            |block| !matches!(block, SurfaceBlock::Line(line) if line.text.trim().is_empty()),
+        )
     }
 }

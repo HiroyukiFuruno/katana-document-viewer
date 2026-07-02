@@ -1,5 +1,6 @@
 mod export_surface_font_fallbacks;
 mod export_surface_font_metrics;
+mod export_surface_font_paint;
 mod export_surface_font_rendering;
 use self::export_surface_font_metrics::{buffer_text_color, span_ranges_width};
 use self::export_surface_font_rendering as rendering;
@@ -10,16 +11,42 @@ use std::cell::RefCell;
 
 const FONT_LINE_HEIGHT_MULTIPLIER: f32 = 1.45;
 const FONT_BUFFER_HEIGHT_SCALE: f32 = 1.8;
+const DEFAULT_HIGHLIGHT_BACKGROUND: Rgba<u8> = Rgba([255, 235, 59, 255]);
+const DEFAULT_INLINE_CODE_BACKGROUND: Rgba<u8> = Rgba([239, 242, 246, 255]);
 thread_local! {
     static CACHED_TEXT_PAINTER: RefCell<SurfaceTextPainter> =
         RefCell::new(SurfaceTextPainter::from_system_fonts());
 }
+
+#[derive(Clone, Copy)]
+pub(crate) struct SurfaceTextBackgroundPalette {
+    pub(crate) highlight: Rgba<u8>,
+    pub(crate) inline_code: Rgba<u8>,
+}
+
+impl Default for SurfaceTextBackgroundPalette {
+    fn default() -> Self {
+        Self {
+            highlight: DEFAULT_HIGHLIGHT_BACKGROUND,
+            inline_code: DEFAULT_INLINE_CODE_BACKGROUND,
+        }
+    }
+}
+
 pub(crate) struct SurfaceTextLayout {
     pub(crate) x: u32,
     pub(crate) y: u32,
     pub(crate) size: f32,
     pub(crate) color: Rgba<u8>,
     pub(crate) max_width: Option<f32>,
+}
+
+pub(crate) struct SurfaceSpansLayout {
+    pub(crate) x: u32,
+    pub(crate) y: u32,
+    pub(crate) size: f32,
+    pub(crate) color: Rgba<u8>,
+    pub(crate) backgrounds: SurfaceTextBackgroundPalette,
 }
 
 pub(crate) struct SurfaceTextPainter {
@@ -40,40 +67,6 @@ impl SurfaceTextPainter {
             let mut painter = cell.borrow_mut();
             render(&mut painter)
         })
-    }
-
-    pub(crate) fn draw_text(
-        &mut self,
-        image: &mut RgbaImage,
-        text: &str,
-        layout: SurfaceTextLayout,
-    ) {
-        let mut draw_buffer = self.create_text_buffer(
-            layout.size * rendering::TEXT_SUPERSAMPLE_SCALE,
-            layout
-                .max_width
-                .unwrap_or_else(|| image.width().saturating_sub(layout.x) as f32)
-                * rendering::TEXT_SUPERSAMPLE_SCALE,
-        );
-        draw_buffer.set_text(text, &Attrs::new(), Shaping::Advanced, None);
-        self.draw_buffer(image, &mut draw_buffer, layout.x, layout.y, layout.color);
-    }
-
-    pub(crate) fn draw_spans(
-        &mut self,
-        image: &mut RgbaImage,
-        spans: &[SurfaceTextSpan],
-        x: u32,
-        y: u32,
-        size: f32,
-        color: Rgba<u8>,
-    ) {
-        let (_layout_buffer, ranges) = self.create_spans_buffer(image, spans, x, y, size);
-        let mut draw_buffer = self.create_spans_draw_buffer(image, spans, x, y, size);
-        rendering::draw_span_backgrounds(image, spans, &ranges, x, y, size);
-        self.draw_buffer(image, &mut draw_buffer, x, y, color);
-        rendering::draw_inline_images(image, spans, &ranges, x, y, size);
-        rendering::draw_span_decorations(image, spans, &ranges, x, y, size);
     }
 
     pub(crate) fn measure_spans_width(
