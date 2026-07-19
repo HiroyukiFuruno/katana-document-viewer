@@ -14,7 +14,10 @@ from pathlib import Path
 VERSION_RE = re.compile(r"^v(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)$")
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 ADAPTER_CONTRACT = "browser-session-adapter"
-KRR_VERSION = "0.4.0"
+KRR_MIN_VERSION = (0, 4, 0)
+KRR_DECLARED_VERSION = ".".join(map(str, KRR_MIN_VERSION))
+KRR_VERSION_REQUIREMENT = "^0.4.0"
+KRR_LOCK_VERSION_RE = re.compile(r"^(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)$")
 ADAPTER_SOURCES = (
     "crates/katana-document-viewer/src/browser_session.rs",
     "crates/katana-document-viewer/src/browser_session_state.rs",
@@ -62,11 +65,25 @@ def release_contract(root: Path, target_version: str) -> str:
 
 def manifest_errors(manifest: str) -> list[str]:
     dependency = re.compile(
-        rf'^katana-render-runtime\s*=\s*"{re.escape(KRR_VERSION)}"\s*$', re.MULTILINE
+        rf'^katana-render-runtime\s*=\s*"{re.escape(KRR_DECLARED_VERSION)}"\s*$',
+        re.MULTILINE,
     )
     if dependency.search(manifest):
         return []
-    return [f"Cargo.toml must depend on katana-render-runtime = \"{KRR_VERSION}\"."]
+    return [
+        "Cargo.toml must depend on "
+        f"katana-render-runtime = \"{KRR_DECLARED_VERSION}\"."
+    ]
+
+
+def krr_lock_version_is_allowed(version: object) -> bool:
+    if not isinstance(version, str):
+        return False
+    match = KRR_LOCK_VERSION_RE.fullmatch(version)
+    if match is None:
+        return False
+    parsed = tuple(int(match.group(name)) for name in ("major", "minor", "patch"))
+    return parsed >= KRR_MIN_VERSION and parsed[:2] == KRR_MIN_VERSION[:2]
 
 
 def lockfile_errors(lockfile: str) -> list[str]:
@@ -75,12 +92,16 @@ def lockfile_errors(lockfile: str) -> list[str]:
         package
         for package in lock.get("package", [])
         if package.get("name") == "katana-render-runtime"
-        and package.get("version") == KRR_VERSION
     ]
     if len(packages) != 1:
-        return [f"Cargo.lock must contain exactly one katana-render-runtime {KRR_VERSION} package."]
+        return ["Cargo.lock must contain exactly one katana-render-runtime package."]
     package = packages[0]
     errors: list[str] = []
+    if not krr_lock_version_is_allowed(package.get("version")):
+        errors.append(
+            "katana-render-runtime must resolve a "
+            f"{KRR_VERSION_REQUIREMENT}-compatible version from crates.io."
+        )
     if package.get("source") != REGISTRY_SOURCE:
         errors.append("katana-render-runtime must resolve from crates.io, not a path or git override.")
     checksum = package.get("checksum")
@@ -219,7 +240,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 """
     assert not lockfile_errors(registry_lock)
+    assert not lockfile_errors(registry_lock.replace('version = "0.4.0"', 'version = "0.4.1"'))
+    assert lockfile_errors(registry_lock.replace('version = "0.4.0"', 'version = "0.3.9"'))
+    assert lockfile_errors(registry_lock.replace('version = "0.4.0"', 'version = "0.5.0"'))
+    duplicate_package = registry_lock.split("[[package]]", maxsplit=1)[1]
+    assert lockfile_errors(registry_lock + "\n[[package]]" + duplicate_package)
     assert lockfile_errors(registry_lock.replace(REGISTRY_SOURCE, "path+file:///tmp/krr"))
+    assert lockfile_errors(
+        registry_lock.replace(
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "invalid",
+        )
+    )
     release_preflight = 'just VERSION="${{ steps.version.outputs.version }}" release-check\n'
     release_workflow = 'just VERSION="${{ steps.version.outputs.version }}" release-verify\n'
     assert not release_workflow_errors(release_preflight, release_workflow)

@@ -1133,9 +1133,9 @@ dependencies = [
 
 [[package]]
 name = "katana-render-runtime"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3811ca86fec5262baf6eb5de14ddcc5c7c2ccfd1d583a975e2bda505d3ee31f6"
+checksum = "496ccf7db1c12d91f72678247c23b37bcc88268408150dc78774c9cb0ff25041"
 dependencies = [
  "anyhow",
  "base64",
