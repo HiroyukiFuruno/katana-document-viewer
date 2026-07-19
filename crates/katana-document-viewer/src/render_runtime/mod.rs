@@ -9,5 +9,7 @@ pub(crate) use types::{KrrRenderRequest, KrrRenderRuntime};
 #[cfg(test)]
 mod test_env;
 #[cfg(test)]
+pub(crate) use test_env::RenderRuntimeTestEnv;
+#[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

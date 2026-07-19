@@ -1,5 +1,4 @@
 use super::*;
-use crate::render_runtime::test_env::RenderRuntimeTestEnv;
 
 #[test]
 fn diagnostics_message_uses_default_for_empty_diagnostics() {
@@ -28,19 +27,4 @@ fn diagnostics_message_uses_default_for_empty_diagnostics() {
         diagnostics_message(&output),
         "renderer returned non-svg output"
     );
-}
-
-#[test]
-fn render_runtime_test_env_restores_existing_mathjax_env() {
-    unsafe { std::env::set_var("MATHJAX_JS", "/tmp/existing-mathjax.js") };
-
-    RenderRuntimeTestEnv::with_mathjax_env(None, || {
-        assert!(std::env::var_os("MATHJAX_JS").is_none());
-    });
-
-    assert_eq!(
-        std::env::var_os("MATHJAX_JS"),
-        Some(std::ffi::OsString::from("/tmp/existing-mathjax.js"))
-    );
-    unsafe { std::env::remove_var("MATHJAX_JS") };
 }
