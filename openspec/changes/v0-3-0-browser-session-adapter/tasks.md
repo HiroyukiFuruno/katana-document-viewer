@@ -2,10 +2,11 @@
 
 ## Release Tasks
 
-- [x] v0.3.0 adapter release contract を、legacy Storybook UI acceptance と分離する。証跡: `rtk just VERSION=0.3.0 release-verify`。
+- [x] v0.3.0 adapter release contract を、legacy Storybook UI acceptance と分離する。証跡: `rtk just VERSION=0.3.0 release-verify`、`rtk just VERSION=0.3.0 release-check`、workflow contract test。
   legacy artifact の freshness/source-integrity check は維持し、adapter release は
   registry lock、ownership contract、adapter integration contract、strict quality gate
-  を必須条件とする。
+  を必須条件とする。release workflow は legacy Storybook artifact を adapter
+  release gate として実行しない。
 - [x] KRR `0.4.0` の crates.io 公開後、temporary local patch を除外し registry lockfile を確定する。証跡: `rtk cargo generate-lockfile` により `katana-render-runtime 0.4.0` を crates.io checksum 付きで解決。
 - [x] 同一 version の未実装 PDF pagination plan を後続 version へ繰り延べ、`v0.3.0` release target と衝突しないことを機械検証する。証跡: `rtk just VERSION=0.3.0 release-target-check`
 - [x] Git pre-push hook が継承する Git environment を harness とその fixture temporary workspace に漏らさず、非 Git workspace を誤判定しない。証跡: `rtk just check`

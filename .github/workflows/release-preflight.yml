@@ -47,7 +47,7 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Install acceptance artifact dependencies
+      - name: Install diagram test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y graphviz imagemagick xvfb xclip
@@ -85,15 +85,4 @@ jobs:
 
       - name: Release check
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
-        run: |
-          xvfb-run -a just storybook-release-acceptance-artifacts
-          xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
-
-      - name: Upload preview crop evidence on failure
-        if: failure() && (github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v'))
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: kdv-storybook-preview-crop-reference
-          path: target/acceptance/preview-crop-reference
-          if-no-files-found: error
-          retention-days: 7
+        run: just VERSION="${{ steps.version.outputs.version }}" release-check

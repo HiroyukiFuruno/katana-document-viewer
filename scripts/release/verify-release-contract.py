@@ -144,6 +144,22 @@ def justfile_errors(justfile: str) -> list[str]:
     return ["release contract recipes are incomplete: " + ", ".join(missing) + "."]
 
 
+def release_workflow_errors(preflight: str, release: str) -> list[str]:
+    workflows = {
+        "release preflight": (preflight, "release-check"),
+        "release workflow": (release, "release-verify"),
+    }
+    errors: list[str] = []
+    for label, (workflow, required_recipe) in workflows.items():
+        if f'just VERSION="${{{{ steps.version.outputs.version }}}}" {required_recipe}' not in workflow:
+            errors.append(f"{label} must run the KDV {required_recipe} recipe.")
+        if "storybook-release-acceptance-artifacts" in workflow:
+            errors.append(
+                f"{label} must not make the legacy Storybook artifact a browser-session release gate."
+            )
+    return errors
+
+
 def validate(root: Path, target_version: str) -> list[str]:
     try:
         contract = release_contract(root, target_version)
@@ -157,6 +173,12 @@ def validate(root: Path, target_version: str) -> list[str]:
     errors.extend(adapter_source_errors(root))
     errors.extend(integration_contract_errors(root))
     errors.extend(justfile_errors((root / "Justfile").read_text(encoding="utf-8")))
+    errors.extend(
+        release_workflow_errors(
+            (root / ".github/workflows/release-preflight.yml").read_text(encoding="utf-8"),
+            (root / ".github/workflows/release.yml").read_text(encoding="utf-8"),
+        )
+    )
     return errors
 
 
@@ -198,6 +220,12 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 """
     assert not lockfile_errors(registry_lock)
     assert lockfile_errors(registry_lock.replace(REGISTRY_SOURCE, "path+file:///tmp/krr"))
+    release_preflight = 'just VERSION="${{ steps.version.outputs.version }}" release-check\n'
+    release_workflow = 'just VERSION="${{ steps.version.outputs.version }}" release-verify\n'
+    assert not release_workflow_errors(release_preflight, release_workflow)
+    assert release_workflow_errors(
+        "storybook-release-acceptance-artifacts\n", release_workflow
+    )
 
 
 def main() -> int:

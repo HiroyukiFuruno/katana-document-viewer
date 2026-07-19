@@ -636,7 +636,6 @@ const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "exec convert",
     "/opt/local/bin/dot",
     "GRAPHVIZ_DOT",
-    "storybook-release-acceptance-artifacts",
     "release-check",
 ];
 
@@ -645,16 +644,14 @@ const RELEASE_WORKFLOW_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "-Xss16m",
     "-Djava.awt.headless=true",
     "-Djdk.lang.processReaperUseDefaultStackSize=true",
-    "Install acceptance artifact dependencies",
+    "Install diagram test dependencies",
     "apt-get install -y graphviz imagemagick xvfb xclip",
     "command -v magick",
     "/usr/local/bin/magick",
     "exec convert",
     "/opt/local/bin/dot",
     "GRAPHVIZ_DOT",
-    "xvfb-run -a just storybook-release-acceptance-artifacts",
-    "xvfb-run -a just VERSION=",
-    "release-verify",
+    "just VERSION=\"${{ steps.version.outputs.version }}\" release-verify",
 ];
 
 const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
