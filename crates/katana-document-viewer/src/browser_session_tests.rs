@@ -2,7 +2,7 @@ use super::{BrowserSessionAdapter, BrowserSessionRequest, BrowserSessionUpdate};
 use katana_render_runtime::{
     HtmlBrowserInput, HtmlBrowserNavigation, HtmlBrowserSource, HtmlBrowserViewport,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(1);
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -36,7 +36,9 @@ fn worker_forwards_resize_and_explicit_navigation() -> TestResult {
 
 #[test]
 fn worker_forwards_input_and_publishes_runtime_link_navigation() -> TestResult {
-    let mut adapter = BrowserSessionAdapter::start(request("<a href=linked.html>Next</a>")?);
+    let mut adapter = BrowserSessionAdapter::start(request(
+        "<a href=linked.html style=\"min-height: 80px; padding: 8px\">Next</a>",
+    )?);
 
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
     for input in [
@@ -54,11 +56,7 @@ fn worker_forwards_input_and_publishes_runtime_link_navigation() -> TestResult {
         adapter.dispatch_input(input)?;
     }
 
-    assert!(matches!(
-        adapter.wait_for_update(UPDATE_TIMEOUT),
-        Some(BrowserSessionUpdate::Navigation(navigation))
-            if navigation.url.as_str() == "https://example.test/linked.html"
-    ));
+    assert_navigation(&adapter, "https://example.test/linked.html", UPDATE_TIMEOUT)?;
     adapter.close()?;
     Ok(())
 }
@@ -79,5 +77,28 @@ fn assert_frame(update: Option<BrowserSessionUpdate>) -> TestResult {
     match update {
         Some(BrowserSessionUpdate::Frame(frame)) if !frame.pixels.is_empty() => Ok(()),
         _ => Err(format!("expected browser frame, got {update:?}").into()),
+    }
+}
+
+fn assert_navigation(
+    adapter: &BrowserSessionAdapter,
+    expected_url: &str,
+    timeout: Duration,
+) -> TestResult {
+    let deadline = Instant::now() + timeout;
+    let mut observed = Vec::new();
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        let Some(update) = adapter.wait_for_update(remaining) else {
+            return Err(format!("expected navigation to {expected_url}, got {observed:?}").into());
+        };
+        match update {
+            BrowserSessionUpdate::Navigation(navigation)
+                if navigation.url.as_str() == expected_url =>
+            {
+                return Ok(());
+            }
+            update => observed.push(update),
+        }
     }
 }
