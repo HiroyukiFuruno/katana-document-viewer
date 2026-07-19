@@ -59,8 +59,12 @@ coverage-missing:
     {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-lines {{COVERAGE_MIN_LINES}}
 
 # Run the local quality gate
-check: fmt-check lint ast-lint storybook-entrypoint-check kuc-adapter-boundary-check test check-subagent-harness
+check: fmt-check lint ast-lint storybook-entrypoint-check kuc-adapter-boundary-check test release-target-script-test check-subagent-harness
     @echo "checks passed"
+
+# Run release-line mapping tests without contacting external services.
+release-target-script-test:
+    python3 scripts/release/verify-openspec-release-target.py --self-test
 
 # Verify subagent / Spark delegation evidence is explicitly recorded
 check-subagent-harness:
@@ -447,7 +451,7 @@ storybook-performance-check-core:
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --release --locked performance_tests -- --ignored --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --release --locked fixture_switch_ -- --ignored --test-threads=1
 
-# Check Storybook score gates. This is the score entrypoint required by v0.2.0 recovery.
+# Check Storybook score gates required for KDV release acceptance.
 storybook-score-audit-check:
     {{RTK_CMD}}just storybook-score-check
 
@@ -526,14 +530,21 @@ storybook-check: storybook-entrypoint-check kuc-adapter-boundary-check storybook
 release-target-check:
     bash scripts/release/verify-version.sh "{{VERSION}}"
     python3 scripts/release/verify-release-target.py --target-version "{{TAG}}" --repo "{{RELEASE_REPO}}"
+    python3 scripts/release/verify-openspec-release-target.py --target-version "{{TAG}}"
 
 # Verify package metadata and dry-run the crates.io publish target.
 release-dod-check:
     python3 scripts/release/assert-viewer-recovery-dod.py --self-test
     python3 scripts/release/assert-viewer-recovery-dod.py
 
+# Verify the active OpenSpec release contract before packaging or publishing.
+release-contract-check:
+    python3 scripts/release/verify-release-contract.py --self-test
+    python3 scripts/release/verify-release-contract.py --target-version "{{TAG}}"
+    {{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked -- --test-threads=1
+
 # Verify package metadata and dry-run the crates.io publish target.
-release-verify: release-dod-check check coverage
+release-verify: release-contract-check check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
     {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty

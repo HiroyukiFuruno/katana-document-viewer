@@ -20,15 +20,18 @@ impl KrrMathRenderEngine {
 #[cfg(test)]
 mod tests {
     use super::KrrMathRenderEngine;
+    use crate::render_runtime::RenderRuntimeTestEnv;
 
     #[test]
     fn render_display_svg_returns_mathjax_svg() -> Result<(), String> {
-        let svg = KrrMathRenderEngine::render_display_svg(
-            "E = mc^2",
-            &crate::KdvThemeSnapshot::katana_light(),
-        )?;
+        RenderRuntimeTestEnv::with_mathjax_env(None, || {
+            let svg = KrrMathRenderEngine::render_display_svg(
+                "E = mc^2",
+                &crate::KdvThemeSnapshot::katana_light(),
+            )?;
 
-        assert!(svg.trim_start().starts_with("<svg"));
-        Ok(())
+            assert!(svg.trim_start().starts_with("<svg"));
+            Ok(())
+        })
     }
 }

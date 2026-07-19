@@ -7,7 +7,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.7"
+version = "0.3.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/HiroyukiFuruno/katana-document-viewer"
@@ -20,7 +20,7 @@ emojis = "0.9"
 epaint_default_fonts = "0.35"
 thiserror = "2"
 katana-markdown-model = "0.2.1"
-katana-render-runtime = "0.3.8"
+katana-render-runtime = "0.4.0"
 katana-ui-core = { git = "https://github.com/HiroyukiFuruno/katana-ui-core.git", tag = "v0.1.4" }
 katana-ui-core-storybook = { git = "https://github.com/HiroyukiFuruno/katana-ui-core.git", tag = "v0.1.4" }
 serde_json = "1"

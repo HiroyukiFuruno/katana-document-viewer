@@ -180,13 +180,44 @@ fn storybook_treeview_core_gate_keeps_window_hover_and_collapse_pixel_contracts(
 }
 
 #[test]
-fn release_verify_depends_on_viewer_recovery_dod_check() -> Result<(), Box<dyn std::error::Error>> {
+fn release_verify_uses_the_active_target_release_contract() -> Result<(), Box<dyn std::error::Error>>
+{
     let root = workspace_root()?;
+    assert_browser_session_release_contract(&root)?;
+    assert_legacy_storybook_acceptance_contract(&root)?;
+    Ok(())
+}
+
+fn assert_browser_session_release_contract(
+    root: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     let justfile = std::fs::read_to_string(root.join("Justfile"))?;
     let release_verify = recipe_body(&justfile, "release-verify")?;
-    let release_dod = recipe_body(&justfile, "release-dod-check")?;
+    let release_contract = recipe_body(&justfile, "release-contract-check")?;
 
-    assert_release_dod_recipe(&root, release_verify, release_dod);
+    assert_release_contract_recipe(root, release_verify, release_contract);
+    let release_contract_script =
+        std::fs::read_to_string(root.join("scripts/release/verify-release-contract.py"))?;
+    assert_contains_all(
+        "browser-session release contract",
+        &release_contract_script,
+        &[
+            "browser-session-adapter",
+            "katana-render-runtime",
+            "registry+https://github.com/rust-lang/crates.io-index",
+            "browser_session_adapter_contract",
+            "KRR_CHROME_BIN",
+        ],
+    );
+    Ok(())
+}
+
+fn assert_legacy_storybook_acceptance_contract(
+    root: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let justfile = std::fs::read_to_string(root.join("Justfile"))?;
+    let release_dod = recipe_body(&justfile, "release-dod-check")?;
+    assert_legacy_release_dod_recipe(root, release_dod);
     let release_dod_script =
         std::fs::read_to_string(root.join("scripts/release/assert-viewer-recovery-dod.py"))?;
     let acceptance_doc = std::fs::read_to_string(root.join(
@@ -605,7 +636,6 @@ const PREFLIGHT_PLANTUML_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "exec convert",
     "/opt/local/bin/dot",
     "GRAPHVIZ_DOT",
-    "storybook-release-acceptance-artifacts",
     "release-check",
 ];
 
@@ -614,16 +644,14 @@ const RELEASE_WORKFLOW_RUNTIME_REQUIRED_SNIPPETS: &[&str] = &[
     "-Xss16m",
     "-Djava.awt.headless=true",
     "-Djdk.lang.processReaperUseDefaultStackSize=true",
-    "Install acceptance artifact dependencies",
+    "Install diagram test dependencies",
     "apt-get install -y graphviz imagemagick xvfb xclip",
     "command -v magick",
     "/usr/local/bin/magick",
     "exec convert",
     "/opt/local/bin/dot",
     "GRAPHVIZ_DOT",
-    "xvfb-run -a just storybook-release-acceptance-artifacts",
-    "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION=",
-    "release-verify",
+    "just VERSION=\"${{ steps.version.outputs.version }}\" release-verify",
 ];
 
 const RELEASE_DOD_REQUIRED_SNIPPETS: &[&str] = &[
@@ -1495,20 +1523,38 @@ fn assert_overlay_controls_rejected(sources: &ScoreSurfaceSources) {
     }
 }
 
-fn assert_release_dod_recipe(root: &std::path::Path, release_verify: &str, release_dod: &str) {
+fn assert_release_contract_recipe(
+    root: &std::path::Path,
+    release_verify: &str,
+    release_contract: &str,
+) {
     assert!(
-        release_verify.contains("release-dod-check"),
-        "release-verify must fail before package/publish while viewer recovery DoD is incomplete"
+        release_verify.contains("release-contract-check"),
+        "release-verify must enforce the active target release contract before package/publish"
     );
+    assert!(
+        release_contract.contains("scripts/release/verify-release-contract.py")
+            && release_contract.contains("--self-test")
+            && release_contract.contains("browser_session_adapter_contract"),
+        "release-contract-check must self-test and run the browser-session adapter contract"
+    );
+    assert!(
+        root.join("scripts/release/verify-release-contract.py")
+            .is_file(),
+        "release contract script must exist"
+    );
+}
+
+fn assert_legacy_release_dod_recipe(root: &std::path::Path, release_dod: &str) {
     assert!(
         release_dod.contains("scripts/release/assert-viewer-recovery-dod.py")
             && release_dod.contains("--self-test"),
-        "release-dod-check must run and self-test the viewer recovery DoD script"
+        "legacy Storybook UI releases must retain the viewer recovery DoD"
     );
     assert!(
         root.join("scripts/release/assert-viewer-recovery-dod.py")
             .is_file(),
-        "release-dod-check script must exist"
+        "legacy viewer recovery DoD script must exist"
     );
 }
 

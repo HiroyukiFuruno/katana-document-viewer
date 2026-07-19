@@ -11,12 +11,17 @@ impl RenderRuntimeTestEnv {
         let guard = RUNTIME_ENV_LOCK
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let result = Self::with_mathjax_env_locked(value, test);
+        drop(guard);
+        result
+    }
+
+    fn with_mathjax_env_locked<T>(value: Option<&str>, test: impl FnOnce() -> T) -> T {
         let previous = env::var_os("MATHJAX_JS");
         let restore = MathJaxEnvRestore { previous };
         Self::set_mathjax_env(value);
         let result = test();
         drop(restore);
-        drop(guard);
         result
     }
 
@@ -72,5 +77,26 @@ mod tests {
         let _ = handle.join();
 
         RenderRuntimeTestEnv::with_mathjax_env(None, || ());
+    }
+
+    #[test]
+    fn with_mathjax_env_restores_existing_value_while_holding_runtime_lock() {
+        let guard = RUNTIME_ENV_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let previous = std::env::var_os("MATHJAX_JS");
+        let restore = super::MathJaxEnvRestore { previous };
+        unsafe { std::env::set_var("MATHJAX_JS", "/tmp/existing-mathjax.js") };
+
+        RenderRuntimeTestEnv::with_mathjax_env_locked(None, || {
+            assert!(std::env::var_os("MATHJAX_JS").is_none());
+        });
+
+        assert_eq!(
+            std::env::var_os("MATHJAX_JS"),
+            Some(std::ffi::OsString::from("/tmp/existing-mathjax.js"))
+        );
+        drop(restore);
+        drop(guard);
     }
 }

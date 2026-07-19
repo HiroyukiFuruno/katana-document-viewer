@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail release while v0.2.0 viewer recovery evidence still says incomplete."""
+"""Fail release while required Storybook acceptance evidence is incomplete."""
 
 from __future__ import annotations
 
@@ -11,10 +11,12 @@ import os
 import shutil
 import subprocess
 import struct
+import tomllib
 from datetime import datetime, timezone
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+LOCAL_CARGO_CONFIG = ROOT / ".cargo/config.toml"
 CHANGE = ROOT / "openspec/changes/v0-2-0-markdown-viewer-kuc-integration"
 USER_FEEDBACK = CHANGE / "user-feedback-todo.md"
 REMAINING_PLAN = CHANGE / "remaining-plan.md"
@@ -38,8 +40,6 @@ CONFIRMED_AT_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$"
 )
 CONFIRMED_BY_PLACEHOLDERS = {"", "human reviewer", "reviewer", "user", "tbd", "n/a", "none"}
-ACCEPTANCE_FRESHNESS_SKIP_ENV = "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS"
-ACCEPTANCE_FRESHNESS_SKIP_VALUES = {"1", "true", "yes", "ci", "ci-reproducible"}
 REQUIRED_EVIDENCE_FIELDS = ("confirmed_by", "confirmed_at")
 HUMAN_ACCEPTANCE_NOTE_RE = re.compile(r"^\s*-\s+human acceptance:\s*(?P<note>.+?)\s*$")
 HUMAN_ACCEPTANCE_NOTE_REQUIRED_TOKENS = ("just storybook", "KatanA", "interactive")
@@ -1137,6 +1137,7 @@ def main() -> int:
         acceptance
     )
     source_integrity_errors = acceptance_source_integrity_errors()
+    local_runtime_patch_errors = local_runtime_patch_overlay_errors()
     artifact_file_errors = acceptance_artifact_file_errors(
         acceptance_evidence(acceptance).get("confirmed_at", "").strip(),
         include_source_integrity=False,
@@ -1167,13 +1168,14 @@ def main() -> int:
         or native_fullscreen_ledger_errors
         or headless_live_acceptance_errors
         or source_integrity_errors
+        or local_runtime_patch_errors
         or artifact_file_errors
         or plantuml_ci_errors
         or release_workflow_errors
         or release_test_entrypoint_errors
     ):
         print(
-            "release DoD is not satisfied for v0.2.0 viewer recovery.",
+            "release DoD is not satisfied for the current KDV release target.",
             file=sys.stderr,
         )
         for error in acceptance_errors:
@@ -1198,6 +1200,8 @@ def main() -> int:
             print(f"storybook live acceptance contract: {error}", file=sys.stderr)
         for error in source_integrity_errors:
             print(f"release source integrity: {error}", file=sys.stderr)
+        for error in local_runtime_patch_errors:
+            print(f"release dependency overlay: {error}", file=sys.stderr)
         for error in artifact_file_errors:
             print(f"release acceptance artifact: {error}", file=sys.stderr)
         for error in plantuml_ci_errors:
@@ -1568,6 +1572,13 @@ def self_test() -> int:
         '#[path = "../../../../katana-ui-core/crates/katana-ui-core-storybook/src/document_viewer.rs"]\nmod document_viewer;\n',
     ):
         failures.append("KUC Cargo dependency scanner must reject sibling source include")
+    local_runtime_patch = """[patch.crates-io]
+katana-render-runtime = { path = "/tmp/katana-render-runtime" }
+"""
+    if not local_runtime_patch_overlay_errors_from_toml(local_runtime_patch):
+        failures.append("local runtime patch scanner must reject a path overlay")
+    if local_runtime_patch_overlay_errors_from_toml(""):
+        failures.append("local runtime patch scanner must allow an absent overlay")
     stale_handoff = f"- {STALE_ROOT_FEEDBACK_LEDGER_PATH}\n"
     if not handoff_canonical_feedback_path_errors_from_markdown(
         "self-test.md", stale_handoff
@@ -1661,10 +1672,6 @@ def self_test() -> int:
     )
     if not any("source file" in error for error in stale_source_errors):
         failures.append("acceptance freshness scanner must reject stale source changes")
-    if not acceptance_freshness_check_enabled({}):
-        failures.append("acceptance freshness check must default to enabled")
-    if acceptance_freshness_check_enabled({ACCEPTANCE_FRESHNESS_SKIP_ENV: "1"}):
-        failures.append("acceptance freshness check must support CI reproducible artifact mode")
     current_source_freshness_errors = (
         acceptance_artifact_source_freshness_errors_from_mtimes(
             artifact_mtimes={
@@ -3130,14 +3137,10 @@ steps:
   - name: Release verify
     run: |
       xvfb-run -a just storybook-release-acceptance-artifacts
-      KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION="${VERSION}" release-verify
+      xvfb-run -a just VERSION="${VERSION}" release-verify
 """
     if release_workflow_acceptance_runtime_errors(valid_release_runtime):
         failures.append("Release workflow runtime scanner must allow complete artifact runtime")
-    if not release_workflow_acceptance_runtime_errors(
-        valid_release_runtime.replace("KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 ", "")
-    ):
-        failures.append("Release workflow runtime scanner must reject missing freshness skip")
     if not release_workflow_acceptance_runtime_errors(
         valid_release_runtime.replace("storybook-release-acceptance-artifacts", "storybook")
     ):
@@ -3947,6 +3950,35 @@ def acceptance_source_integrity_errors_from_labels(
     return errors
 
 
+def local_runtime_patch_overlay_errors() -> list[str]:
+    if not LOCAL_CARGO_CONFIG.exists():
+        return []
+    return local_runtime_patch_overlay_errors_from_toml(
+        LOCAL_CARGO_CONFIG.read_text(encoding="utf-8")
+    )
+
+
+def local_runtime_patch_overlay_errors_from_toml(config_toml: str) -> list[str]:
+    if not config_toml.strip():
+        return []
+    try:
+        config = tomllib.loads(config_toml)
+    except tomllib.TOMLDecodeError:
+        return [".cargo/config.toml is not valid TOML."]
+    patches = config.get("patch")
+    if not isinstance(patches, dict):
+        return []
+    crates_io = patches.get("crates-io")
+    if not isinstance(crates_io, dict):
+        return []
+    runtime = crates_io.get("katana-render-runtime")
+    if not isinstance(runtime, dict) or not isinstance(runtime.get("path"), str):
+        return []
+    return [
+        "local katana-render-runtime path patch is not allowed in .cargo/config.toml."
+    ]
+
+
 def plantuml_ci_runtime_errors(ci_workflow: str, preflight_workflow: str) -> list[str]:
     errors: list[str] = []
     requirements = (
@@ -4017,7 +4049,7 @@ def release_workflow_acceptance_runtime_errors(release_workflow: str) -> list[st
         "/opt/local/bin/dot",
         "GRAPHVIZ_DOT",
         "xvfb-run -a just storybook-release-acceptance-artifacts",
-        "KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION=",
+        "xvfb-run -a just VERSION=",
         "release-verify",
     )
     missing = [token for token in required if token not in release_workflow]
@@ -6636,8 +6668,6 @@ def acceptance_artifact_source_freshness_errors_from_mtimes(
 
 
 def acceptance_artifact_freshness_errors(confirmed_at: str) -> list[str]:
-    if not acceptance_freshness_check_enabled(os.environ):
-        return []
     path_mtimes: dict[str, float] = {}
     for path in required_acceptance_freshness_paths():
         if path.is_file() and path.stat().st_size > 0:
@@ -6645,11 +6675,6 @@ def acceptance_artifact_freshness_errors(confirmed_at: str) -> list[str]:
     return acceptance_artifact_freshness_errors_from_mtimes(
         confirmed_at, path_mtimes
     )
-
-
-def acceptance_freshness_check_enabled(env: dict[str, str]) -> bool:
-    value = env.get(ACCEPTANCE_FRESHNESS_SKIP_ENV, "").strip().lower()
-    return value not in ACCEPTANCE_FRESHNESS_SKIP_VALUES
 
 
 def acceptance_artifact_freshness_errors_from_mtimes(

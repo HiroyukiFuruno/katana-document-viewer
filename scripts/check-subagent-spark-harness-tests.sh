@@ -78,6 +78,17 @@ run_harness() {
     bash "$HARNESS_SCRIPT" >"${workspace}/stdout" 2>"${workspace}/stderr"
 }
 
+run_harness_with_inherited_git_dir() {
+  local workspace="$1"
+  local git_dir
+  git_dir="$(git rev-parse --git-dir)"
+
+  GIT_DIR="$git_dir" \
+    KDV_SUBAGENT_HARNESS_WORKSPACE_DIR="$workspace" \
+    KDV_SUBAGENT_HARNESS_CHECK_EXTERNAL=0 \
+    bash "$HARNESS_SCRIPT" >"${workspace}/stdout" 2>"${workspace}/stderr"
+}
+
 expect_failure() {
   local label="$1"
   local evidence="$2"
@@ -151,7 +162,18 @@ expect_pass() {
   run_harness "$workspace" || fail_test "valid subagent evidence should pass"
 }
 
+expect_pass_with_inherited_git_dir() {
+  local workspace
+  workspace="$(mktemp -d)"
+  trap 'rm -rf "$workspace"' RETURN
+
+  write_workspace "$workspace" "$(line_with_payload "/" "$(valid_payload)")"
+  run_harness_with_inherited_git_dir "$workspace" || \
+    fail_test "valid subagent evidence should pass from a Git hook environment"
+}
+
 expect_pass
+expect_pass_with_inherited_git_dir
 expect_failure "missing agent id" \
   "$(line_with_payload "/" 'model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `dummy` / command: `multi_agent_v1.spawn_agent`')" \
   "実行agent id"
