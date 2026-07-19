@@ -87,4 +87,4 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
         run: |
           xvfb-run -a just storybook-release-acceptance-artifacts
-          KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
+          xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check

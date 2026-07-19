@@ -98,7 +98,7 @@ jobs:
       - name: Release verify
         run: |
           xvfb-run -a just storybook-release-acceptance-artifacts
-          KDV_RELEASE_DOD_SKIP_ACCEPTANCE_FRESHNESS=1 xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify
+          xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify
 
       - name: Create release tag
         env:

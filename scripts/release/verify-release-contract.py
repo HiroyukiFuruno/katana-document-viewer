@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Verify the release contract declared by the active KDV OpenSpec target."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import tempfile
+import tomllib
+from pathlib import Path
+
+
+VERSION_RE = re.compile(r"^v(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)$")
+REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
+ADAPTER_CONTRACT = "browser-session-adapter"
+KRR_VERSION = "0.4.0"
+ADAPTER_SOURCES = (
+    "crates/katana-document-viewer/src/browser_session.rs",
+    "crates/katana-document-viewer/src/browser_session_state.rs",
+    "crates/katana-document-viewer/src/browser_session_types.rs",
+    "crates/katana-document-viewer/src/browser_session_worker.rs",
+)
+FORBIDDEN_ADAPTER_MARKERS = (
+    "html5ever",
+    "markup5ever",
+    "cssparser",
+    "v8::",
+    "HtmlParser",
+    "HtmlRenderer",
+    "HtmlBrowserProcess",
+    "headless_chrome",
+    "Chromium",
+    "WebView",
+    "KRR_CHROME_BIN",
+)
+
+
+def parse_version(value: str) -> tuple[int, int, int]:
+    match = VERSION_RE.fullmatch(value)
+    if match is None:
+        raise ValueError(f"invalid release version: {value}")
+    return tuple(int(match.group(name)) for name in ("major", "minor", "patch"))
+
+
+def release_contract(root: Path, target_version: str) -> str:
+    target = parse_version(target_version)
+    targets = json.loads((root / "openspec/release-targets.json").read_text(encoding="utf-8"))
+    if targets.get("schema_version") != "kdv.release-targets.v1":
+        raise ValueError("unsupported OpenSpec release target schema")
+    current = targets.get("current")
+    if not isinstance(current, dict):
+        raise ValueError("current release target is required")
+    minor_line = current.get("minor_line")
+    contract = current.get("release_contract")
+    if minor_line != f"{target[0]}.{target[1]}":
+        raise ValueError(f"{target_version} is outside the declared KDV release line {minor_line}.x")
+    if contract != ADAPTER_CONTRACT:
+        raise ValueError(f"unsupported KDV release contract: {contract}")
+    return contract
+
+
+def manifest_errors(manifest: str) -> list[str]:
+    dependency = re.compile(
+        rf'^katana-render-runtime\s*=\s*"{re.escape(KRR_VERSION)}"\s*$', re.MULTILINE
+    )
+    if dependency.search(manifest):
+        return []
+    return [f"Cargo.toml must depend on katana-render-runtime = \"{KRR_VERSION}\"."]
+
+
+def lockfile_errors(lockfile: str) -> list[str]:
+    lock = tomllib.loads(lockfile)
+    packages = [
+        package
+        for package in lock.get("package", [])
+        if package.get("name") == "katana-render-runtime"
+        and package.get("version") == KRR_VERSION
+    ]
+    if len(packages) != 1:
+        return [f"Cargo.lock must contain exactly one katana-render-runtime {KRR_VERSION} package."]
+    package = packages[0]
+    errors: list[str] = []
+    if package.get("source") != REGISTRY_SOURCE:
+        errors.append("katana-render-runtime must resolve from crates.io, not a path or git override.")
+    checksum = package.get("checksum")
+    if not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum):
+        errors.append("katana-render-runtime crates.io lock entry must include a SHA-256 checksum.")
+    return errors
+
+
+def cargo_config_errors(config: Path) -> list[str]:
+    if not config.exists():
+        return []
+    text = config.read_text(encoding="utf-8")
+    if "katana-render-runtime" in text and "path" in text:
+        return ["KDV release must not use a local katana-render-runtime path overlay."]
+    return []
+
+
+def adapter_source_errors(root: Path) -> list[str]:
+    errors: list[str] = []
+    for relative in ADAPTER_SOURCES:
+        path = root / relative
+        if not path.is_file():
+            errors.append(f"browser-session adapter source is missing: {relative}.")
+            continue
+        source = path.read_text(encoding="utf-8")
+        for marker in FORBIDDEN_ADAPTER_MARKERS:
+            if marker in source:
+                errors.append(f"browser-session adapter must not own {marker}: {relative}.")
+    return errors
+
+
+def integration_contract_errors(root: Path) -> list[str]:
+    path = root / "crates/katana-document-viewer/tests/browser_session_adapter_contract.rs"
+    if not path.is_file():
+        return ["browser-session adapter integration contract is missing."]
+    source = path.read_text(encoding="utf-8")
+    required = (
+        "public_adapter_forwards_in_process_runtime_commands",
+        "adapter_boundary_does_not_reintroduce_html_semantics_or_an_external_browser",
+        "HtmlBrowserSource::new",
+        "adapter.navigate",
+        "adapter.refresh_frame",
+        "adapter.close",
+    )
+    missing = [token for token in required if token not in source]
+    if not missing:
+        return []
+    return ["browser-session adapter integration contract is incomplete: " + ", ".join(missing) + "."]
+
+
+def justfile_errors(justfile: str) -> list[str]:
+    required = (
+        "release-contract-check:",
+        "verify-release-contract.py --target-version \"{{TAG}}\"",
+        "{{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked",
+        "release-verify: release-contract-check check coverage",
+    )
+    missing = [token for token in required if token not in justfile]
+    if not missing:
+        return []
+    return ["release contract recipes are incomplete: " + ", ".join(missing) + "."]
+
+
+def validate(root: Path, target_version: str) -> list[str]:
+    try:
+        contract = release_contract(root, target_version)
+    except ValueError as error:
+        return [str(error)]
+    if contract != ADAPTER_CONTRACT:
+        return [f"unsupported KDV release contract: {contract}"]
+    errors = manifest_errors((root / "Cargo.toml").read_text(encoding="utf-8"))
+    errors.extend(lockfile_errors((root / "Cargo.lock").read_text(encoding="utf-8")))
+    errors.extend(cargo_config_errors(root / ".cargo/config.toml"))
+    errors.extend(adapter_source_errors(root))
+    errors.extend(integration_contract_errors(root))
+    errors.extend(justfile_errors((root / "Justfile").read_text(encoding="utf-8")))
+    return errors
+
+
+def self_test() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "openspec").mkdir()
+        (root / "openspec/release-targets.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "kdv.release-targets.v1",
+                    "current": {
+                        "minor_line": "0.3",
+                        "change": "adapter",
+                        "release_contract": ADAPTER_CONTRACT,
+                    },
+                    "deferred": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        assert release_contract(root, "v0.3.0") == ADAPTER_CONTRACT
+        try:
+            release_contract(root, "v0.4.0")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("release contract must reject another release line")
+    assert not manifest_errors('katana-render-runtime = "0.4.0"\n')
+    assert manifest_errors('katana-render-runtime = { path = "../krr" }\n')
+    registry_lock = """
+version = 4
+
+[[package]]
+name = "katana-render-runtime"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0000000000000000000000000000000000000000000000000000000000000000"
+"""
+    assert not lockfile_errors(registry_lock)
+    assert lockfile_errors(registry_lock.replace(REGISTRY_SOURCE, "path+file:///tmp/krr"))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--target-version")
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args()
+    if args.self_test:
+        self_test()
+        print("release contract self-test passed")
+        return 0
+    if args.target_version is None:
+        parser.error("--target-version is required unless --self-test is used")
+    root = Path(__file__).resolve().parents[2]
+    errors = validate(root, args.target_version)
+    if errors:
+        for error in errors:
+            print(f"release contract: {error}")
+        return 1
+    print(f"release contract passed: {ADAPTER_CONTRACT}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -5,6 +5,7 @@
 
 pub mod artifact;
 pub mod backend;
+pub mod browser_session;
 pub mod cli_api;
 pub mod document;
 mod emoji_text;
