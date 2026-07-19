@@ -20,6 +20,9 @@
 - `rtk just VERSION=0.3.0 release-verify` passed: the adapter release contract,
   strict checks, coverage, package validation, and crates.io publish dry-run
   completed with KRR `0.4.0` resolved from the registry.
+- The release evidence harness clears hook-inherited Git environment before it
+  checks a temporary workspace. Its regression test reproduces a pre-push
+  `GIT_DIR` and proves the workspace remains non-Git.
 
 ## Independent Review
 

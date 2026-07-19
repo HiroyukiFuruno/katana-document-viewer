@@ -78,12 +78,26 @@ POLICY
   printf -- '- [/] handoff証跡を残す。証跡: agent: `%s` / model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `dummy` / command: `multi_agent_v1.spawn_agent` / verify: `rtk just check-subagent-harness` / close: `multi_agent_v1.close_agent`\n' "$AGENT_ID" >"${workspace}/openspec/changes/subagent-diff/handoff.md"
 }
 
+git_in_fixture_without_hook_environment() {
+  local workspace="$1"
+  shift
+
+  env \
+    -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    -u GIT_COMMON_DIR \
+    -u GIT_DIR \
+    -u GIT_INDEX_FILE \
+    -u GIT_OBJECT_DIRECTORY \
+    -u GIT_WORK_TREE \
+    git -C "$workspace" "$@"
+}
+
 commit_workspace() {
   local workspace="$1"
 
-  git -C "$workspace" init -q
-  git -C "$workspace" add .
-  git -C "$workspace" \
+  git_in_fixture_without_hook_environment "$workspace" init -q
+  git_in_fixture_without_hook_environment "$workspace" add .
+  git_in_fixture_without_hook_environment "$workspace" \
     -c user.name="KDV Harness" \
     -c user.email="kdv-harness@example.invalid" \
     commit --no-gpg-sign -q -m "initial"

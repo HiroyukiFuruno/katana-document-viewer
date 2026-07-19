@@ -22,8 +22,20 @@ is_harness_owned_path() {
   return 1
 }
 
+git_in_workspace_without_hook_environment() {
+  env \
+    -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    -u GIT_COMMON_DIR \
+    -u GIT_DIR \
+    -u GIT_INDEX_FILE \
+    -u GIT_OBJECT_DIRECTORY \
+    -u GIT_WORK_TREE \
+    git -C "$WORKSPACE_DIR" "$@"
+}
+
 git_worktree_available() {
-  git -C "$WORKSPACE_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1
+  git_in_workspace_without_hook_environment \
+    rev-parse --is-inside-work-tree >/dev/null 2>&1
 }
 
 status_path_from_line() {
@@ -61,7 +73,10 @@ collect_changed_harness_files() {
     changed_status_is_deleted "$status" && continue
 
     printf '%s\n' "$path"
-  done < <(git -C "$WORKSPACE_DIR" status --porcelain=v1 --untracked-files=all)
+  done < <(
+    git_in_workspace_without_hook_environment \
+      status --porcelain=v1 --untracked-files=all
+  )
 }
 
 normalize_evidence_file_ref() {
