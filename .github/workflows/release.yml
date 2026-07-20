@@ -98,6 +98,9 @@ jobs:
       - name: Release verify
         run: just VERSION="${{ steps.version.outputs.version }}" release-verify
 
+      - name: Free release verification build outputs
+        run: cargo clean
+
       - name: Create release tag
         env:
           TAG: ${{ steps.version.outputs.version }}
