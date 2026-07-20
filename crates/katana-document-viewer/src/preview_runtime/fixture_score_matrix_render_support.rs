@@ -21,12 +21,12 @@ pub(crate) struct RenderedExportBytes {
 impl RenderedExportBytes {
     pub(crate) fn from_output(output: &PreviewOutput) -> Result<Self, ForgeError> {
         let key = RenderedExportCacheKey::from_output(output);
-        if let Some(bytes) = rendered_export_cache_lock()?.get(&key).cloned() {
+        if let Some(bytes) = rendered_export_cache_lock().get(&key).cloned() {
             return Ok(bytes);
         }
 
         let bytes = Self::build(output)?;
-        rendered_export_cache_lock()?.insert(key, bytes.clone());
+        rendered_export_cache_lock().insert(key, bytes.clone());
         Ok(bytes)
     }
 
@@ -81,18 +81,18 @@ impl RenderedExportCacheKey {
     }
 }
 
-fn rendered_export_cache_lock()
--> Result<MutexGuard<'static, HashMap<RenderedExportCacheKey, RenderedExportBytes>>, ForgeError> {
+fn rendered_export_cache() -> &'static Mutex<HashMap<RenderedExportCacheKey, RenderedExportBytes>> {
     static CACHE: OnceLock<Mutex<HashMap<RenderedExportCacheKey, RenderedExportBytes>>> =
         OnceLock::new();
-    CACHE
-        .get_or_init(|| Mutex::new(HashMap::new()))
-        .lock()
-        .map_err(|error| {
-            ForgeError::Backend(format!(
-                "fixture rendered export cache lock failed: {error}"
-            ))
-        })
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn rendered_export_cache_lock()
+-> MutexGuard<'static, HashMap<RenderedExportCacheKey, RenderedExportBytes>> {
+    match rendered_export_cache().lock() {
+        Ok(cache) => cache,
+        Err(poisoned) => poisoned.into_inner(),
+    }
 }
 
 struct FixtureDiagramRenderEngine;
@@ -125,3 +125,11 @@ fn fixture_svg(kind: &str, theme: &str) -> String {
          rx=\"4\"></rect><text x=\"16\" y=\"42\">{kind}</text></g></svg>"
     )
 }
+
+#[cfg(test)]
+#[path = "fixture_score_matrix_render_support_tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "fixture_score_matrix_render_support_private_tests.rs"]
+mod private_tests;

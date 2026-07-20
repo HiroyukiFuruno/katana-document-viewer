@@ -93,6 +93,55 @@ fn slideshow_state_does_not_define_dedicated_theme() -> Result<(), serde_json::E
     Ok(())
 }
 
+#[test]
+fn slideshow_page_index_isolated_from_non_slideshow_mode() {
+    let input = Data::viewer_input("state-non-slideshow", sample_viewport());
+    let target_page = super::ViewerStateEngine::requested_slideshow_page(&input, 320.0);
+
+    assert_eq!(0, target_page);
+}
+
+#[test]
+fn page_index_for_scroll_handles_non_positive_inputs() {
+    let viewport = sample_viewport();
+    assert_eq!(
+        0,
+        super::ViewerStateEngine::page_index_for_scroll(-1.0, viewport.height)
+    );
+    assert_eq!(
+        0,
+        super::ViewerStateEngine::page_index_for_scroll(120.0, -1.0)
+    );
+}
+
+#[test]
+fn slideshow_command_updates_state_for_all_variants() -> Result<(), String> {
+    let mut state = sample_slideshow_state();
+
+    state = super::ViewerStateEngine::apply_slideshow_command(state, SlideshowCommand::NextPage);
+    state =
+        super::ViewerStateEngine::apply_slideshow_command(state, SlideshowCommand::PreviousPage);
+    state = super::ViewerStateEngine::apply_slideshow_command(
+        state,
+        SlideshowCommand::UpdateSettings(crate::viewer::SlideshowSettingsUpdate {
+            hover_highlight_enabled: false,
+            diagram_controls_enabled: true,
+        }),
+    );
+    state = super::ViewerStateEngine::apply_slideshow_command(state, SlideshowCommand::Close);
+
+    assert!(state.close_requested);
+    assert!(!state.hover_highlight_enabled);
+    assert!(state.diagram_controls_enabled);
+    Ok(())
+}
+
+#[test]
+fn max_page_index_clamps_invalid_layout() {
+    assert_eq!(0, super::ViewerStateEngine::max_page_index(100.0, 0.0));
+    assert_eq!(0, super::ViewerStateEngine::max_page_index(0.0, 100.0));
+}
+
 fn sample_slideshow_state() -> SlideshowState {
     ViewerStateEngine::slideshow_state(sample_viewport(), TALL_CONTENT_HEIGHT, 0, false, false)
 }

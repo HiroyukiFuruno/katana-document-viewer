@@ -8,9 +8,11 @@ use crate::{
     ExportQualityReport, ForgeError, KdvThemeSnapshot, ViewerViewport,
 };
 use crate::{MarkdownSource, PreviewConfig, PreviewOutput, PreviewOutputFactory};
-use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::thread;
+
+#[path = "fixture_score_matrix_export_cache.rs"]
+mod export_cache;
+use export_cache::{ExportCacheKey, export_cache, export_cache_lock};
 
 const CONTENT_HEIGHT: f32 = 20_000.0;
 type ExportRasterPayloads = (Vec<u8>, Vec<u8>, Vec<u8>);
@@ -31,7 +33,7 @@ impl FixtureScoreCase<'_> {
             &config(),
             CONTENT_HEIGHT,
         )
-        .map_err(|error| error.into())
+        .map_err(Into::into)
     }
 }
 
@@ -46,13 +48,11 @@ pub(crate) struct ExportBytes {
 impl ExportBytes {
     pub(crate) fn from_output(output: &PreviewOutput) -> Result<Self, ForgeError> {
         let key = ExportCacheKey::from_output(output);
-        if let Some(bytes) = export_cache_lock()?.get(&key).cloned() {
+        if let Some(bytes) = export_cache_lock().get(&key).cloned() {
             return Ok(bytes);
         }
 
-        let bytes = Self::build(output)?;
-        export_cache_lock()?.insert(key, bytes.clone());
-        Ok(bytes)
+        cache_built_export(key, Self::build(output))
     }
 
     fn build(output: &PreviewOutput) -> Result<Self, ForgeError> {
@@ -62,14 +62,7 @@ impl ExportBytes {
             profile: BuildProfile::markdown_export(),
             theme: theme.clone(),
         });
-        let payloads = FixtureExportPayloadFactory::from_graph(&graph, &theme)?;
-
-        Ok(Self {
-            html: payloads.html,
-            pdf: payloads.pdf,
-            png: payloads.png,
-            jpeg: payloads.jpeg,
-        })
+        export_bytes_from_payloads(FixtureExportPayloadFactory::from_graph(&graph, &theme))
     }
 
     pub(crate) fn score_report(&self, source: &str) -> ExportQualityReport {
@@ -81,6 +74,33 @@ impl ExportBytes {
             source_markdown: source,
             surface_equivalence: None,
         })
+    }
+}
+
+fn cache_built_export(
+    key: ExportCacheKey,
+    result: Result<ExportBytes, ForgeError>,
+) -> Result<ExportBytes, ForgeError> {
+    match result {
+        Ok(bytes) => {
+            export_cache_lock().insert(key, bytes.clone());
+            Ok(bytes)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn export_bytes_from_payloads(
+    result: Result<FixtureExportPayloads, ForgeError>,
+) -> Result<ExportBytes, ForgeError> {
+    match result {
+        Ok(payloads) => Ok(ExportBytes {
+            html: payloads.html,
+            pdf: payloads.pdf,
+            png: payloads.png,
+            jpeg: payloads.jpeg,
+        }),
+        Err(error) => Err(error),
     }
 }
 
@@ -100,22 +120,45 @@ impl FixtureExportPayloadFactory {
     ) -> Result<FixtureExportPayloads, ForgeError> {
         let surface = DocumentSurfaceFactory::create(graph, theme);
         let html = HtmlExportPayloadFactory::create(graph, theme);
-        let (pdf, png, jpeg) =
-            thread::scope(|scope| -> Result<ExportRasterPayloads, ForgeError> {
-                let pdf_handle = scope.spawn(|| PdfExportPayloadFactory::create(&surface));
-                let png_handle = scope.spawn(|| ImageExportPayloadFactory::create_png(&surface));
-                let jpeg_handle = scope.spawn(|| ImageExportPayloadFactory::create_jpeg(&surface));
-                let pdf = join_payload("PDF", pdf_handle)?;
-                let png = join_payload("PNG", png_handle)?;
-                let jpeg = join_payload("JPEG", jpeg_handle)?;
-                Ok((pdf, png, jpeg))
-            })?;
-        Ok(FixtureExportPayloads {
+        let raster_payloads = thread::scope(|scope| {
+            let pdf_handle = scope.spawn(|| PdfExportPayloadFactory::create(&surface));
+            let png_handle = scope.spawn(|| ImageExportPayloadFactory::create_png(&surface));
+            let jpeg_handle = scope.spawn(|| ImageExportPayloadFactory::create_jpeg(&surface));
+            join_raster_payloads(
+                join_payload("PDF", pdf_handle),
+                join_payload("PNG", png_handle),
+                join_payload("JPEG", jpeg_handle),
+            )
+        });
+        fixture_export_payloads(html, raster_payloads)
+    }
+}
+
+fn join_raster_payloads(
+    pdf: Result<Vec<u8>, ForgeError>,
+    png: Result<Vec<u8>, ForgeError>,
+    jpeg: Result<Vec<u8>, ForgeError>,
+) -> Result<ExportRasterPayloads, ForgeError> {
+    match (pdf, png, jpeg) {
+        (Err(error), _, _) => Err(error),
+        (Ok(_), Err(error), _) => Err(error),
+        (Ok(_), Ok(_), Err(error)) => Err(error),
+        (Ok(pdf), Ok(png), Ok(jpeg)) => Ok((pdf, png, jpeg)),
+    }
+}
+
+fn fixture_export_payloads(
+    html: Vec<u8>,
+    raster_payloads: Result<ExportRasterPayloads, ForgeError>,
+) -> Result<FixtureExportPayloads, ForgeError> {
+    match raster_payloads {
+        Ok((pdf, png, jpeg)) => Ok(FixtureExportPayloads {
             html,
             pdf,
             png,
             jpeg,
-        })
+        }),
+        Err(error) => Err(error),
     }
 }
 
@@ -131,35 +174,6 @@ fn join_payload(
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
-struct ExportCacheKey {
-    document_id: String,
-    revision: String,
-    kind: String,
-    source_path: String,
-}
-
-impl ExportCacheKey {
-    fn from_output(output: &PreviewOutput) -> Self {
-        let snapshot = &output.input.snapshot;
-        Self {
-            document_id: snapshot.id.0.clone(),
-            revision: snapshot.revision.0.clone(),
-            kind: format!("{:?}", snapshot.kind),
-            source_path: snapshot.source_path.to_string_lossy().to_string(),
-        }
-    }
-}
-
-fn export_cache_lock()
--> Result<MutexGuard<'static, HashMap<ExportCacheKey, ExportBytes>>, ForgeError> {
-    static CACHE: OnceLock<Mutex<HashMap<ExportCacheKey, ExportBytes>>> = OnceLock::new();
-    CACHE
-        .get_or_init(|| Mutex::new(HashMap::new()))
-        .lock()
-        .map_err(|error| ForgeError::Backend(format!("fixture export cache lock failed: {error}")))
-}
-
 fn config() -> PreviewConfig {
     PreviewConfig {
         viewport: ViewerViewport {
@@ -169,3 +183,11 @@ fn config() -> PreviewConfig {
         ..PreviewConfig::default()
     }
 }
+
+#[cfg(test)]
+#[path = "fixture_score_matrix_support_tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "fixture_score_matrix_support_private_tests.rs"]
+mod private_tests;

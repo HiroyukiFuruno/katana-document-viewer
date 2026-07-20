@@ -50,6 +50,23 @@ fn pdf_surface_concatenates_rendered_pages() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[test]
+fn preview_surface_factory_uses_custom_base_font_size() -> Result<(), Box<dyn Error>> {
+    let graph = graph_from_markdown(&long_document())?;
+    let config = PreviewConfig {
+        base_font_size: Some(18.0),
+        ..PreviewConfig::default()
+    };
+    let surface = KdvPreviewSurfaceFactory::create_from_config(
+        &graph,
+        &KdvThemeSnapshot::katana_light(),
+        &config,
+    );
+
+    assert_eq!(surface.width, SURFACE_WIDTH);
+    Ok(())
+}
+
 fn graph_from_markdown(content: &str) -> Result<BuildGraph, Box<dyn Error>> {
     let document = KatanaMarkdownModel::parse(MarkdownInput::from_content(
         PathBuf::from("preview.md"),

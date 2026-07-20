@@ -199,4 +199,15 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn table_cells_trim_outer_pipe_cells() {
+        assert_eq!(vec!["a", "b"], ViewerNodeMetrics::table_cells("| a | b |"));
+    }
+
+    #[test]
+    fn zero_column_allocation_returns_no_widths() {
+        assert!(ViewerNodeMetrics::katana_table_column_widths(&[], 0, 100).is_empty());
+        assert!(ViewerNodeMetrics::allocate_katana_table_column_widths(0, 100, &[]).is_empty());
+    }
 }

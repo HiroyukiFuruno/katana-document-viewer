@@ -8,6 +8,13 @@ use crate::forge::BuildGraph;
 use crate::viewer::settings_update::ViewerTypographyConfig;
 use katana_markdown_model::{KmmNode, KmmNodeKind};
 
+#[cfg(test)]
+#[path = "builder_media_surface_height_tests.rs"]
+mod tests;
+#[cfg(test)]
+#[path = "builder_media_surface_height_test_support.rs"]
+mod tests_support;
+
 impl ViewerMediaHeight {
     pub(super) fn preferred_surface_height(
         graph: Option<&BuildGraph>,

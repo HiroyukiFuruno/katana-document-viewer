@@ -1,6 +1,15 @@
-use super::{SurfaceCodeHighlighter, span_style};
+use super::{DEFAULT_SYNTAX_THEME, SurfaceCodeHighlighter, span_style, theme};
+use crate::KdvThemeSnapshot;
 use image::Rgba;
 use syntect::highlighting::Style;
+
+#[test]
+fn missing_syntect_theme_uses_default_theme() {
+    assert!(std::ptr::eq(
+        theme("missing-theme"),
+        theme(DEFAULT_SYNTAX_THEME)
+    ));
+}
 
 #[test]
 fn highlights_plain_body_lines_when_language_is_absent() {
@@ -37,4 +46,15 @@ fn code_token_omits_transparent_default_color() {
         style.color, None,
         "transparent syntect default colors must fall back to the PDF theme text color"
     );
+}
+
+#[test]
+fn syntax_theme_falls_back_to_default_for_empty_names() {
+    let mut theme = KdvThemeSnapshot::katana_light();
+    theme.syntax_theme_light.clear();
+    let mut dark_theme = KdvThemeSnapshot::katana_dark();
+    dark_theme.syntax_theme_dark.clear();
+
+    assert_eq!(super::syntax_theme_name(&theme), "InspiredGitHub");
+    assert_eq!(super::syntax_theme_name(&dark_theme), "InspiredGitHub");
 }

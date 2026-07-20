@@ -89,3 +89,98 @@ impl ViewerNodeClassifier {
         matches!(node.kind, KmmNodeKind::Text(_))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ViewerNodeClassifier;
+    use crate::viewer::node_plan::builder::test_support::{node, text_node};
+    use katana_markdown_model::{KmmNodeKind, TextSpan};
+
+    #[test]
+    fn paragraph_text_normalizes_text_newlines() {
+        let node = node(
+            KmmNodeKind::Paragraph,
+            "a\nb",
+            vec![text_node("a"), text_node("\n"), text_node("b")],
+        );
+        assert_eq!("a\nb", ViewerNodeClassifier::paragraph_text(&node));
+    }
+
+    #[test]
+    fn paragraph_text_normalizes_plain_source_with_entities() {
+        let node = node(
+            KmmNodeKind::Paragraph,
+            "A &amp;\nB",
+            vec![node(
+                KmmNodeKind::Text(TextSpan {
+                    text: "A & B".to_string(),
+                }),
+                "A & B",
+                Vec::new(),
+            )],
+        );
+        assert_eq!(
+            "A &\nB".to_string(),
+            ViewerNodeClassifier::paragraph_text(&node)
+        );
+    }
+
+    #[test]
+    fn paragraph_text_uses_child_text_when_plain_children_exist() {
+        let node = node(
+            KmmNodeKind::Paragraph,
+            "",
+            vec![node(
+                KmmNodeKind::Image(katana_markdown_model::ImageNode {
+                    alt: "img".to_string(),
+                    src: "img.png".to_string(),
+                    title: None,
+                }),
+                "![img](img.png)",
+                Vec::new(),
+            )],
+        );
+        assert_eq!("img", ViewerNodeClassifier::paragraph_text(&node));
+    }
+
+    #[test]
+    fn inline_text_falls_back_to_raw_when_child_text_is_empty() {
+        let node = node(KmmNodeKind::Paragraph, "raw paragraph", vec![text_node("")]);
+        assert_eq!("raw paragraph", ViewerNodeClassifier::inline_text(&node));
+    }
+
+    #[test]
+    fn is_plain_paragraph_requires_text_children_only() {
+        let plain = node(KmmNodeKind::Paragraph, "text", vec![text_node("text")]);
+        let not_plain = node(
+            KmmNodeKind::Paragraph,
+            "text",
+            vec![node(
+                KmmNodeKind::Heading(katana_markdown_model::HeadingNode {
+                    level: 1,
+                    text: String::new(),
+                }),
+                "text",
+                Vec::new(),
+            )],
+        );
+        assert!(ViewerNodeClassifier::is_plain_paragraph(&plain));
+        assert!(!ViewerNodeClassifier::is_plain_paragraph(&not_plain));
+    }
+
+    #[test]
+    fn alert_text_adds_prefix_and_colon() {
+        assert_eq!(
+            "NOTE: detail",
+            ViewerNodeClassifier::alert_text("NOTE", "detail")
+        );
+    }
+
+    #[test]
+    fn footnote_definition_text_includes_dot_space() {
+        assert_eq!(
+            "1. body",
+            ViewerNodeClassifier::footnote_definition_text("1", "body")
+        );
+    }
+}

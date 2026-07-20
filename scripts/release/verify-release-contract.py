@@ -154,6 +154,9 @@ def integration_contract_errors(root: Path) -> list[str]:
 
 def justfile_errors(justfile: str) -> list[str]:
     required = (
+        'COVERAGE_MIN_LINES := "100"',
+        'COVERAGE_MAX_UNCOVERED_LINES := "0"',
+        "--fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}",
         "release-contract-check:",
         "verify-release-contract.py --target-version \"{{TAG}}\"",
         "{{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked",

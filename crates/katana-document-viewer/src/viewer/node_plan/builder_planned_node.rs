@@ -64,3 +64,7 @@ impl PlannedNode {
         parsed.round().clamp(0.0, f32::from(u16::MAX)) as u16
     }
 }
+
+#[cfg(test)]
+#[path = "builder_planned_node_tests.rs"]
+mod tests;

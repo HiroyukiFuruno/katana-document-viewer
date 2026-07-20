@@ -99,3 +99,45 @@ impl HtmlMarkdownMathSource {
         backslash_count % 2 == 1
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contains_math_detects_inline_delimiter() {
+        assert!(HtmlMarkdownMathSource::contains_math(
+            "Energy is $E=mc^2$ in markdown"
+        ));
+    }
+
+    #[test]
+    fn escaped_delimiter_counts_backslashes_from_the_start() {
+        assert!(HtmlMarkdownMathSource::is_escaped(br"\$", 1));
+    }
+
+    #[test]
+    fn contains_math_ignores_math_inside_fenced_code_block() {
+        let source = "```rust\n$not math$ should be ignored\n```";
+        assert!(!HtmlMarkdownMathSource::contains_math(source));
+    }
+
+    #[test]
+    fn contains_math_ignores_code_and_escaped_delimiters() {
+        assert!(!HtmlMarkdownMathSource::contains_math(
+            "`$not math$` and \\\\$also ignored"
+        ));
+    }
+
+    #[test]
+    fn contains_math_detects_display_math_marker() {
+        assert!(HtmlMarkdownMathSource::contains_math(
+            "$$x+y$$ is display math"
+        ));
+    }
+
+    #[test]
+    fn contains_math_returns_false_for_unclosed_single_dollar() {
+        assert!(!HtmlMarkdownMathSource::contains_math("value is $x+1"));
+    }
+}

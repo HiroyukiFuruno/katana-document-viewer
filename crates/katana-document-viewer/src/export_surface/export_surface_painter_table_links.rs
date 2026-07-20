@@ -163,3 +163,7 @@ fn push_table_link_annotation(
         target: target.to_string(),
     });
 }
+
+#[cfg(test)]
+#[path = "export_surface_painter_table_links_tests.rs"]
+mod tests;

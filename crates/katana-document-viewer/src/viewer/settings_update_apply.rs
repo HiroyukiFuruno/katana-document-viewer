@@ -112,3 +112,7 @@ fn font_size_from_label(value: &str) -> u16 {
 fn clamp_font_size(value: i64) -> u16 {
     value.clamp(12, 32) as u16
 }
+
+#[cfg(test)]
+#[path = "settings_update_apply_tests.rs"]
+mod tests;

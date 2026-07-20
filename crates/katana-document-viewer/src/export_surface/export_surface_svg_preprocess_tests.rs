@@ -167,3 +167,25 @@ fn light_dark_parser_handles_nested_functions_and_unclosed_content() {
     assert!(!nested.contains("blue"));
     assert!(unclosed.contains("light-dark("));
 }
+
+#[test]
+fn strip_unclosed_plantuml_processing_instruction_keeps_original_payload() {
+    let raw = "<?plantuml 1.2026.2 <svg><text>kept</text></svg>";
+    let processed = preprocess_for_rasterizer(raw, None);
+
+    assert!(processed.contains("<?plantuml 1.2026.2 <svg>"));
+    assert!(processed.contains("<text>kept</text>"));
+}
+
+#[test]
+fn find_light_dark_function_is_case_insensitive() {
+    assert_eq!(
+        find_light_dark_function("fill=\"Light-Dark(red, blue)\""),
+        Some(6)
+    );
+}
+
+#[test]
+fn parse_light_dark_function_returns_none_for_unclosed_expression() {
+    assert!(parse_light_dark_function("rgb(1,2,3)").is_none());
+}

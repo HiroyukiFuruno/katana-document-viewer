@@ -57,3 +57,7 @@ impl SpanTextWidthCacheKey {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "builder_span_text_width_cache_tests.rs"]
+mod tests;

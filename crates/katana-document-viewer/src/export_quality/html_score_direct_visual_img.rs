@@ -158,3 +158,7 @@ impl<'a> HtmlAttributeValue<'a> {
         Self { value, end }
     }
 }
+
+#[cfg(test)]
+#[path = "html_score_direct_visual_img_tests.rs"]
+mod tests;

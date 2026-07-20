@@ -225,7 +225,11 @@ fn with_krr_plantuml_render_lock<T>(render: impl FnOnce() -> T) -> T {
 }
 
 fn krr_plantuml_render_guard() -> MutexGuard<'static, ()> {
-    match KRR_PLANTUML_RENDER_LOCK.lock() {
+    recover_mutex_guard(&KRR_PLANTUML_RENDER_LOCK)
+}
+
+fn recover_mutex_guard<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    match mutex.lock() {
         Ok(guard) => guard,
         Err(error) => error.into_inner(),
     }

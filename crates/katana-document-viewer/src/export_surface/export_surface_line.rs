@@ -88,3 +88,7 @@ fn scale_for(value: f32, base: f32) -> f32 {
     }
     1.0
 }
+
+#[cfg(test)]
+#[path = "export_surface_line_tests.rs"]
+mod tests;

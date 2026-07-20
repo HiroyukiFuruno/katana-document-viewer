@@ -140,6 +140,17 @@ fn legacy_note_blockquote_text_stays_on_single_quote_line() {
     );
 }
 
+#[test]
+fn block_quote_without_quote_markers_falls_back_to_inline_children() {
+    let quote = node(
+        KmmNodeKind::BlockQuote,
+        "not a quoted source line",
+        vec![text_node("fallback text")],
+    );
+
+    assert_eq!("fallback text", text(&quote, ViewerNodeKind::BlockQuote));
+}
+
 fn text(node: &KmmNode, kind: ViewerNodeKind) -> String {
     ViewerNodeClassifier::node_text(node, &kind)
 }

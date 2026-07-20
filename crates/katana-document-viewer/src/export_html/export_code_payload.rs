@@ -83,10 +83,10 @@ fn theme_set() -> &'static ThemeSet {
 }
 
 fn theme(name: &str) -> &'static Theme {
-    theme_set()
-        .themes
-        .get(name)
-        .unwrap_or_else(|| &theme_set().themes[SYNTAX_THEME])
+    match theme_set().themes.get(name) {
+        Some(theme) => theme,
+        None => &theme_set().themes[SYNTAX_THEME],
+    }
 }
 
 fn syntax_theme_name(theme: &KdvThemeSnapshot) -> &str {
@@ -152,5 +152,23 @@ mod tests {
         let fenced = "```rust\nfn main() {}\n```";
         let body = ExportHtmlOps::fenced_body(fenced);
         assert_eq!(body, "fn main() {}");
+    }
+
+    #[test]
+    fn append_highlighted_uses_default_theme_when_theme_is_empty() {
+        let mut custom_theme = KdvThemeSnapshot::katana_dark();
+        custom_theme.syntax_theme_dark.clear();
+
+        let mut html = String::new();
+
+        CodeHtmlWriter::append_highlighted(&mut html, "rust", "let x = 1;", &custom_theme);
+        let expected = format!("data-kdv-syntax-theme=\"{}\"", SYNTAX_THEME);
+
+        assert!(html.contains(&expected));
+    }
+
+    #[test]
+    fn missing_syntect_theme_uses_default_theme() {
+        assert!(std::ptr::eq(theme("missing-theme"), theme(SYNTAX_THEME)));
     }
 }

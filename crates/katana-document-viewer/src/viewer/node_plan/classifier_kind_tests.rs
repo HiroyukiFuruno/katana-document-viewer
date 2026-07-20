@@ -17,6 +17,14 @@ fn block_variant_cases() -> Vec<(KmmNodeKind, Option<ViewerNodeKind>)> {
     vec![
         (dollar_math_kind(), Some(ViewerNodeKind::Math)),
         (KmmNodeKind::BlockQuote, Some(ViewerNodeKind::BlockQuote)),
+        (
+            KmmNodeKind::Alert {
+                label: "NOTE".to_string(),
+            },
+            Some(ViewerNodeKind::Alert {
+                label: "NOTE".to_string(),
+            }),
+        ),
         (description_list_kind(), Some(ViewerNodeKind::List)),
         (
             KmmNodeKind::Image(image("alt")),

@@ -24,3 +24,7 @@ impl ViewerSpanWrapper {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "classifier_span_wrap_tests.rs"]
+mod tests;

@@ -1,7 +1,7 @@
-use super::super::{ViewerNodeClassifier, ViewerNodeKind};
+use super::super::{ViewerDiagramKind, ViewerNodeClassifier, ViewerNodeKind};
 use super::inline_test_support::*;
 use super::test_support::{image, node};
-use katana_markdown_model::{CodeBlockRole, KmmNodeKind};
+use katana_markdown_model::{CodeBlockRole, DiagramKind, KmmNodeKind};
 
 #[test]
 fn inline_atom_text_covers_text_styles_code_and_html() {
@@ -126,4 +126,25 @@ fn code_block_spans_reuse_surface_syntax_colors() {
 
     assert!(spans.iter().any(|span| span.style.monospace));
     assert!(spans.iter().any(|span| span.style.color_rgba[3] > 0));
+}
+
+#[test]
+fn diagram_code_block_spans_use_monospace_fallback() {
+    let role = CodeBlockRole::Diagram {
+        kind: DiagramKind::Mermaid,
+    };
+    let current = node(
+        KmmNodeKind::CodeBlock(role.clone()),
+        "```mermaid\ngraph TD\n```",
+        Vec::new(),
+    );
+    let spans = ViewerNodeClassifier::node_spans(
+        &current,
+        &ViewerNodeKind::Diagram {
+            kind: ViewerDiagramKind::Mermaid,
+        },
+    );
+
+    assert_eq!("graph TD", span_text(&spans));
+    assert!(spans.iter().all(|span| span.style.monospace));
 }

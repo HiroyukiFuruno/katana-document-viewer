@@ -95,6 +95,18 @@ mod tests {
         );
     }
 
+    #[test]
+    fn surface_span_without_explicit_color_uses_transparent_color() {
+        let span = SurfaceTextSpan {
+            text: "plain".to_string(),
+            style: crate::export_surface_span::SurfaceTextStyle::default(),
+            link_target: None,
+            inline_image: None,
+        };
+
+        assert_eq!(NO_COLOR, span_color(&span));
+    }
+
     fn dark_code_theme() -> KdvThemeSnapshot {
         KdvThemeSnapshot {
             mode: KdvThemeMode::Dark,

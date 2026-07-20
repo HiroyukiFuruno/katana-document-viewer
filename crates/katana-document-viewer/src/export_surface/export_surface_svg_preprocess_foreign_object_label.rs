@@ -194,3 +194,7 @@ fn escape_xml_text(text: &str) -> String {
 fn escape_xml_attr(text: &str) -> String {
     escape_xml_text(text).replace('"', "&quot;")
 }
+
+#[cfg(test)]
+#[path = "export_surface_svg_preprocess_foreign_object_label_tests.rs"]
+mod tests;

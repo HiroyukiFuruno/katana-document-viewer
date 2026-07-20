@@ -1142,7 +1142,7 @@ fn storybook_score_gate_keeps_diagram_scale_and_scroll_flake_contract_sources()
             "fn fit_diagram_display_size",
             "fn diagram_display_scale",
             "fn diagram_display_max_width",
-            "let preview_width = display_width * diagram_display_scale(display_width, max_width)?",
+            "let preview_width = display_width * diagram_display_scale(display_width, max_width)",
             "let max_width = diagram_display_max_width(max_width) as f32",
             "crate::viewer::VIEWER_DIAGRAM_DISPLAY_SCALE",
         ],

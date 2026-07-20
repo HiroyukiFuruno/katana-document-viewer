@@ -95,6 +95,36 @@ fn viewer_quality_maps_uppercase_single_quoted_heading_alignment_with_level() {
 }
 
 #[test]
+fn viewer_quality_maps_right_and_default_heading_alignment() {
+    assert_eq!(
+        Some(ViewerNodeKind::Html {
+            role: heading(3, ViewerHtmlAlignment::Right),
+        }),
+        ViewerNodeClassifier::node_kind_for_node(&right_node(
+            r#"<h3 style="text-align:right">Right</h3>"#
+        ))
+    );
+    assert_eq!(
+        Some(ViewerNodeKind::Html {
+            role: heading(4, ViewerHtmlAlignment::Left),
+        }),
+        ViewerNodeClassifier::node_kind_for_node(&right_node("<h4>Left</h4>"))
+    );
+}
+
+fn right_node(raw_html: &'static str) -> katana_markdown_model::KmmNode {
+    node(
+        KmmNodeKind::HtmlBlock(HtmlBlockRole::Generic),
+        raw_html,
+        Vec::new(),
+    )
+}
+
+fn heading(level: u8, alignment: ViewerHtmlAlignment) -> ViewerHtmlRole {
+    ViewerHtmlRole::Heading { level, alignment }
+}
+
+#[test]
 fn viewer_quality_maps_left_html_align_as_role() {
     let item = node(
         KmmNodeKind::HtmlBlock(HtmlBlockRole::Generic),

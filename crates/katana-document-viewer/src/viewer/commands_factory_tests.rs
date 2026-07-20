@@ -28,6 +28,47 @@ fn image_control_action_becomes_image_command() -> Result<(), String> {
 }
 
 #[test]
+fn image_control_action_rejects_unknown_command() {
+    assert!(
+        crate::viewer::ViewerCommandFactory::image_control_from_action(
+            target("image-node"),
+            "unknown",
+        )
+        .is_none()
+    );
+}
+
+#[test]
+fn task_marker_marker_roundtrip() -> Result<(), String> {
+    let target = target("task-target");
+    let done =
+        crate::viewer::ViewerCommandFactory::set_task_state_from_marker(target.clone(), "[x]")
+            .ok_or_else(|| "missing done task command".to_string())?;
+    let unknown = crate::viewer::ViewerCommandFactory::set_task_state_from_marker(target, "[?]");
+
+    let crate::viewer::ViewerCommand::Task(crate::viewer::TaskStateCommand { state, .. }) = done
+    else {
+        return Err("expected task command".to_string());
+    };
+    assert_eq!(crate::viewer::ViewerTaskState::Done, state);
+    assert!(unknown.is_none());
+    Ok(())
+}
+
+#[test]
+fn diagram_control_action_rejects_unknown_actions() -> Result<(), String> {
+    let diagram_target = target("diagram-node");
+    let command = crate::viewer::ViewerCommandFactory::diagram_control_from_action(
+        diagram_target,
+        "does-not-exist",
+        false,
+    );
+
+    assert!(command.is_none());
+    Ok(())
+}
+
+#[test]
 fn diagram_control_action_becomes_diagram_command() -> Result<(), String> {
     let diagram_target = target("diagram-node");
     let command = crate::viewer::ViewerCommandFactory::diagram_control_from_action(
@@ -91,6 +132,18 @@ fn code_copy_action_becomes_host_copy_command() -> Result<(), String> {
     assert_eq!(crate::viewer::CopyTextSource::Code, copy.source);
     assert_eq!(code_target, copy.target);
     assert_eq!(code_target.source.raw.text, copy.text);
+    Ok(())
+}
+
+#[test]
+fn scroll_to_target_preserves_the_rendered_target() -> Result<(), String> {
+    let heading = target("heading-node");
+    let command = crate::viewer::ViewerCommandFactory::scroll_to_target(heading.clone());
+
+    let crate::viewer::ViewerCommand::ScrollToHeading(scroll) = command else {
+        return Err("expected heading scroll command".to_string());
+    };
+    assert_eq!(heading, scroll.target);
     Ok(())
 }
 

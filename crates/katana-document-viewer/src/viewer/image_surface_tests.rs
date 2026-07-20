@@ -415,6 +415,130 @@ fn invalid_png_returns_decode_error() {
     ));
 }
 
+#[test]
+fn logical_dimensions_fallback_when_display_size_is_not_finite() {
+    let surface = super::ViewerImageSurface {
+        fingerprint: "logical".to_string(),
+        width: 5,
+        height: 5,
+        display_width: f32::NAN,
+        display_height: f32::NEG_INFINITY,
+        content_scale: 10,
+        rgba: vec![0; 100],
+    };
+
+    assert_eq!(50, surface.logical_width());
+    assert_eq!(50, surface.logical_height());
+}
+
+#[test]
+fn non_svg_artifact_from_diagram_reports_unsupported_format() {
+    let artifact = image_artifact(
+        ArtifactId("doc:diagram:svg".to_string()),
+        ArtifactFormat::RenderTree,
+        b"hello".to_vec(),
+    );
+
+    assert_eq!(
+        Err(ViewerImageSurfaceError::UnsupportedFormat(
+            ArtifactFormat::RenderTree
+        )),
+        ViewerImageSurfaceFactory::from_diagram_artifact(&artifact, 200)
+    );
+}
+
+#[test]
+fn non_svg_fullscreen_diagram_artifact_uses_from_artifact_path() {
+    let artifact = image_artifact(
+        ArtifactId("doc:diagram:svg".to_string()),
+        ArtifactFormat::RenderTree,
+        b"hello".to_vec(),
+    );
+
+    assert!(matches!(
+        ViewerImageSurfaceFactory::from_fullscreen_diagram_artifact(&artifact, 200),
+        Err(ViewerImageSurfaceError::UnsupportedFormat(
+            ArtifactFormat::RenderTree
+        ))
+    ));
+}
+
+#[test]
+fn non_svg_export_surface_diagram_artifact_reports_unsupported_format() {
+    let artifact = image_artifact(
+        ArtifactId("doc:diagram:svg".to_string()),
+        ArtifactFormat::RenderTree,
+        b"hello".to_vec(),
+    );
+
+    assert!(matches!(
+        ViewerImageSurfaceFactory::from_export_surface_diagram_artifact(&artifact, 200),
+        Err(ViewerImageSurfaceError::UnsupportedFormat(
+            ArtifactFormat::RenderTree
+        ))
+    ));
+}
+
+#[test]
+fn non_svg_math_artifact_reports_unsupported_format() {
+    let artifact = image_artifact(
+        ArtifactId("doc:math:RenderTree".to_string()),
+        ArtifactFormat::RenderTree,
+        b"math".to_vec(),
+    );
+
+    assert_eq!(
+        Err(ViewerImageSurfaceError::UnsupportedFormat(
+            ArtifactFormat::RenderTree
+        )),
+        ViewerImageSurfaceFactory::from_math_artifact(&artifact)
+    );
+}
+
+#[test]
+fn fullscreen_diagram_background_is_part_of_surface_identity()
+-> Result<(), Box<dyn std::error::Error>> {
+    let artifact = image_artifact(
+        ArtifactId("doc:diagram:fullscreen-background".to_string()),
+        ArtifactFormat::Svg,
+        svg().as_bytes().to_vec(),
+    );
+
+    let surface = ViewerImageSurfaceFactory::from_fullscreen_diagram_artifact_with_background(
+        &artifact,
+        200,
+        [1, 2, 3, 255],
+    )?;
+
+    assert!(surface.fingerprint.contains(":background=010203ff:"));
+    Ok(())
+}
+
+#[test]
+fn repeated_export_svg_and_raster_requests_reuse_cached_surfaces()
+-> Result<(), Box<dyn std::error::Error>> {
+    let svg_artifact = image_artifact(
+        ArtifactId("doc:diagram:export-cache".to_string()),
+        ArtifactFormat::Svg,
+        svg().as_bytes().to_vec(),
+    );
+    let first_export =
+        ViewerImageSurfaceFactory::from_export_surface_diagram_artifact(&svg_artifact, 200)?;
+    let second_export =
+        ViewerImageSurfaceFactory::from_export_surface_diagram_artifact(&svg_artifact, 200)?;
+    assert_eq!(first_export, second_export);
+
+    let raster_artifact = image_artifact(
+        ArtifactId("doc:image:raster-cache".to_string()),
+        ArtifactFormat::Png,
+        encode_png()?,
+    );
+    let first_raster = ViewerImageSurfaceFactory::from_artifact(&raster_artifact, 200)?;
+    let second_raster = ViewerImageSurfaceFactory::from_artifact(&raster_artifact, 400)?;
+    assert_eq!(first_raster, second_raster);
+    Ok(())
+}
+
 fn svg() -> &'static str {
     r#"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>"#
 }

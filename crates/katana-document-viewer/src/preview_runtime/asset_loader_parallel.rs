@@ -32,8 +32,10 @@ impl<E: DiagramRenderEngine + Sync> PreviewAssetLoader<E> {
         scope: PreviewAssetLoadScope,
     ) -> Result<(PreviewOutput, PreviewAssetLoadReport), PreviewError> {
         let requests = Self::pending_requests(output, scope);
-        let artifacts = self.load_artifacts_parallel(output, theme, &requests)?;
-        Ok(Self::output_with_artifacts(output, artifacts))
+        complete_asset_load(
+            output,
+            self.load_artifacts_parallel(output, theme, &requests),
+        )
     }
 
     fn pending_requests(
@@ -59,48 +61,58 @@ impl<E: DiagramRenderEngine + Sync> PreviewAssetLoader<E> {
                 .iter()
                 .map(|request| scope.spawn(move || self.load_request(output, request, theme)))
                 .collect::<Vec<_>>();
-            Self::join_asset_workers(handles)
+            join_asset_workers(handles)
         })
     }
+}
 
-    fn join_asset_workers(
-        handles: Vec<AssetWorkerHandle<'_>>,
-    ) -> Result<Vec<Artifact>, PreviewError> {
-        let mut artifacts = Vec::new();
-        for handle in handles {
-            if let Some(artifact) = Self::join_asset_worker(handle)? {
-                artifacts.push(artifact);
-            }
+fn complete_asset_load(
+    output: &PreviewOutput,
+    artifacts: Result<Vec<Artifact>, PreviewError>,
+) -> Result<(PreviewOutput, PreviewAssetLoadReport), PreviewError> {
+    match artifacts {
+        Ok(artifacts) => Ok(output_with_artifacts(output, artifacts)),
+        Err(error) => Err(error),
+    }
+}
+
+fn join_asset_workers(handles: Vec<AssetWorkerHandle<'_>>) -> Result<Vec<Artifact>, PreviewError> {
+    let mut artifacts = Vec::new();
+    for handle in handles {
+        if let Some(artifact) = join_asset_worker(handle)? {
+            artifacts.push(artifact);
         }
-        Ok(artifacts)
     }
+    Ok(artifacts)
+}
 
-    fn join_asset_worker(handle: AssetWorkerHandle<'_>) -> Result<Option<Artifact>, PreviewError> {
-        handle
-            .join()
-            .map_err(|_| PreviewError::Render("asset loader worker panicked".to_string()))?
+fn join_asset_worker(handle: AssetWorkerHandle<'_>) -> Result<Option<Artifact>, PreviewError> {
+    match handle.join() {
+        Ok(result) => result,
+        Err(_) => Err(PreviewError::Render(
+            "asset loader worker panicked".to_string(),
+        )),
     }
+}
 
-    fn output_with_artifacts(
-        output: &PreviewOutput,
-        artifacts: Vec<Artifact>,
-    ) -> (PreviewOutput, PreviewAssetLoadReport) {
-        let mut loaded = output.clone();
-        let report = Self::asset_report(&artifacts);
-        loaded.input.artifacts.extend(artifacts);
-        (loaded, report)
-    }
+fn output_with_artifacts(
+    output: &PreviewOutput,
+    artifacts: Vec<Artifact>,
+) -> (PreviewOutput, PreviewAssetLoadReport) {
+    let mut loaded = output.clone();
+    let report = asset_report(&artifacts);
+    loaded.input.artifacts.extend(artifacts);
+    (loaded, report)
+}
 
-    fn asset_report(artifacts: &[Artifact]) -> PreviewAssetLoadReport {
-        artifacts
-            .iter()
-            .fold(Default::default(), |mut report, artifact| {
-                if PreviewAssetLoaderSupport::has_error(artifact) {
-                    report.failed_artifact_count += 1;
-                } else {
-                    report.loaded_artifact_count += 1;
-                }
-                report
-            })
+fn asset_report(artifacts: &[Artifact]) -> PreviewAssetLoadReport {
+    let mut report = PreviewAssetLoadReport::default();
+    for artifact in artifacts {
+        if PreviewAssetLoaderSupport::has_error(artifact) {
+            report.failed_artifact_count += 1;
+        } else {
+            report.loaded_artifact_count += 1;
+        }
     }
+    report
 }

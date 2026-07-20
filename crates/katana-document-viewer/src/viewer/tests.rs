@@ -94,6 +94,36 @@ fn image_state_applies_zoom_and_fit() {
     assert_eq!(DiagramViewportState::default(), state);
 }
 
+#[test]
+fn image_zoom_out_is_clamped_and_host_only_actions_preserve_viewport() {
+    let target = sample_target();
+    let state = ViewerStateEngine::apply_image_command(
+        DiagramViewportState::default(),
+        &ImageControlCommand {
+            target: target.clone(),
+            action: ImageControlAction::ZoomOut,
+        },
+    );
+    assert!(state.zoom < 1.0);
+
+    for action in [
+        ImageControlAction::Copy,
+        ImageControlAction::Open,
+        ImageControlAction::RevealInOs,
+    ] {
+        assert_eq!(
+            state,
+            ViewerStateEngine::apply_image_command(
+                state,
+                &ImageControlCommand {
+                    target: target.clone(),
+                    action,
+                },
+            )
+        );
+    }
+}
+
 fn button_right_pan(target: &ViewerTarget) -> DiagramControlCommand {
     DiagramControlCommand::Pan(DiagramPanCommand {
         target: target.clone(),

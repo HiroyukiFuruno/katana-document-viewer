@@ -137,17 +137,8 @@ impl ViewerImageSurfaceFactory {
     ) -> Option<u32> {
         let (display_width, _) =
             crate::export_surface_svg::SurfaceSvgRasterizer::display_size(svg, root_font_size)?;
-        if !display_width.is_finite() || display_width <= 0.0 {
-            return None;
-        }
-        let preview_width = display_width * diagram_display_scale(display_width, max_width)?;
-        if !preview_width.is_finite() || preview_width <= 0.0 {
-            return None;
-        }
+        let preview_width = display_width * diagram_display_scale(display_width, max_width);
         let rounded_preview_width = preview_width.round().max(1.0);
-        if rounded_preview_width > max_width.max(1) as f32 {
-            return None;
-        }
         let target_physical_width = rounded_preview_width * Self::STORYBOOK_RETINA_CANVAS_SCALE;
         let aligned_scale = (target_physical_width * 100.0 / display_width).floor() as u32;
         Some(aligned_scale.max(Self::SVG_CONTENT_SCALE))
@@ -160,13 +151,7 @@ impl ViewerImageSurfaceFactory {
     ) -> Option<u32> {
         let (display_width, _) =
             crate::export_surface_svg::SurfaceSvgRasterizer::display_size(svg, root_font_size)?;
-        if !display_width.is_finite() || display_width <= 0.0 {
-            return None;
-        }
         let target_width = diagram_display_max_width(max_width) as f32;
-        if !target_width.is_finite() || target_width <= 0.0 {
-            return None;
-        }
         let target_physical_width = target_width * Self::STORYBOOK_RETINA_CANVAS_SCALE;
         let aligned_scale = (target_physical_width * 100.0 / display_width).ceil() as u32;
         Some(aligned_scale.max(Self::SVG_CONTENT_SCALE))
@@ -372,23 +357,22 @@ fn fit_diagram_display_size(mut surface: ViewerImageSurface, max_width: u32) -> 
     {
         return surface;
     }
-    let Some(scale) = diagram_display_scale(surface.display_width, max_width) else {
-        return surface;
-    };
+    let scale = diagram_display_scale(surface.display_width, max_width);
     surface.display_width = (surface.display_width * scale).max(1.0);
     surface.display_height = (surface.display_height * scale).max(1.0);
     surface
 }
 
-fn diagram_display_scale(display_width: f32, max_width: u32) -> Option<f32> {
-    if !display_width.is_finite() || display_width <= 0.0 {
-        return None;
-    }
+fn diagram_display_scale(display_width: f32, max_width: u32) -> f32 {
     let max_width = diagram_display_max_width(max_width) as f32;
     let fit_scale = (max_width / display_width).min(1.0);
-    Some(fit_scale.min(crate::viewer::VIEWER_DIAGRAM_DISPLAY_SCALE))
+    fit_scale.min(crate::viewer::VIEWER_DIAGRAM_DISPLAY_SCALE)
 }
 
 fn diagram_display_max_width(max_width: u32) -> u32 {
     max_width.clamp(1, crate::viewer::VIEWER_DIAGRAM_DISPLAY_MAX_WIDTH)
 }
+
+#[cfg(test)]
+#[path = "image_surface_factory_private_tests.rs"]
+mod tests;

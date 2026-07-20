@@ -164,3 +164,15 @@ impl PreviewSurfaceExporter {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "engine_surface_exporter_diagram_tests.rs"]
+mod diagram_tests;
+
+#[cfg(test)]
+#[path = "engine_surface_exporter_node_tests.rs"]
+mod node_tests;
+
+#[cfg(test)]
+#[path = "engine_surface_exporter_layout_tests.rs"]
+mod layout_tests;
