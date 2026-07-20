@@ -41,7 +41,7 @@ impl ViewerStateEngine {
         }
     }
 
-    fn requested_slideshow_page(input: &ViewerInput, scroll_y: f32) -> usize {
+    pub(super) fn requested_slideshow_page(input: &ViewerInput, scroll_y: f32) -> usize {
         if input.mode != ViewerMode::Slideshow {
             return 0;
         }
@@ -151,7 +151,7 @@ impl ViewerStateEngine {
         state
     }
 
-    fn max_page_index(content_height: f32, viewport_height: f32) -> usize {
+    pub(super) fn max_page_index(content_height: f32, viewport_height: f32) -> usize {
         if content_height <= 0.0 || viewport_height <= 0.0 {
             return 0;
         }

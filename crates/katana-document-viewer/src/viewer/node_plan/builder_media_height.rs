@@ -163,7 +163,7 @@ impl ViewerMediaHeight {
 
 #[cfg(test)]
 mod tests {
-    use super::{MEDIA_VERTICAL_MARGIN, ViewerHeightMode, ViewerMediaHeight};
+    use super::{MEDIA_VERTICAL_MARGIN, ViewerHeightMode, ViewerMediaHeight, ViewerNodeMetrics};
     use crate::artifact::{ArtifactBytes, ArtifactDiagnostics, ArtifactFactory, ArtifactFormat};
     use crate::viewer::asset::ViewerAssetReference;
     use crate::viewer::node_plan::planned_node::PlannedNode;
@@ -179,6 +179,26 @@ mod tests {
         assert_eq!(
             1256,
             ViewerMediaHeight::content_width(1280.0, ViewerHeightMode::InteractivePreview)
+        );
+    }
+
+    #[test]
+    fn accordion_height_falls_back_for_non_accordion_plan() {
+        let planned = PlannedNode {
+            node_id: KmmNodeId("node-paragraph".to_string()),
+            kind: ViewerNodeKind::Paragraph,
+            source: source("paragraph"),
+            text: "paragraph".to_string(),
+            spans: Vec::new(),
+            reference: None,
+        };
+        let typography = ViewerTypographyConfig {
+            preview_font_size: 14,
+        };
+
+        assert_eq!(
+            ViewerNodeMetrics::body_line_height(typography) * 2.0,
+            ViewerMediaHeight::accordion_or_default_height(&planned, typography)
         );
     }
 

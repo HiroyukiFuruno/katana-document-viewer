@@ -138,3 +138,7 @@ impl DirectVisualSource {
             && rest.starts_with(['\\', '/'])
     }
 }
+
+#[cfg(test)]
+#[path = "html_score_direct_visual_source_tests.rs"]
+mod tests;

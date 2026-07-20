@@ -139,3 +139,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
             && !context.is_blank_line_isolated(node)
     }
 }
+
+#[cfg(test)]
+#[path = "builder_node_resolve_tests.rs"]
+mod tests;

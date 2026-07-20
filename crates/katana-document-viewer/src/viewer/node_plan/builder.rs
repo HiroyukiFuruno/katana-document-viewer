@@ -106,7 +106,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
 
 #[cfg(test)]
 #[path = "builder_test_support.rs"]
-mod test_support;
+pub(super) mod test_support;
 
 #[cfg(test)]
 #[path = "builder_tests.rs"]

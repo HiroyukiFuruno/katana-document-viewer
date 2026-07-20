@@ -1,38 +1,11 @@
-use super::asset_loader_support::PreviewAssetLoaderSupport;
-use std::path::PathBuf;
+#[path = "asset_loader_support_tests_file_path.rs"]
+mod file_path_tests;
 
-#[test]
-fn file_path_from_uri_supports_encoded_file_uri() {
-    let path =
-        PreviewAssetLoaderSupport::file_path_from_uri("file:///tmp/kdv%20icon.png?cache=1#preview");
+#[path = "asset_loader_support_tests_node.rs"]
+mod node_tests;
 
-    assert_eq!(Some(PathBuf::from("/tmp/kdv icon.png")), path);
-}
+#[path = "asset_loader_support_tests_source.rs"]
+mod source_tests;
 
-#[test]
-fn file_path_from_uri_supports_localhost_file_uri() {
-    let path = PreviewAssetLoaderSupport::file_path_from_uri("file://localhost/tmp/kdv-icon.png");
-
-    assert_eq!(Some(PathBuf::from("/tmp/kdv-icon.png")), path);
-}
-
-#[test]
-fn file_path_from_uri_supports_windows_drive_file_uri() {
-    let path = PreviewAssetLoaderSupport::file_path_from_uri(
-        "file:///C:/Users/runner/AppData/Local/Temp/kdv%20icon.png?cache=1#preview",
-    );
-
-    assert_eq!(
-        Some(PathBuf::from(
-            "C:/Users/runner/AppData/Local/Temp/kdv icon.png"
-        )),
-        path
-    );
-}
-
-#[test]
-fn file_path_from_uri_rejects_remote_file_host() {
-    let path = PreviewAssetLoaderSupport::file_path_from_uri("file://example.com/tmp/kdv-icon.png");
-
-    assert_eq!(None, path);
-}
+#[path = "asset_loader_support_tests_support.rs"]
+mod support;

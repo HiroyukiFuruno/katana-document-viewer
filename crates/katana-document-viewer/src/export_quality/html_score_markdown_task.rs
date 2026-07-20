@@ -63,3 +63,7 @@ fn source_contains_task_marker(source: &str, marker: &str) -> bool {
             || trimmed.starts_with(&format!("+ {marker}"))
     })
 }
+
+#[cfg(test)]
+#[path = "html_score_markdown_task_private_tests.rs"]
+mod tests;

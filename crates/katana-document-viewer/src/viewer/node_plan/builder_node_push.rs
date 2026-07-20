@@ -110,9 +110,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
         if matches!(self.paragraph_layout, ParagraphLayout::PreserveSourceRows) {
             return 0.0;
         }
-        let Some(previous) = self.nodes.last() else {
-            return 0.0;
-        };
+        let previous = &self.nodes[self.nodes.len() - 1];
         match (&previous.kind, next_kind) {
             (
                 ViewerNodeKind::Heading { .. },

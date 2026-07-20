@@ -138,3 +138,54 @@ impl SurfaceContentScorer {
             + left[2].abs_diff(right[2]) as u16
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn returns_zero_when_sizes_mismatch() {
+        assert_eq!(SurfaceContentScorer::score(&[1, 2, 3], &[1, 2, 3, 4]), 0);
+    }
+
+    #[test]
+    fn returns_zero_for_empty_reference() {
+        assert_eq!(SurfaceContentScorer::score(&[], &[]), 0);
+    }
+
+    #[test]
+    fn empty_pixels_use_black_as_the_background_fallback() {
+        assert_eq!([0, 0, 0], SurfaceContentScorer::background_color(&[]));
+    }
+
+    #[test]
+    fn returns_perfect_score_when_reference_and_candidate_match() {
+        let reference = vec![255, 0, 0, 0, 255, 0];
+        let candidate = reference.clone();
+
+        assert_eq!(SurfaceContentScorer::score(&reference, &candidate), 100);
+    }
+
+    #[test]
+    fn returns_symmetric_partial_match_score() {
+        let reference = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, // background
+            200, 0, 0, 200, 0, 0, // content
+        ];
+        let candidate = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, // background
+            180, 0, 0, // preserved content
+            0, 0, 0, // dropped content
+        ];
+
+        assert_eq!(SurfaceContentScorer::score(&reference, &candidate), 50);
+    }
+
+    #[test]
+    fn treats_dominant_color_as_background_if_no_content() {
+        let reference = vec![0, 0, 0, 0, 0, 0, 5, 5, 5];
+        let candidate = vec![255, 0, 0, 255, 0, 0, 255, 0, 0];
+
+        assert_eq!(SurfaceContentScorer::score(&reference, &candidate), 100);
+    }
+}

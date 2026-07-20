@@ -99,3 +99,55 @@ fn decode_html_entities(value: &str) -> String {
         .replace("&apos;", "'")
         .replace("&amp;", "&")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scan_extracts_visible_text_and_skips_style_and_script() {
+        let plain = HtmlSourcePlainText::scan(
+            "<p>visible</p><style>hidden body</style><script>var x=1;</script><p>text</p>",
+        );
+
+        assert!(plain.contains("visible"));
+        assert!(plain.contains("text"));
+        assert!(!plain.contains("hidden body"));
+        assert!(!plain.contains("var x=1;"));
+    }
+
+    #[test]
+    fn scan_keeps_text_entities_decoded() {
+        assert_eq!(
+            HtmlSourcePlainText::scan("&lt;safe&amp;clean&gt;"),
+            "<safe&clean>"
+        );
+    }
+
+    #[test]
+    fn scan_ignores_escaped_or_unknown_tags() {
+        let plain = HtmlSourcePlainText::scan("<unknown attr=\"v\">x</unknown><p>y</p>");
+
+        assert!(plain.contains("x"));
+        assert!(plain.contains("y"));
+        assert_eq!(plain.matches('>').count(), 0);
+    }
+
+    #[test]
+    fn scan_handles_style_without_end_tag() {
+        let plain = HtmlSourcePlainText::scan("<p>start</p><style>broken");
+
+        assert!(plain.contains("start"));
+        assert!(!plain.contains("broken"));
+    }
+
+    #[test]
+    fn push_current_char_does_nothing_for_empty_slice() {
+        let mut scanner = HtmlTextScanner::new("");
+
+        scanner.push_current_char();
+
+        assert_eq!(scanner.cursor, scanner.html.len());
+        assert_eq!(scanner.output, "");
+    }
+}

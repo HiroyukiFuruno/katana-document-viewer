@@ -25,3 +25,27 @@ fn assert_details_body(fragment: &str, expected_body: &str) {
     assert_eq!(parts.summary, "Summary");
     assert_eq!(parts.body, expected_body);
 }
+
+#[test]
+fn detail_body_keeps_raw_markup_when_not_wrapped_in_div() {
+    assert_details_body(
+        "<details><summary>Summary</summary><span>Body</span></details>",
+        "<span>Body</span>",
+    );
+}
+
+#[test]
+fn detail_body_strips_div_without_closing_markup() {
+    assert_details_body(
+        "<details><summary>Summary</summary><div>Body</details>",
+        "Body",
+    );
+}
+
+#[test]
+fn detail_body_without_div_prefix_is_trimmed_as_is() {
+    assert_details_body(
+        "<details><summary>Summary</summary><div Body</details>",
+        "<div Body",
+    );
+}

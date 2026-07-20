@@ -348,6 +348,7 @@ pub(crate) struct SurfaceTableCellPaint<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::export_surface::SurfacePaintPalette;
     use katana_markdown_model::{
         ByteRange, LineColumn, LineColumnRange, RawSnippet, SourceSpan, TableCell, TableRow,
     };
@@ -412,5 +413,119 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[test]
+    fn table_surface_detects_separator_row_patterns() {
+        let separator = table_row(&["--", "::", "--"]);
+        let normal = table_row(&["a", "b", "c"]);
+
+        assert!(SurfaceTableLayout::is_separator_row(&separator));
+        assert!(!SurfaceTableLayout::is_separator_row(&normal));
+    }
+
+    #[test]
+    fn table_has_contract_when_second_row_is_separator() {
+        let table = table_block(&[&["A", "B"], &["---", "---"]]);
+        let block = SurfaceTableBlock::new(&table);
+
+        assert!(SurfaceTableLayout::has_contract(&table));
+        assert_eq!(block.rows().len(), 1);
+        assert_eq!(block.cell_spans(1, 0).len(), 0);
+    }
+
+    #[test]
+    fn table_surface_row_line_count_defaults_to_one_for_empty_cell() {
+        let table = table_block(&[&[""]]);
+        let block = SurfaceTableBlock::new_with_theme(&table, &KdvThemeSnapshot::katana_light());
+
+        assert_eq!(block.row_line_count(0, &[10]), 1);
+        assert_eq!(block.row_line_count(9, &[10]), 1);
+    }
+
+    #[test]
+    fn table_surface_cell_spans_and_lines_are_empty_safe() {
+        let table = table_block(&[&["a"]]);
+        let block = SurfaceTableBlock::new(&table);
+
+        assert!(block.cell_spans(9, 9).is_empty());
+        let lines = block.cell_span_lines(9, 0, 1);
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0][0].text.is_empty());
+    }
+
+    #[test]
+    fn table_surface_wraps_cell_spans_when_width_is_small() {
+        let cell_span = SurfaceTextSpan::plain("abcdefghijklmnop".to_string());
+        let wrapped = SurfaceTableBlock::wrap_cell_spans(vec![cell_span], 8);
+
+        assert!(wrapped.len() >= 2);
+        assert!(!wrapped[0].is_empty());
+    }
+
+    #[test]
+    fn table_layout_positions_align_text() {
+        let width: u32 = 120;
+        let content_width = width.saturating_sub(TABLE_CELL_PADDING * 2);
+        let expected_left = 10 + TABLE_CELL_PADDING;
+        let left = SurfaceTableLayout::cell_text_x("A", &TableAlignment::Left, 10, width);
+        let center = SurfaceTableLayout::cell_text_x("A", &TableAlignment::Center, 10, width);
+        let right = SurfaceTableLayout::cell_text_x("A", &TableAlignment::Right, 10, width);
+        let estimate = SurfaceTableLayout::estimated_cell_text_width("A");
+
+        assert_eq!(left, expected_left);
+        assert_eq!(center, left + (content_width.saturating_sub(estimate) / 2));
+        assert_eq!(right, left + content_width.saturating_sub(estimate));
+    }
+
+    #[test]
+    fn table_layout_row_fill_and_text_y_for_lines() {
+        let palette = SurfacePaintPalette {
+            text: image::Rgba([0, 0, 0, 0]),
+            quote: image::Rgba([1, 1, 1, 1]),
+            code_background: image::Rgba([2, 2, 2, 1]),
+            code_border: image::Rgba([3, 3, 3, 1]),
+            table_border: image::Rgba([4, 4, 4, 1]),
+            table_header: image::Rgba([5, 5, 5, 1]),
+            table_header_text: image::Rgba([6, 6, 6, 1]),
+            table_even: image::Rgba([7, 7, 7, 1]),
+            task_active_background: image::Rgba([8, 8, 8, 1]),
+            task_empty_background: image::Rgba([9, 9, 9, 1]),
+            task_done_accent: image::Rgba([10, 10, 10, 1]),
+            task_in_progress_accent: image::Rgba([11, 11, 11, 1]),
+        };
+
+        assert_eq!(
+            SurfaceTableLayout::row_fill(0, &palette),
+            Some(palette.table_header)
+        );
+        assert_eq!(
+            SurfaceTableLayout::row_fill(2, &palette),
+            Some(palette.table_even)
+        );
+        assert_eq!(SurfaceTableLayout::row_fill(1, &palette), None);
+        assert_eq!(
+            SurfaceTableLayout::cell_text_y_with_line_height(40, 2, 10),
+            10
+        );
+    }
+
+    #[test]
+    fn table_surface_font_scaling_changes_layout() {
+        let table = table_block(&[&["abc", "def"]]);
+        let mut block = SurfaceTableBlock::new(&table);
+        let default_height = block.line_height();
+
+        block.apply_typography(SurfaceTypographyConfig::from_body_font_size(12.0));
+
+        assert!(block.line_height() < default_height);
+        assert_eq!(block.font_size(), 10.0);
+    }
+
+    #[test]
+    fn table_line_height_scale_rejects_invalid_scalars() {
+        assert_eq!(scale_u32(42, 0.0), 42);
+        assert_eq!(scale_u32(42, -2.0), 42);
+        assert_eq!(scale_u32(42, f32::INFINITY), 42);
     }
 }

@@ -9,6 +9,17 @@ fn parse_color_invalid_value_returns_white() {
 }
 
 #[test]
+fn paste_rgba_resized_with_zero_dimensions_is_noop() {
+    let source = RgbaImage::from_pixel(1, 1, Rgba([255, 0, 0, 255]));
+    let mut target = RgbaImage::from_pixel(4, 4, Rgba([0, 0, 0, 255]));
+    let before = target.clone();
+
+    SurfaceHelpers::paste_rgba_resized(&mut target, &source, 1, 1, 0, 2);
+
+    assert_eq!(target, before);
+}
+
+#[test]
 fn stroke_rect_with_zero_size_is_noop() {
     let mut image = RgbaImage::from_pixel(4, 4, Rgba([255, 255, 255, 255]));
     let before = image.clone();

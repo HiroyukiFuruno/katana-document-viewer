@@ -85,3 +85,7 @@ fn raw_fence_line_language(line: &str) -> Option<&str> {
 
 #[path = "html_score_markdown_math_source.rs"]
 mod html_score_markdown_math_source;
+
+#[cfg(test)]
+#[path = "html_score_markdown_runtime_private_tests.rs"]
+mod tests;

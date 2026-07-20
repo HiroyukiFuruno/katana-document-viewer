@@ -96,3 +96,7 @@ pub(in crate::export_surface) fn alert_color(label: &str) -> image::Rgba<u8> {
         _ => ALERT_COLOR_DEFAULT,
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_markup_alert_private_tests.rs"]
+mod tests;

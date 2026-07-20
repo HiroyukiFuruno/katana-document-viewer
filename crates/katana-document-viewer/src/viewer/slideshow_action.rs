@@ -67,6 +67,51 @@ mod tests {
     use super::*;
 
     #[test]
+    fn slideshow_host_action_cycle() {
+        for action in [
+            ViewerSlideshowControlAction::PreviousPage,
+            ViewerSlideshowControlAction::NextPage,
+            ViewerSlideshowControlAction::Close,
+        ] {
+            let id = action.host_action_id();
+            let recovered = ViewerSlideshowControlAction::from_host_action(&id);
+
+            assert_eq!(Some(action), recovered);
+        }
+    }
+
+    #[test]
+    fn slideshow_host_action_for_invalid_command_is_none() {
+        assert!(ViewerSlideshowControlAction::from_host_action("viewer.slideshow.next").is_none());
+        assert!(
+            ViewerCommandFactory::slideshow_control_from_host_action("viewer.slideshow.next")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn slideshow_control_contracts() {
+        assert_eq!(
+            "Previous page",
+            ViewerSlideshowControlAction::PreviousPage.label()
+        );
+        assert_eq!("Next page", ViewerSlideshowControlAction::NextPage.label());
+        assert_eq!(
+            "Close slideshow",
+            ViewerSlideshowControlAction::Close.label()
+        );
+        assert_eq!(
+            "previous-page",
+            ViewerSlideshowControlAction::PreviousPage.command()
+        );
+        assert_eq!(
+            "next-page",
+            ViewerSlideshowControlAction::NextPage.command()
+        );
+        assert_eq!("close", ViewerSlideshowControlAction::Close.command());
+    }
+
+    #[test]
     fn slideshow_host_actions_roundtrip_to_commands() {
         assert_eq!(
             Some(ViewerSlideshowControlAction::NextPage),
@@ -80,6 +125,26 @@ mod tests {
             Some(ViewerCommandFactory::next_slideshow_page()),
             ViewerCommandFactory::slideshow_control_from_host_action(
                 ViewerSlideshowControlAction::NextPage
+                    .host_action_id()
+                    .as_str()
+            )
+        );
+    }
+
+    #[test]
+    fn previous_and_close_host_actions_map_to_commands() {
+        assert_eq!(
+            Some(ViewerCommandFactory::previous_slideshow_page()),
+            ViewerCommandFactory::slideshow_control_from_host_action(
+                ViewerSlideshowControlAction::PreviousPage
+                    .host_action_id()
+                    .as_str()
+            )
+        );
+        assert_eq!(
+            Some(ViewerCommandFactory::close_slideshow()),
+            ViewerCommandFactory::slideshow_control_from_host_action(
+                ViewerSlideshowControlAction::Close
                     .host_action_id()
                     .as_str()
             )

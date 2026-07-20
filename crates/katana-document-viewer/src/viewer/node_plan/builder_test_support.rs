@@ -29,7 +29,11 @@ pub(super) fn input_with_nodes(nodes: Vec<KmmNode>) -> ViewerInput {
     }
 }
 
-pub(super) fn node(kind: KmmNodeKind, raw: &str, children: Vec<KmmNode>) -> KmmNode {
+pub(in crate::viewer::node_plan) fn node(
+    kind: KmmNodeKind,
+    raw: &str,
+    children: Vec<KmmNode>,
+) -> KmmNode {
     node_at_line(kind, raw, children, 1)
 }
 
@@ -51,7 +55,7 @@ pub(super) fn text_node_at_line(raw: &str, line: usize) -> KmmNode {
     node_at_line(text_kind(raw), raw, Vec::new(), line)
 }
 
-pub(super) fn text_node(text: &str) -> KmmNode {
+pub(in crate::viewer::node_plan) fn text_node(text: &str) -> KmmNode {
     node(text_kind(text), text, Vec::new())
 }
 

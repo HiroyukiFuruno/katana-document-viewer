@@ -122,3 +122,7 @@ fn composite_channel(foreground: u8, alpha: u8, background: u8) -> u8 {
     let background = u16::from(background) * u16::from(u8::MAX - alpha);
     ((foreground + background) / u16::from(u8::MAX)) as u8
 }
+
+#[cfg(test)]
+#[path = "image_surface_svg_factory_tests.rs"]
+mod tests;

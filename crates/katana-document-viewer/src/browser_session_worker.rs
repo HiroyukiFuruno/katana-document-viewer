@@ -5,7 +5,7 @@ use super::{
         BrowserSessionAdapterError, BrowserSessionCommand, BrowserSessionRequest,
     },
 };
-use katana_render_runtime::{HtmlBrowserSession, HtmlRuntime};
+use katana_render_runtime::{HtmlBrowserInput, HtmlBrowserSession, HtmlRuntime};
 use std::sync::{Arc, mpsc::Receiver};
 
 pub(crate) struct BrowserSessionWorker;
@@ -24,7 +24,10 @@ impl BrowserSessionWorker {
             }
         };
         publish_updates(&mut session, &state);
-        while let Ok(command) = commands.recv() {
+        let mut pending = None;
+        while let Some(command) = receive_command(&commands, pending.take()) {
+            let (command, next) = coalesce_command(command, &commands);
+            pending = next;
             if matches!(command, BrowserSessionCommand::Close) {
                 let _ = session.close();
                 return;
@@ -35,6 +38,50 @@ impl BrowserSessionWorker {
             }
         }
         let _ = session.close();
+    }
+}
+
+fn receive_command(
+    commands: &Receiver<BrowserSessionCommand>,
+    pending: Option<BrowserSessionCommand>,
+) -> Option<BrowserSessionCommand> {
+    pending.or_else(|| commands.recv().ok())
+}
+
+fn coalesce_command(
+    mut command: BrowserSessionCommand,
+    commands: &Receiver<BrowserSessionCommand>,
+) -> (BrowserSessionCommand, Option<BrowserSessionCommand>) {
+    while let Ok(next) = commands.try_recv() {
+        match merge_command(&mut command, next) {
+            Ok(()) => {}
+            Err(next) => return (command, Some(next)),
+        }
+    }
+    (command, None)
+}
+
+fn merge_command(
+    command: &mut BrowserSessionCommand,
+    next: BrowserSessionCommand,
+) -> Result<(), BrowserSessionCommand> {
+    match (command, next) {
+        (
+            BrowserSessionCommand::Input(HtmlBrowserInput::Scroll { delta_x, delta_y }),
+            BrowserSessionCommand::Input(HtmlBrowserInput::Scroll {
+                delta_x: next_x,
+                delta_y: next_y,
+            }),
+        ) => {
+            *delta_x += next_x;
+            *delta_y += next_y;
+            Ok(())
+        }
+        (command @ BrowserSessionCommand::Resize(_), BrowserSessionCommand::Resize(viewport)) => {
+            *command = BrowserSessionCommand::Resize(viewport);
+            Ok(())
+        }
+        (_, next) => Err(next),
     }
 }
 
@@ -72,3 +119,7 @@ fn publish_updates(session: &mut HtmlBrowserSession, state: &BrowserSessionState
 #[cfg(test)]
 #[path = "browser_session_worker_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "browser_session_worker_coalescing_tests.rs"]
+mod coalescing_tests;

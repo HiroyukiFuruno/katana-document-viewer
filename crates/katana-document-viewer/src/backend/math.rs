@@ -10,10 +10,10 @@ impl KrrMathRenderEngine {
             KrrMathMode::Display,
             Some(theme.krr_math_theme()),
         );
-        output
-            .svg_payload()
-            .map(str::to_string)
-            .ok_or_else(|| output.diagnostic_message())
+        match output.svg_payload() {
+            Some(svg) => Ok(svg.to_string()),
+            None => Err(output.diagnostic_message()),
+        }
     }
 }
 
@@ -23,15 +23,22 @@ mod tests {
     use crate::render_runtime::RenderRuntimeTestEnv;
 
     #[test]
-    fn render_display_svg_returns_mathjax_svg() -> Result<(), String> {
+    fn render_display_svg_returns_mathjax_svg() {
         RenderRuntimeTestEnv::with_mathjax_env(None, || {
-            let svg = KrrMathRenderEngine::render_display_svg(
+            let result = KrrMathRenderEngine::render_display_svg(
                 "E = mc^2",
                 &crate::KdvThemeSnapshot::katana_light(),
-            )?;
+            );
 
-            assert!(svg.trim_start().starts_with("<svg"));
-            Ok(())
+            assert!(matches!(result, Ok(svg) if svg.trim_start().starts_with("<svg")));
         })
+    }
+
+    #[test]
+    fn render_display_svg_returns_error_for_empty_source() {
+        let result =
+            KrrMathRenderEngine::render_display_svg("", &crate::KdvThemeSnapshot::katana_light());
+
+        assert!(matches!(result, Err(error) if !error.is_empty()));
     }
 }

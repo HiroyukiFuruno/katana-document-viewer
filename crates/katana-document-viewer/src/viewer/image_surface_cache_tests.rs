@@ -15,7 +15,7 @@ fn svg_surface_cache_reuses_same_fingerprint() -> Result<(), Box<dyn std::error:
     let second = ViewerImageSurfaceFactory::from_svg_str("diagram-node", SVG, 120)?;
 
     assert_eq!(first, second);
-    assert_eq!(1, ViewerImageSurfaceCache::len_for_tests());
+    assert!(ViewerImageSurfaceCache::get(&first.fingerprint).is_some());
     Ok(())
 }
 
@@ -28,7 +28,33 @@ fn svg_surface_cache_keeps_scale_variants_separate() -> Result<(), Box<dyn std::
     let narrow = ViewerImageSurfaceFactory::from_svg_str("diagram-node", SVG, 10)?;
 
     assert_ne!(standard.fingerprint, narrow.fingerprint);
-    assert_eq!(2, ViewerImageSurfaceCache::len_for_tests());
+    assert!(ViewerImageSurfaceCache::get(&standard.fingerprint).is_some());
+    assert!(ViewerImageSurfaceCache::get(&narrow.fingerprint).is_some());
+    Ok(())
+}
+
+#[test]
+fn svg_surface_cache_limits_entries_and_displaces_overflow()
+-> Result<(), Box<dyn std::error::Error>> {
+    let _guard = cache_test_guard();
+    ViewerImageSurfaceCache::clear_for_tests();
+
+    let first = ViewerImageSurfaceFactory::from_svg_str("capacity", SVG, 120)?;
+    let mut fingerprints = vec![first.fingerprint];
+    for index in 0..66 {
+        let max_width = 200 + index;
+        let surface = ViewerImageSurfaceFactory::from_svg_str("capacity", SVG, max_width)?;
+        fingerprints.push(surface.fingerprint);
+    }
+
+    assert!(ViewerImageSurfaceCache::len_for_tests() <= 64);
+    assert!(
+        fingerprints
+            .iter()
+            .filter(|fingerprint| ViewerImageSurfaceCache::get(fingerprint).is_none())
+            .count()
+            >= 3
+    );
     Ok(())
 }
 

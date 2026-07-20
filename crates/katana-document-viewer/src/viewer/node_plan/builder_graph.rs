@@ -4,6 +4,14 @@ use crate::forge::{BuildGraph, BuildProfile, BuildRequest, RenderedDiagram};
 use crate::viewer::types::ViewerInput;
 use katana_markdown_model::{CodeBlockRole, DiagramKind, KmmNode, KmmNodeKind};
 
+#[cfg(test)]
+#[path = "builder_graph_test_support.rs"]
+mod builder_graph_test_support;
+
+#[cfg(test)]
+#[path = "builder_graph_tests.rs"]
+mod tests;
+
 impl ViewerNodePlanBuilder<'_> {
     pub(super) fn build_graph(
         input: &ViewerInput,

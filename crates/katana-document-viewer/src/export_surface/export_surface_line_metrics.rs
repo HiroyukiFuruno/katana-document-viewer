@@ -75,3 +75,54 @@ fn scaled_text_line_height(default_height: u32, compact_height: u32, font_scale:
         .round()
         .max(1.0) as u32
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn font_size_scales_by_level() {
+        let heading = SurfaceLineLevel::Heading(1);
+        let body = SurfaceLineLevel::Body;
+        let code = SurfaceLineLevel::Code;
+
+        assert_eq!(font_size(&heading, 1.5), 60.0);
+        assert_eq!(font_size(&body, 0.5), 12.0);
+        assert_eq!(font_size(&code, 2.0), CODE_FONT_SIZE * 2.0);
+    }
+
+    #[test]
+    fn scale_u32_handles_zero_and_invalid_scales() {
+        assert_eq!(scale_u32(0, 2.0), 0);
+        assert_eq!(scale_u32(10, 0.0), 10);
+        assert_eq!(scale_u32(10, -1.0), 10);
+        assert_eq!(scale_u32(10, f32::INFINITY), 10);
+    }
+
+    #[test]
+    fn line_height_compacts_body_at_small_scale() {
+        assert_eq!(
+            line_height(&SurfaceLineLevel::Body, 0.5),
+            COMPACT_BODY_LINE_HEIGHT
+        );
+        assert_eq!(line_height(&SurfaceLineLevel::Body, 1.0), BODY_LINE_HEIGHT);
+    }
+
+    #[test]
+    fn line_height_uses_code_metrics_when_code_level() {
+        assert_eq!(
+            line_height(&SurfaceLineLevel::Code, 1.0),
+            crate::viewer::ViewerCodeBlockMetrics::line_height_from_scale_px(1.0)
+        );
+    }
+
+    #[test]
+    fn line_height_returns_default_for_invalid_and_non_positive_scales() {
+        assert_eq!(line_height(&SurfaceLineLevel::Body, 0.0), BODY_LINE_HEIGHT);
+        assert_eq!(line_height(&SurfaceLineLevel::Body, -0.5), BODY_LINE_HEIGHT);
+        assert_eq!(
+            line_height(&SurfaceLineLevel::Body, f32::INFINITY),
+            BODY_LINE_HEIGHT
+        );
+    }
+}

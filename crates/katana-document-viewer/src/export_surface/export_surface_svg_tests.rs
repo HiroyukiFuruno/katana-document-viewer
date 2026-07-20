@@ -93,3 +93,11 @@ fn preprocess_for_rasterizer_keeps_existing_svg_style() {
 fn rasterize_rejects_invalid_svg() {
     assert!(SurfaceSvgRasterizer::rasterize("<svg><rect>", 100).is_none());
 }
+
+#[test]
+fn logical_extent_falls_back_to_one_for_invalid_values() {
+    assert_eq!(super::logical_extent(0.0), 1.0);
+    assert_eq!(super::logical_extent(-12.0), 1.0);
+    assert_eq!(super::logical_extent(f32::NAN), 1.0);
+    assert_eq!(super::logical_extent(f32::INFINITY), 1.0);
+}

@@ -169,3 +169,7 @@ fn os_monospace_font_family() -> Family<'static> {
 
 #[path = "builder_span_text_width_cache.rs"]
 mod cache;
+
+#[cfg(test)]
+#[path = "builder_span_text_width_tests.rs"]
+mod tests;

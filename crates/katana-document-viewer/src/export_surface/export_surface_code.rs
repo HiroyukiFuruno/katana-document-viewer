@@ -112,10 +112,10 @@ fn theme_set() -> &'static ThemeSet {
 }
 
 fn theme(name: &str) -> &'static Theme {
-    theme_set()
-        .themes
-        .get(name)
-        .unwrap_or_else(|| &theme_set().themes[DEFAULT_SYNTAX_THEME])
+    match theme_set().themes.get(name) {
+        Some(theme) => theme,
+        None => &theme_set().themes[DEFAULT_SYNTAX_THEME],
+    }
 }
 
 fn syntax_theme_name(theme: &KdvThemeSnapshot) -> &str {

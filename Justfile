@@ -8,7 +8,8 @@ CARGO := env_var_or_default("CARGO", "cargo")
 VERSION := env_var_or_default("VERSION", `awk -F '"' '/^version = / { print $2; exit }' Cargo.toml`)
 VERSION_BARE := replace(VERSION, "v", "")
 TAG := "v" + VERSION_BARE
-COVERAGE_MIN_LINES := "95"
+COVERAGE_MIN_LINES := "100"
+COVERAGE_MAX_UNCOVERED_LINES := "0"
 COVERAGE_TARGET_PACKAGES := "-p katana-document-viewer"
 COVERAGE_IGNORE_FILENAME_REGEX := "(^|/)(tests?|examples)(/|$)|(^|/)[^/]*(test|tests)[^/]*\\.rs$|/crates/kdv-linter/"
 RELEASE_REPO := env_var_or_default("RELEASE_REPO", "HiroyukiFuruno/katana-document-viewer")
@@ -52,11 +53,11 @@ unit-test: test
 
 # Run coverage as a required full-check gate
 coverage:
-    {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --summary-only --fail-under-lines {{COVERAGE_MIN_LINES}}
+    {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --summary-only --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Show missing coverage lines without relaxing the coverage gate
 coverage-missing:
-    {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-lines {{COVERAGE_MIN_LINES}}
+    {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
 check: fmt-check lint ast-lint storybook-entrypoint-check kuc-adapter-boundary-check test release-target-script-test check-subagent-harness

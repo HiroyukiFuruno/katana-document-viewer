@@ -83,6 +83,17 @@ fn scaled_image_resizes_requested_width_and_keeps_minimum_height() {
 }
 
 #[test]
+fn scaled_image_keeps_original_image_when_width_is_within_limit() {
+    let source =
+        image::RgbaImage::from_pixel(ORIGINAL_WIDTH, ORIGINAL_HEIGHT, Rgba([0, 0, 0, 255]));
+    let scaled = scaled_image(source.clone(), Some(ORIGINAL_WIDTH.saturating_mul(2)));
+
+    assert_eq!(scaled.width(), ORIGINAL_WIDTH);
+    assert_eq!(scaled.height(), ORIGINAL_HEIGHT);
+    assert_eq!(scaled.into_vec(), source.into_vec());
+}
+
+#[test]
 fn from_data_uri_rejects_non_svg_or_invalid_payloads() {
     assert!(
         SurfaceImageBlock::from_data_uri("data:image/png,abc", None, ALT.to_string()).is_none()

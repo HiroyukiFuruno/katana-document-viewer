@@ -193,3 +193,7 @@ mod span_helpers;
 mod span_wrap;
 #[path = "classifier_table_spans.rs"]
 mod table_spans;
+
+#[cfg(test)]
+#[path = "classifier_spans_tests_private.rs"]
+mod tests;

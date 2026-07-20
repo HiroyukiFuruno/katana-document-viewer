@@ -54,3 +54,47 @@ impl HtmlMarkdownAlignment {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn without_style_blocks_removes_style_sections() {
+        let input = "<p>left</p><style>.a{}</style><p>right</p>";
+
+        assert_eq!(
+            HtmlMarkdownAlignment::without_style_blocks(input),
+            "<p>left</p><p>right</p>"
+        );
+    }
+
+    #[test]
+    fn without_style_blocks_ignores_unclosed_style_sections() {
+        let input = "<p>left</p><style>.a";
+        assert_eq!(
+            HtmlMarkdownAlignment::without_style_blocks(input),
+            "<p>left</p>"
+        );
+    }
+
+    #[test]
+    fn preserves_alignment_detects_center_tag_and_attributes() {
+        let source = "<align='center'>";
+        assert!(HtmlMarkdownAlignment::contains_alignment(source, "center"));
+
+        let html = "<p style=\"text-align:right\">x</p>";
+        assert!(HtmlMarkdownAlignment::contains_alignment(html, "right"));
+    }
+
+    #[test]
+    fn checks_reports_alignment_only_when_required() {
+        let checks = HtmlMarkdownAlignment::checks(
+            "<p align=\"center\">x</p><p>y</p>",
+            "<p align=\"center\">x</p><p>y</p>",
+        );
+        assert!(checks.first().is_some_and(|check| {
+            check.passed && check.name == "html preserves html alignment"
+        }));
+    }
+}

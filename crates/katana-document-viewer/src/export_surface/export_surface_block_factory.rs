@@ -120,3 +120,7 @@ impl SurfaceBlockFactory {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "export_surface_block_factory_tests.rs"]
+mod tests;

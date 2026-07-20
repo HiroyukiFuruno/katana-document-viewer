@@ -1,4 +1,4 @@
-use super::html_score_direct_visual_source::DirectVisualSource;
+use super::{HtmlDirectVisualQuality, html_score_direct_visual_source::DirectVisualSource};
 
 #[test]
 fn source_uri_keeps_file_uri_prefix() {
@@ -42,4 +42,13 @@ fn mermaid_flow_detection_stops_without_direction_when_keyword_differs() {
 #[test]
 fn mermaid_flow_detection_stops_on_empty_line() {
     assert!(!DirectVisualSource::line_starts_mermaid_flow_diagram(""));
+}
+
+#[test]
+fn html_has_image_media_rejects_source_without_uri() {
+    assert!(!HtmlDirectVisualQuality::html_has_image_media(
+        "<main data-kdv-export></main>",
+        "broken
+wrapped",
+    ));
 }

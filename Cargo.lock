@@ -324,6 +324,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cssparser"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9cdaae01d5ed7882b04d795e7f752f46ff52d2fa3b50a20d28c464510bba98"
+dependencies = [
+ "dtoa-short",
+ "itoa",
+ "smallvec",
+]
+
+[[package]]
 name = "data-url"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -403,6 +414,21 @@ name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
+
+[[package]]
+name = "dtoa"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c3cf4824e2d5f025c7b531afcb2325364084a16806f6d47fbc1f5fbd9960590"
+
+[[package]]
+name = "dtoa-short"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87"
+dependencies = [
+ "dtoa",
+]
 
 [[package]]
 name = "either"
@@ -693,6 +719,12 @@ dependencies = [
  "regex-automata",
  "regex-syntax",
 ]
+
+[[package]]
+name = "grid"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b40ca9252762c466af32d0b1002e91e4e1bc5398f77455e55474deb466355ff5"
 
 [[package]]
 name = "gzip-header"
@@ -1100,7 +1132,7 @@ dependencies = [
 
 [[package]]
 name = "katana-document-viewer"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "cosmic-text",
  "epaint_default_fonts",
@@ -1133,9 +1165,9 @@ dependencies = [
 
 [[package]]
 name = "katana-render-runtime"
-version = "0.4.1"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "496ccf7db1c12d91f72678247c23b37bcc88268408150dc78774c9cb0ff25041"
+checksum = "a4d56ad29a447a8c2754c3961bda2dc6e8111c49e1e6d5be84eb158069611f0a"
 dependencies = [
  "anyhow",
  "base64",
@@ -1148,6 +1180,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "taffy",
  "thiserror",
  "tiny-skia",
  "tracing",
@@ -1185,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "kdv-linter"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "ignore",
  "proc-macro2",
@@ -1196,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "kdv-storybook"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "image",
  "katana-document-viewer",
@@ -2274,6 +2307,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "taffy"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "340a09581f29809fc0df82a3955501dc7f2a21f887e5d1c13dbe288fe1c0bef4"
+dependencies = [
+ "arrayvec",
+ "cssparser",
+ "grid",
+ "serde",
+ "slotmap",
 ]
 
 [[package]]

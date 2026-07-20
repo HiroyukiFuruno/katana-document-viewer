@@ -124,3 +124,35 @@ fn blend_pixel(image: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
     }
     pixel[ALPHA_CHANNEL] = OPAQUE_ALPHA;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn push_glyph_ignores_transparent_pixels() {
+        let mut samples = SurfaceTextSupersamples::new();
+        samples.push_glyph(0, 0, 2, 2, Color::rgba(10, 20, 30, 0));
+
+        let mut image = RgbaImage::from_pixel(1, 1, Rgba([1, 2, 3, 4]));
+        samples.draw(&mut image, 0, 0);
+
+        assert_eq!(image.get_pixel(0, 0), &Rgba([1, 2, 3, 4]));
+    }
+
+    #[test]
+    fn draw_groups_supersamples_and_sets_alpha() {
+        let mut samples = SurfaceTextSupersamples::new();
+        samples.push_glyph(0, 0, 2, 1, Color::rgba(255, 0, 0, 255));
+
+        let mut image = RgbaImage::from_pixel(1, 1, Rgba([0, 0, 0, 0]));
+        samples.draw(&mut image, 0, 0);
+
+        assert_eq!(image.get_pixel(0, 0), &Rgba([128, 0, 0, 255]));
+    }
+
+    #[test]
+    fn average_and_blend_handles_empty_samples() {
+        assert_eq!(averaged_color(&[], 255), Rgba([0, 0, 0, 0]));
+    }
+}

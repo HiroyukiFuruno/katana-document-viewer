@@ -323,6 +323,34 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn image_and_svg_heights_use_materialized_surface_dimensions()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let artifact_id = ArtifactId("doc:image:Svg".to_string());
+        let artifact = ArtifactFactory::image_asset_with_id(
+            artifact_id.clone(),
+            ArtifactFormat::Svg,
+            DocumentId("doc".to_string()),
+            SourceRevision("rev".to_string()),
+            ArtifactBytes {
+                bytes: r#"<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40"><rect width="80" height="40"/></svg>"#
+                    .as_bytes()
+                    .to_vec(),
+            },
+            "test",
+            ArtifactDiagnostics {
+                entries: Vec::new(),
+            },
+        );
+        let planned = diagram_planned_node(artifact_id);
+
+        assert!(
+            ViewerMediaHeight::image_height(std::slice::from_ref(&artifact), &planned).is_some()
+        );
+        assert!(ViewerMediaHeight::svg_height(&[artifact], &planned, 40).is_some());
+        Ok(())
+    }
+
     fn diagram_planned_node(
         artifact_id: ArtifactId,
     ) -> super::super::super::planned_node::PlannedNode {

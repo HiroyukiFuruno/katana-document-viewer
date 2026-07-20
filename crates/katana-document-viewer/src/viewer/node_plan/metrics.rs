@@ -207,3 +207,116 @@ impl ViewerNodeMetrics {
 
 #[path = "metrics_table.rs"]
 mod table;
+
+#[cfg(test)]
+mod tests {
+    use super::{ViewerHtmlRole, ViewerNodeKind, ViewerNodeMetrics};
+    use crate::viewer::settings_update::ViewerTypographyConfig;
+
+    #[test]
+    fn markdown_heading_height_grows_for_long_level_2_title() {
+        let typography = ViewerTypographyConfig {
+            preview_font_size: 24,
+        };
+        let short = ViewerNodeMetrics::block_height(
+            &ViewerNodeKind::Heading { level: 2 },
+            "short",
+            typography,
+        );
+        let long = ViewerNodeMetrics::block_height(
+            &ViewerNodeKind::Heading { level: 2 },
+            &"a".repeat(64),
+            typography,
+        );
+        assert!(long > short);
+    }
+
+    #[test]
+    fn math_uses_code_block_height_behavior() {
+        let typography = ViewerTypographyConfig {
+            preview_font_size: 24,
+        };
+        let code = ViewerNodeMetrics::block_height(
+            &ViewerNodeKind::Code { language: None },
+            "content",
+            typography,
+        );
+        let math = ViewerNodeMetrics::block_height(&ViewerNodeKind::Math, "content", typography);
+        assert_eq!(code, math);
+    }
+
+    #[test]
+    fn diagram_and_generic_html_have_stable_block_heights() {
+        let typography = ViewerNodeMetrics::default_typography();
+        assert_eq!(
+            180.0,
+            ViewerNodeMetrics::block_height(
+                &ViewerNodeKind::Diagram {
+                    kind: crate::ViewerDiagramKind::Mermaid,
+                },
+                "graph TD",
+                typography,
+            )
+        );
+        assert!(
+            ViewerNodeMetrics::block_height(
+                &ViewerNodeKind::Html {
+                    role: ViewerHtmlRole::Generic,
+                },
+                "generic html text",
+                typography,
+            ) > 0.0
+        );
+    }
+
+    #[test]
+    fn html_accordion_uses_double_line_height() {
+        let typography = ViewerNodeMetrics::default_typography();
+        let alert = ViewerNodeMetrics::block_height(
+            &ViewerNodeKind::Html {
+                role: ViewerHtmlRole::Accordion,
+            },
+            "raw",
+            typography,
+        );
+        assert_eq!(2.0 * ViewerNodeMetrics::body_line_height(typography), alert);
+    }
+
+    #[test]
+    fn alert_body_text_strips_label_prefix_when_matching() {
+        assert_eq!(
+            "body",
+            ViewerNodeMetrics::alert_body_text("TIP", "TIP: body")
+        );
+    }
+
+    #[test]
+    fn alert_body_line_count_includes_wrapped_source_lines() {
+        assert_eq!(
+            5,
+            ViewerNodeMetrics::alert_body_line_count("label: first\nsecond", 5)
+        );
+    }
+
+    #[test]
+    fn empty_alert_body_has_no_body_lines_and_newline_body_is_extracted() {
+        assert_eq!(0, ViewerNodeMetrics::alert_body_line_count("   ", 5));
+        assert_eq!(
+            "body after title",
+            ViewerNodeMetrics::alert_body_text("TIP", "different title\nbody after title")
+        );
+    }
+
+    #[test]
+    fn body_width_guard_respects_minimum_one_char() {
+        assert_eq!(1, ViewerNodeMetrics::body_max_chars(0));
+    }
+
+    #[test]
+    fn table_height_considers_content_width() {
+        let typography = ViewerNodeMetrics::default_typography();
+        let narrow = ViewerNodeMetrics::table_block_height("a,b,c,d", typography, 10);
+        let wide = ViewerNodeMetrics::table_block_height("a,b,c,d", typography, 1000);
+        assert!(narrow >= wide);
+    }
+}

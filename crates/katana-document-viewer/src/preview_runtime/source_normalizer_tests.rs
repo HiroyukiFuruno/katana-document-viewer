@@ -42,6 +42,59 @@ fn drawio_source_becomes_drawio_fence() {
 }
 
 #[test]
+fn source_name_defaults_to_preview_md_when_document_id_missing() {
+    let prepared = PreviewSourceNormalizer::normalize(&MarkdownSource {
+        content: "# title".to_string(),
+        document_id: None,
+    });
+
+    assert_eq!("preview.md", prepared.source_path.to_string_lossy());
+    assert_eq!(crate::SourceKind::Markdown, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Markdown, prepared.document_kind);
+}
+
+#[test]
+fn image_markdown_preserves_image_markdown_reference() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        "![alt](http://example.com/image.png)",
+        "image.png",
+    ));
+
+    assert_eq!("![alt](http://example.com/image.png)", prepared.content);
+}
+
+#[test]
+fn image_markdown_uses_file_uri_for_plain_path_when_reference_missing() {
+    let prepared = PreviewSourceNormalizer::normalize(&source("plain content", "image.png"));
+
+    assert_eq!("![image.png](file://image.png)", prepared.content);
+}
+
+#[test]
+fn html_source_with_query_fragment_or_hash_uses_html_path_extension() {
+    let prepared = PreviewSourceNormalizer::normalize(&source(
+        r#"<main><h1>Title</h1></main>"#,
+        "sample.html?x=1#fragment",
+    ));
+
+    assert_eq!(crate::SourceKind::Html, prepared.source_kind);
+    assert_eq!(crate::DocumentKind::Html, prepared.document_kind);
+    assert!(prepared.content.contains("<main>"));
+}
+
+#[test]
+fn image_source_preserves_http_image_uri_as_is() {
+    let prepared =
+        PreviewSourceNormalizer::normalize(&source("raw", "https://example.com/assets/logo.png"));
+
+    assert_eq!(crate::SourceKind::Image, prepared.source_kind);
+    assert_eq!(
+        "![logo.png](https://example.com/assets/logo.png)",
+        prepared.content
+    );
+}
+
+#[test]
 fn mermaid_source_becomes_mermaid_fence() {
     let prepared = PreviewSourceNormalizer::normalize(&source("graph TD\nA --> B", "sample.mmd"));
 

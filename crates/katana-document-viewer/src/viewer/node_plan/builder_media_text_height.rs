@@ -5,6 +5,10 @@ use super::ViewerMediaHeight;
 use super::span_line_counter::SpanLineCounter;
 use crate::viewer::settings_update::ViewerTypographyConfig;
 
+#[cfg(test)]
+#[path = "builder_media_text_height_tests.rs"]
+mod tests;
+
 impl ViewerMediaHeight {
     pub(super) fn text_height(
         planned: &PlannedNode,

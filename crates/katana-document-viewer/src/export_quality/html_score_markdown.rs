@@ -154,6 +154,17 @@ fn requires_markdown_image(source: &str) -> bool {
     false
 }
 
+#[cfg(test)]
+mod tests {
+    use super::no_raw_markdown;
+
+    #[test]
+    fn bold_fixture_marker_must_not_leak_into_html() {
+        assert!(no_raw_markdown("<strong>bold</strong>", "**太字**"));
+        assert!(!no_raw_markdown("<p>**太字**</p>", "**太字**"));
+    }
+}
+
 #[path = "html_score_markdown_footnote.rs"]
 mod footnote;
 

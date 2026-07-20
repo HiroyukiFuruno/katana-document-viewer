@@ -51,10 +51,7 @@ fn url_token_end(text: &str, start: usize) -> usize {
 
 fn split_trailing_url_punctuation(token: &str) -> (&str, &str) {
     let mut end = token.len();
-    while end > 0 {
-        let Some(character) = token[..end].chars().next_back() else {
-            break;
-        };
+    while let Some(character) = token[..end].chars().next_back() {
         if !matches!(character, '.' | ',' | ';' | ':' | '!' | '?' | ')' | ']') {
             break;
         }
@@ -67,4 +64,55 @@ fn url_has_scheme_body(url: &str) -> bool {
     url.strip_prefix("https://")
         .or_else(|| url.strip_prefix("http://"))
         .is_some_and(|body| !body.is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn append_autolinked_text_converts_urls_to_anchor() {
+        let mut html = String::new();
+        append_autolinked_text(
+            &mut html,
+            "Visit https://example.com, then http://legacy.test and done",
+        );
+
+        assert!(html.contains("<a href=\"https://example.com\" data-kdv-autolink=\"true\">"));
+        assert!(html.contains("Visit "));
+        assert!(html.contains(" then "));
+        assert!(html.contains(" and done"));
+    }
+
+    #[test]
+    fn append_autolinked_text_keeps_invalid_scheme_as_text() {
+        let mut html = String::new();
+        append_autolinked_text(&mut html, "http://");
+
+        assert_eq!(html, "http://");
+    }
+
+    #[test]
+    fn next_url_start_prefers_earlier_protocol() {
+        let input = "left https://fast right http://slow";
+        assert_eq!(next_url_start(input), Some(5));
+    }
+
+    #[test]
+    fn split_trailing_url_punctuation_removes_suffix() {
+        assert_eq!(
+            split_trailing_url_punctuation("https://example.com),"),
+            ("https://example.com", "),")
+        );
+        assert_eq!(
+            split_trailing_url_punctuation("https://example.com"),
+            ("https://example.com", "")
+        );
+    }
+
+    #[test]
+    fn url_token_end_stops_at_invalid_html_character() {
+        assert_eq!(url_token_end("https://example.com>", 0), 19);
+        assert_eq!(url_token_end("plain text", 0), 5);
+    }
 }

@@ -1,6 +1,6 @@
-use crate::KdvThemeSnapshot;
-use crate::PreviewOutput;
-use crate::forge_diagram_render_types::DiagramRenderCacheOptions;
+use crate::{
+    KdvThemeSnapshot, PreviewOutput, forge_diagram_render_types::DiagramRenderCacheOptions,
+};
 use katana_markdown_model::DiagramKind;
 use katana_markdown_model::KmmNode;
 use std::collections::HashMap;
@@ -23,6 +23,8 @@ pub(crate) struct PreviewDiagramAssetCacheKey {
 pub(crate) struct PreviewDiagramAssetCacheValue {
     pub(crate) svg: Vec<u8>,
 }
+
+type DiagramCacheMap = HashMap<PreviewDiagramAssetCacheKey, PreviewDiagramAssetCacheValue>;
 
 pub(crate) struct PreviewDiagramAssetCache;
 
@@ -76,9 +78,7 @@ impl PreviewDiagramAssetCache {
             return;
         }
         let path = key.cache_path(root);
-        let Some(parent) = path.parent() else {
-            return;
-        };
+        let parent = path.parent().unwrap_or(root);
         if std::fs::create_dir_all(parent).is_err() {
             return;
         }
@@ -178,6 +178,11 @@ impl PreviewDiagramAssetCache {
 }
 
 impl PreviewDiagramAssetCacheKey {
+    #[cfg(test)]
+    pub(crate) fn cache_path_for_tests(&self, root: &Path) -> PathBuf {
+        self.cache_path(root)
+    }
+
     fn cache_path(&self, root: &Path) -> PathBuf {
         root.join(&self.document).join(&self.kind).join(format!(
             "{}_{}_{}_{}_{}_{}.svg",
@@ -186,9 +191,10 @@ impl PreviewDiagramAssetCacheKey {
     }
 }
 
-fn cache() -> &'static Mutex<HashMap<PreviewDiagramAssetCacheKey, PreviewDiagramAssetCacheValue>> {
-    static CACHE: OnceLock<
-        Mutex<HashMap<PreviewDiagramAssetCacheKey, PreviewDiagramAssetCacheValue>>,
-    > = OnceLock::new();
+fn cache() -> &'static Mutex<DiagramCacheMap> {
+    static CACHE: OnceLock<Mutex<DiagramCacheMap>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
+#[cfg(test)]
+#[path = "asset_loader_cache_unit_tests.rs"]
+mod unit_tests;
