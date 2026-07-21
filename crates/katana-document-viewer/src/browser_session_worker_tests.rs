@@ -1,6 +1,7 @@
-use super::{BrowserSessionWorker, dispatch, publish_updates, start_session};
+use super::BrowserSessionWorker;
 use crate::browser_session::{
     BrowserSessionAdapter, BrowserSessionUpdate,
+    browser_session_runtime::{dispatch, publish_updates, start_session},
     browser_session_state::BrowserSessionState,
     browser_session_types::{BrowserSessionCommand, BrowserSessionRequest},
 };
@@ -61,24 +62,33 @@ fn dispatch_propagates_errors_after_the_runtime_session_is_closed() -> TestResul
 }
 
 #[test]
-fn worker_publishes_startup_errors() -> TestResult {
-    let (_sender, receiver) = mpsc::sync_channel(1);
-    let state = Arc::new(BrowserSessionState::default());
-    let request = BrowserSessionRequest::new(
+fn worker_recovers_from_startup_error_on_navigation() -> TestResult {
+    let mut adapter = BrowserSessionAdapter::start(BrowserSessionRequest::new(
         source("index")?,
-        HtmlBrowserViewport {
-            width: 0,
-            height: 1,
-            device_scale_factor: 1.0,
-        },
-    );
-
-    BrowserSessionWorker::run(request, receiver, Arc::clone(&state));
-
-    assert!(matches!(
-        state.take_update(),
-        Some(BrowserSessionUpdate::Error(_))
+        invalid_viewport(),
     ));
+
+    assert_operation_error(adapter.wait_for_update(UPDATE_TIMEOUT), "start", "index")?;
+
+    adapter.refresh_frame()?;
+    adapter.navigate(HtmlBrowserNavigation::new(source("still-invalid")?)?)?;
+    assert_operation_error(
+        adapter.wait_for_update(UPDATE_TIMEOUT),
+        "start",
+        "still-invalid",
+    )?;
+
+    adapter.resize(invalid_viewport())?;
+    assert_operation_error(
+        adapter.wait_for_update(UPDATE_TIMEOUT),
+        "resize",
+        "still-invalid",
+    )?;
+
+    adapter.resize(viewport()?)?;
+    adapter.navigate(HtmlBrowserNavigation::new(source("recovered")?)?)?;
+    assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
+    adapter.close()?;
     Ok(())
 }
 
@@ -121,10 +131,10 @@ fn worker_publishes_invalid_resize_errors() -> TestResult {
         height: 1,
         device_scale_factor: 1.0,
     })?;
-    assert!(matches!(
-        adapter.wait_for_update(UPDATE_TIMEOUT),
-        Some(BrowserSessionUpdate::Error(_))
-    ));
+    let error = assert_error(adapter.wait_for_update(UPDATE_TIMEOUT))?;
+    assert!(error.contains("Operation: resize"));
+    assert!(error.contains("Document: https://example.test/index.html"));
+    assert!(error.contains("Cause: browser viewport dimensions must be non-zero"));
     adapter.close()?;
     Ok(())
 }
@@ -144,9 +154,39 @@ fn viewport() -> Result<HtmlBrowserViewport, katana_render_runtime::HtmlBrowserE
     HtmlBrowserViewport::new(320, 240, 1.0)
 }
 
+fn invalid_viewport() -> HtmlBrowserViewport {
+    HtmlBrowserViewport {
+        width: 0,
+        height: 1,
+        device_scale_factor: 1.0,
+    }
+}
+
 fn assert_frame(update: Option<BrowserSessionUpdate>) -> TestResult {
     match update {
         Some(BrowserSessionUpdate::Frame(frame)) if !frame.pixels.is_empty() => Ok(()),
         _ => Err("expected initial browser frame".into()),
     }
+}
+
+fn assert_error(
+    update: Option<BrowserSessionUpdate>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    match update {
+        Some(BrowserSessionUpdate::Error(error)) => Ok(error.to_string()),
+        _ => Err("expected browser error update".into()),
+    }
+}
+
+fn assert_operation_error(
+    update: Option<BrowserSessionUpdate>,
+    operation: &str,
+    page: &str,
+) -> TestResult {
+    let error = assert_error(update)?;
+    assert!(error.contains("Layer: KRR runtime"));
+    assert!(error.contains(&format!("Operation: {operation}")));
+    assert!(error.contains(&format!("Document: https://example.test/{page}.html")));
+    assert!(error.contains("Cause: browser viewport dimensions must be non-zero"));
+    Ok(())
 }

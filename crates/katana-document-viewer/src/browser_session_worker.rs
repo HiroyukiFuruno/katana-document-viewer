@@ -1,11 +1,14 @@
 use super::{
     BrowserSessionUpdate,
+    browser_session_command_queue::{coalesce_command, receive_command},
+    browser_session_runtime::{dispatch, publish_updates, start_session},
     browser_session_state::BrowserSessionState,
     browser_session_types::{
-        BrowserSessionAdapterError, BrowserSessionCommand, BrowserSessionRequest,
+        BrowserSessionAdapterError, BrowserSessionCommand, BrowserSessionOperation,
+        BrowserSessionRequest,
     },
 };
-use katana_render_runtime::{HtmlBrowserInput, HtmlBrowserSession, HtmlRuntime};
+use katana_render_runtime::HtmlBrowserSession;
 use std::sync::{Arc, mpsc::Receiver};
 
 pub(crate) struct BrowserSessionWorker;
@@ -16,110 +19,131 @@ impl BrowserSessionWorker {
         commands: Receiver<BrowserSessionCommand>,
         state: Arc<BrowserSessionState>,
     ) {
-        let mut session = match start_session(&request) {
-            Ok(session) => session,
-            Err(error) => {
-                state.publish(BrowserSessionUpdate::Error(error));
-                return;
-            }
-        };
-        publish_updates(&mut session, &state);
+        let mut active = ActiveBrowserSession::new(request, state);
         let mut pending = None;
         while let Some(command) = receive_command(&commands, pending.take()) {
             let (command, next) = coalesce_command(command, &commands);
             pending = next;
-            if matches!(command, BrowserSessionCommand::Close) {
-                let _ = session.close();
+            if active.handle(command) {
                 return;
             }
-            match dispatch(&mut session, command) {
-                Ok(()) => publish_updates(&mut session, &state),
-                Err(error) => state.publish(BrowserSessionUpdate::Error(error)),
+        }
+        active.close();
+    }
+}
+
+struct ActiveBrowserSession {
+    session: Option<HtmlBrowserSession>,
+    viewport: katana_render_runtime::HtmlBrowserViewport,
+    document_origin: String,
+    state: Arc<BrowserSessionState>,
+}
+
+impl ActiveBrowserSession {
+    fn new(request: BrowserSessionRequest, state: Arc<BrowserSessionState>) -> Self {
+        let viewport = request.viewport;
+        let document_origin = request.source.origin.as_str().to_owned();
+        let session = start_session(&request)
+            .map_err(|error| state.publish(BrowserSessionUpdate::Error(error)))
+            .ok();
+        let mut active = Self {
+            session,
+            viewport,
+            document_origin,
+            state,
+        };
+        active.publish_updates();
+        active
+    }
+
+    fn handle(&mut self, command: BrowserSessionCommand) -> bool {
+        match command {
+            BrowserSessionCommand::Close => {
+                self.close();
+                return true;
+            }
+            BrowserSessionCommand::Resize(viewport) => self.resize(viewport),
+            BrowserSessionCommand::Navigate(navigation) => self.navigate(navigation),
+            BrowserSessionCommand::Input(input) => {
+                self.dispatch(BrowserSessionCommand::Input(input))
+            }
+            BrowserSessionCommand::Refresh => self.dispatch(BrowserSessionCommand::Refresh),
+        }
+        false
+    }
+
+    fn resize(&mut self, viewport: katana_render_runtime::HtmlBrowserViewport) {
+        let result = self
+            .session
+            .as_mut()
+            .map(|session| dispatch(session, BrowserSessionCommand::Resize(viewport)))
+            .unwrap_or_else(|| {
+                viewport.validate().map_err(|source| {
+                    BrowserSessionAdapterError::browser_operation(
+                        BrowserSessionOperation::Resize,
+                        &self.document_origin,
+                        source,
+                    )
+                })
+            });
+        if self.complete(result) {
+            self.viewport = viewport;
+        }
+    }
+
+    fn navigate(&mut self, navigation: katana_render_runtime::HtmlBrowserNavigation) {
+        let Some(session) = self.session.as_mut() else {
+            self.restart(navigation);
+            return;
+        };
+        let result = dispatch(session, BrowserSessionCommand::Navigate(navigation));
+        self.complete(result);
+    }
+
+    fn restart(&mut self, navigation: katana_render_runtime::HtmlBrowserNavigation) {
+        self.document_origin = navigation.source.origin.as_str().to_owned();
+        let request = BrowserSessionRequest::new(navigation.source, self.viewport);
+        match start_session(&request) {
+            Ok(session) => self.session = Some(session),
+            Err(error) => self.state.publish(BrowserSessionUpdate::Error(error)),
+        }
+        self.publish_updates();
+    }
+
+    fn dispatch(&mut self, command: BrowserSessionCommand) {
+        let Some(session) = self.session.as_mut() else {
+            return;
+        };
+        let result = dispatch(session, command);
+        self.complete(result);
+    }
+
+    fn complete(&mut self, result: Result<(), BrowserSessionAdapterError>) -> bool {
+        match result {
+            Ok(()) => {
+                self.publish_updates();
+                true
+            }
+            Err(error) => {
+                self.state.publish(BrowserSessionUpdate::Error(error));
+                false
             }
         }
-        let _ = session.close();
     }
-}
 
-fn receive_command(
-    commands: &Receiver<BrowserSessionCommand>,
-    pending: Option<BrowserSessionCommand>,
-) -> Option<BrowserSessionCommand> {
-    pending.or_else(|| commands.recv().ok())
-}
-
-fn coalesce_command(
-    mut command: BrowserSessionCommand,
-    commands: &Receiver<BrowserSessionCommand>,
-) -> (BrowserSessionCommand, Option<BrowserSessionCommand>) {
-    while let Ok(next) = commands.try_recv() {
-        match merge_command(&mut command, next) {
-            Ok(()) => {}
-            Err(next) => return (command, Some(next)),
+    fn publish_updates(&mut self) {
+        if let Some(session) = self.session.as_mut() {
+            publish_updates(session, &self.state);
         }
     }
-    (command, None)
-}
 
-fn merge_command(
-    command: &mut BrowserSessionCommand,
-    next: BrowserSessionCommand,
-) -> Result<(), BrowserSessionCommand> {
-    match (command, next) {
-        (
-            BrowserSessionCommand::Input(HtmlBrowserInput::Scroll { delta_x, delta_y }),
-            BrowserSessionCommand::Input(HtmlBrowserInput::Scroll {
-                delta_x: next_x,
-                delta_y: next_y,
-            }),
-        ) => {
-            *delta_x += next_x;
-            *delta_y += next_y;
-            Ok(())
+    fn close(&mut self) {
+        if let Some(mut session) = self.session.take() {
+            let _ = session.close();
         }
-        (command @ BrowserSessionCommand::Resize(_), BrowserSessionCommand::Resize(viewport)) => {
-            *command = BrowserSessionCommand::Resize(viewport);
-            Ok(())
-        }
-        (_, next) => Err(next),
-    }
-}
-
-fn start_session(
-    request: &BrowserSessionRequest,
-) -> Result<HtmlBrowserSession, BrowserSessionAdapterError> {
-    HtmlRuntime
-        .open(request.source.clone(), request.viewport)
-        .map_err(Into::into)
-}
-
-fn dispatch(
-    session: &mut HtmlBrowserSession,
-    command: BrowserSessionCommand,
-) -> Result<(), BrowserSessionAdapterError> {
-    match command {
-        BrowserSessionCommand::Input(input) => session.dispatch_input(input)?,
-        BrowserSessionCommand::Resize(viewport) => session.resize(viewport)?,
-        BrowserSessionCommand::Navigate(navigation) => session.navigate(navigation)?,
-        BrowserSessionCommand::Refresh => session.refresh_frame()?,
-        BrowserSessionCommand::Close => return Ok(()),
-    }
-    Ok(())
-}
-
-fn publish_updates(session: &mut HtmlBrowserSession, state: &BrowserSessionState) {
-    if let Some(frame) = session.take_frame_update().cloned() {
-        state.publish(BrowserSessionUpdate::Frame(frame));
-    }
-    if let Some(navigation) = session.take_navigation() {
-        state.publish(BrowserSessionUpdate::Navigation(navigation));
     }
 }
 
 #[cfg(test)]
 #[path = "browser_session_worker_tests.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "browser_session_worker_coalescing_tests.rs"]
-mod coalescing_tests;
