@@ -1,5 +1,9 @@
 //! Worker-backed adapter for the KRR browser session.
 
+#[path = "browser_session_command_queue.rs"]
+mod browser_session_command_queue;
+#[path = "browser_session_runtime.rs"]
+mod browser_session_runtime;
 #[path = "browser_session_state.rs"]
 mod browser_session_state;
 #[path = "browser_session_types.rs"]
@@ -10,7 +14,8 @@ mod browser_session_worker;
 use browser_session_state::BrowserSessionState;
 use browser_session_types::BrowserSessionCommand;
 pub use browser_session_types::{
-    BrowserSessionAdapterError, BrowserSessionRequest, BrowserSessionUpdate,
+    BrowserSessionAdapterError, BrowserSessionOperation, BrowserSessionRequest,
+    BrowserSessionUpdate,
 };
 pub use katana_render_runtime::{
     HtmlBrowserInput, HtmlBrowserNavigation, HtmlBrowserSource, HtmlBrowserViewport,
