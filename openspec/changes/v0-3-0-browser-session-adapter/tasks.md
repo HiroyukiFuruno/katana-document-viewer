@@ -32,7 +32,14 @@
 - [x] production line coverage 100% / uncovered lines 0 を、除外追加や閾値緩和なしで
   `rtk just coverage` の release gate として通す。証跡: 20,933 / 20,933 lines、
   missed lines 0、`--fail-under-lines 100 --fail-uncovered-lines 0`。
-- [ ] KDV `0.3.2` の release preflight、GitHub Release、crates.io 公開を確認する。
+- [x] KDV `0.3.2` の release preflight、GitHub Release、crates.io 公開を確認する。
+- [x] KDV `0.3.3` で公開済み KRR `0.4.5` を crates.io checksum 付きで解決し、
+  `document` / `window` lifecycle EventTarget を adapter が変更せず中継する。証跡:
+  `Cargo.lock` checksum `4f90416a7d638dc70e51c0e9ea36ce4a04d76dd828dfc6b85d075405b74a8529`、
+  `browser_session_adapter_contract` 3 tests passed。
+- [x] KDV `0.3.3` の full check、strict coverage 100% / uncovered 0、release preflight、
+  package verify、publish dry-run を確認する。
+- [ ] KDV `0.3.3` の PR CI、merge、GitHub Release、crates.io 公開を確認する。
 
 <!-- subagent-spark-harness-strict-start -->
 - [x] KDV browser-session adapter の ownership を独立 review し、KRR への raw source/input/navigation 中継以外の HTML semantics を持たないことを確認する。証跡: agent: `019f75e7-c5e2-7293-b738-cfcc0290f921` / model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `crates/katana-document-viewer/src/browser_session.rs` / file: `crates/katana-document-viewer/src/browser_session_worker.rs` / file: `crates/katana-document-viewer/tests/browser_session_adapter_contract.rs` / command: `multi_agent_v1.spawn_agent` / verify: `rtk cargo test -p katana-document-viewer --test browser_session_adapter_contract --locked -- --test-threads=1` / close: `multi_agent_v1.close_agent`
