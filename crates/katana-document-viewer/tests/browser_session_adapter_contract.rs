@@ -26,6 +26,34 @@ fn public_adapter_forwards_in_process_runtime_commands() -> TestResult {
 }
 
 #[test]
+fn adapter_forwards_document_lifecycle_errors_with_runtime_context() -> TestResult {
+    let mut adapter = BrowserSessionAdapter::start(request(
+        "<script>document.addEventListener('DOMContentLoaded', () => { throw new Error('lifecycle failed'); });</script>",
+    )?);
+
+    let error = match adapter.wait_for_update(UPDATE_TIMEOUT) {
+        Some(BrowserSessionUpdate::Error(error)) => error,
+        update => return Err(format!("expected lifecycle error, got {update:?}").into()),
+    };
+    let report = error.to_string();
+    for expected in [
+        "Layer: KRR runtime",
+        "Operation: start",
+        "Document: https://example.test/index.html",
+        "Cause: in-process HTML runtime failed",
+        "JavaScript exception: Error: lifecycle failed",
+        "inline-script:1:",
+    ] {
+        assert!(
+            report.contains(expected),
+            "missing {expected:?} in {report}"
+        );
+    }
+    adapter.close()?;
+    Ok(())
+}
+
+#[test]
 fn adapter_boundary_does_not_reintroduce_html_semantics_or_an_external_browser() -> TestResult {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     for source_name in [
