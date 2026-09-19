@@ -31,6 +31,18 @@ fn direct_html_normalizes_a_table_as_one_block() {
 }
 
 #[test]
+fn direct_html_preserves_rendered_markdown_table_rows_as_one_block() {
+    let normalized = DirectHtmlNormalizer::normalize(
+        "| Feature | Status |\n| --- | --- |\n| HTML alignment | covered |",
+    );
+
+    assert_eq!(
+        "| Feature | Status |\n| --- | --- |\n| HTML alignment | covered |",
+        normalized
+    );
+}
+
+#[test]
 fn direct_html_malformed_style_blocks_fail_closed() {
     assert_eq!("<style", DirectHtmlNormalizer::normalize("<style"));
     assert_eq!(

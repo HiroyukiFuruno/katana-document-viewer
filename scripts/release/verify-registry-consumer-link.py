@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "tools/kdv-v8-registry-consumer"
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 EXPECTED_V8_VERSION = "152.2.0"
-EXPECTED_KRR_VERSION = "0.4.19"
+EXPECTED_KRR_VERSION = "0.4.20"
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 ROOT_V8_LINE = re.compile(r"^v8 v(?P<version>[^\s]+)", re.MULTILINE)
 
@@ -237,7 +237,7 @@ def self_test() -> None:
     )
     assert tree_errors(
         "katana-document-viewer v0.5.6\n└── v8 v152.2.0\n",
-        "v8 v152.2.0\n├── katana-document-viewer v0.5.6\n└── katana-render-runtime v0.4.19\n",
+        "v8 v152.2.0\n├── katana-document-viewer v0.5.6\n└── katana-render-runtime v0.4.20\n",
     ) == []
     assert tree_errors(
         "v8 v150.0.0\n└── package\n",
@@ -268,9 +268,9 @@ def registry_metadata() -> dict[str, object]:
                 "source": REGISTRY_SOURCE,
             },
             {
-                "id": "katana-render-runtime 0.4.19 (registry)",
+                "id": "katana-render-runtime 0.4.20 (registry)",
                 "name": "katana-render-runtime",
-                "version": "0.4.19",
+                "version": "0.4.20",
                 "source": REGISTRY_SOURCE,
             },
         ],

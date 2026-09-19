@@ -34,10 +34,31 @@ impl DirectHtmlNormalizer {
             let (block, next_index) = Self::collect_until(lines, index, "</table>", css);
             return (DirectHtmlTableNormalizer::normalize(&block), next_index);
         }
+        if Self::is_markdown_table_row(line) {
+            return Self::collect_markdown_table(lines, index);
+        }
         (
             Self::normalize_tag_case(&css.apply_to_line(line)),
             index + 1,
         )
+    }
+
+    fn collect_markdown_table(lines: &[String], start: usize) -> (String, usize) {
+        let mut rows = Vec::new();
+        let mut index = start;
+        while index < lines.len() {
+            let line = lines[index].trim();
+            if !Self::is_markdown_table_row(line) {
+                break;
+            }
+            rows.push(line.to_string());
+            index += 1;
+        }
+        (rows.join("\n"), index)
+    }
+
+    fn is_markdown_table_row(line: &str) -> bool {
+        line.starts_with('|') && line.ends_with('|')
     }
 
     fn collect_until(
