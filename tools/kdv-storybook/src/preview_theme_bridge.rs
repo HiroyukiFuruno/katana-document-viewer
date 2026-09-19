@@ -1,7 +1,9 @@
 use katana_document_viewer::{KdvThemeMode, KdvThemeSnapshot, ViewerTypographyConfig};
 use katana_ui_core::raster_host::{UiTreeDocumentTypography, UiTreeTextRoleBaselineTypography};
+use katana_ui_core::text_raster::PlatformTextRasterConfig;
 use katana_ui_core::theme::{ColorToken, Rgba, ThemeId, ThemeSnapshot};
 use katana_ui_core_storybook::UiTreeSurfaceHost;
+use std::path::PathBuf;
 
 const KATANA_HEADING_1_SIZE_RATIO: f32 = 1.5;
 const KATANA_HEADING_2_PROGRESS: f32 = 0.835;
@@ -88,10 +90,80 @@ impl KucThemeBridge {
         };
         UiTreeSurfaceHost::with_text_raster_config_and_document_typography(
             theme,
-            katana_ui_core::text_raster::PlatformTextRasterConfig::default(),
+            Self::katana_text_raster_config(),
             katana_ui_core::text_raster::PlatformTextFaceSelection::FirstCandidate,
             document_typography,
         )
+    }
+
+    fn katana_text_raster_config() -> PlatformTextRasterConfig {
+        // KatanAの本文候補順を投影する。KUC既定のOS別候補だけではWindowsがSegoe UIを
+        // 選び、KatanAのYu Gothic/Meiryo基準と字幅・折返し位置がずれる。
+        PlatformTextRasterConfig {
+            proportional_candidates: Self::katana_proportional_font_candidates(),
+            monospace_candidates: Self::katana_monospace_font_candidates(),
+            ..PlatformTextRasterConfig::default()
+        }
+    }
+
+    fn katana_proportional_font_candidates() -> Vec<PathBuf> {
+        #[cfg(target_os = "macos")]
+        {
+            Self::font_paths(&[
+                "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+                "/System/Library/Fonts/Hiragino Sans GB.ttc",
+                "/System/Library/Fonts/AquaKana.ttc",
+            ])
+        }
+        #[cfg(target_os = "windows")]
+        {
+            Self::font_paths(&[
+                "C:/Windows/Fonts/YuGothR.ttc",
+                "C:/Windows/Fonts/yugothic.ttf",
+                "C:/Windows/Fonts/meiryo.ttc",
+                "C:/Windows/Fonts/segoeui.ttf",
+            ])
+        }
+        #[cfg(target_os = "linux")]
+        {
+            Self::font_paths(&[
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            ])
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        Vec::new()
+    }
+
+    fn katana_monospace_font_candidates() -> Vec<PathBuf> {
+        #[cfg(target_os = "macos")]
+        {
+            Self::font_paths(&[
+                "/System/Library/Fonts/Menlo.ttc",
+                "/System/Library/Fonts/SFMono-Regular.otf",
+                "/System/Library/Fonts/Monaco.ttf",
+            ])
+        }
+        #[cfg(target_os = "windows")]
+        {
+            Self::font_paths(&["C:/Windows/Fonts/consola.ttf", "C:/Windows/Fonts/cour.ttf"])
+        }
+        #[cfg(target_os = "linux")]
+        {
+            Self::font_paths(&[
+                "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                "/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            ])
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        Vec::new()
+    }
+
+    fn font_paths(paths: &[&str]) -> Vec<PathBuf> {
+        paths.iter().map(PathBuf::from).collect()
     }
 
     pub(crate) fn from_kdv(theme: &KdvThemeSnapshot) -> Result<ThemeSnapshot, String> {
@@ -319,5 +391,35 @@ mod tests {
             snapshot.color("inline-code-background")
         );
         Ok(())
+    }
+
+    #[test]
+    fn bridge_uses_katana_platform_font_priority() {
+        let config = KucThemeBridge::katana_text_raster_config();
+
+        #[cfg(target_os = "macos")]
+        assert_eq!(
+            Some("/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"),
+            config
+                .proportional_candidates
+                .first()
+                .and_then(|path| path.to_str())
+        );
+        #[cfg(target_os = "windows")]
+        assert_eq!(
+            Some("C:/Windows/Fonts/YuGothR.ttc"),
+            config
+                .proportional_candidates
+                .first()
+                .and_then(|path| path.to_str())
+        );
+        #[cfg(target_os = "linux")]
+        assert_eq!(
+            Some("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
+            config
+                .proportional_candidates
+                .first()
+                .and_then(|path| path.to_str())
+        );
     }
 }
