@@ -254,3 +254,36 @@ consumer, and KatanA adoption remain separate release DoD items.
   `direct/html-alignment.html` surface-parity gate passes at the unchanged
   minimum score. The full Storybook gate remains pending only on replacement
   KatanA crops: the two stale KRR `0.4.19` references produced seven failures.
+
+## 2026-09-19 independent KatanA canonical artifact acceptance
+
+- KatanA source commit `af55949c4ee7ddad414ed93fa360a67e9464acf4`
+  consumed candidate crate SHA-256
+  `3ea7eb4dd58409b9ac37345036186c38043e3d2cf3db7e711eba9261cd58659d`
+  from the loopback registry. The dependency graph resolved registry-only KUC
+  `0.3.11`, KRR `0.4.20`, and one V8 `152.2.0`, with no path, git, or patch
+  override.
+- Fixture SHA-256 values are
+  `489360a81d60af20d67f8ea47e251732a194983431ea1ab261627490cc9009e1`
+  for `sample.md` and
+  `88f5cfae620fa721cd0a53765402833dc6e705dfc27c6cd1808143530e043dd3`
+  for `sample_diagrams.md`. Snapshot inventory SHA-256 is
+  `a74e37e7d150be2f6a61daa5217d17f3fd75cf7191de97ae0c1398ac0c2e3655`;
+  runner SHA-256 is
+  `00b6ff3b20e9d4c73c439767e4f7b6f494fda34c73437a4c0d81e69211b8a10f`.
+- KatanA captured physical content at `2374x4450+88+268` and normalized it
+  with the Box filter to `1280x2400`. The accepted tracked outputs are:
+  export `2980205a94a2cfcedde6d22f6f3032d8d794ce156f86e91efd93908c57a36168`
+  at `1280x19282`, sample crop
+  `7183c95d24e7910dfb088f837cb8b37c8faa98c4f01ad51441c1287009ee91dc`
+  at `1280x2400`, and diagrams crop
+  `c6b6326f76374ea2712ca634b877ece7162acf7ea949ec1c1c4ee23b0fc31577`
+  at `1280x2400`.
+- With those independent references installed, `rtk proxy just
+  storybook-score-check` exits `0`: the core library reports `1910 passed / 1
+  expected ignored`, Storybook reports `652 passed / 21 expected ignored`, and
+  canonical sample crop, diagrams crop, and export PNG all satisfy the unchanged
+  95-point gate. Audit (3), fixture matrix (19), surface equivalence (27), fast
+  and diagram-heavy parity, and all window/sidebar/hover/diagram/link/footnote/
+  slideshow/search smokes pass. No threshold, reference provenance, or
+  registry-source guard was weakened.
