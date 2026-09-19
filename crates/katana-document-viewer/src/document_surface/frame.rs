@@ -38,8 +38,8 @@ enum DocumentSurfaceContent {
 
 impl DocumentSurfaceFrame {
     pub(super) fn from_node(node: UiNode) -> Result<Self, DocumentSurfaceError> {
-        let grid_borders = grid_borders(&node)?;
         let content = surface_content(&node)?;
+        let grid_borders = grid_borders(&node);
         Ok(Self {
             content,
             navigation: DocumentNavigationMetadata::default(),
@@ -114,27 +114,21 @@ impl DocumentSurfaceFrame {
     }
 }
 
-fn grid_borders(
-    node: &UiNode,
-) -> Result<Vec<(DocumentGridCoordinate, DocumentGridCellBorders)>, DocumentSurfaceError> {
-    match node.kind() {
-        UiNodeKind::Grid => Ok(node
-            .props()
-            .grid
-            .cells
-            .iter()
-            .map(|cell| {
-                (
-                    DocumentGridCoordinate::from(cell.coordinate),
-                    DocumentGridCellBorders::from(&cell.appearance.borders),
-                )
-            })
-            .collect()),
-        UiNodeKind::ImageSurface => Ok(Vec::new()),
-        kind => Err(DocumentSurfaceError::UnsupportedNodeKind {
-            detail: format!("{kind:?}"),
-        }),
+fn grid_borders(node: &UiNode) -> Vec<(DocumentGridCoordinate, DocumentGridCellBorders)> {
+    if node.kind() != UiNodeKind::Grid {
+        return Vec::new();
     }
+    node.props()
+        .grid
+        .cells
+        .iter()
+        .map(|cell| {
+            (
+                DocumentGridCoordinate::from(cell.coordinate),
+                DocumentGridCellBorders::from(&cell.appearance.borders),
+            )
+        })
+        .collect()
 }
 
 fn surface_content(node: &UiNode) -> Result<DocumentSurfaceContent, DocumentSurfaceError> {

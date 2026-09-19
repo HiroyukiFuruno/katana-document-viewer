@@ -7,6 +7,11 @@ fn xlsx_session_routes_unified_runtime_operations() -> TestResult {
     let mut session = DocumentSession::open(xlsx_source()?, xlsx_config()?)?;
 
     assert_eq!(ViewerDocumentFormat::Xlsx, session.frame()?.format);
+    let metadata = session
+        .spreadsheet_frame_metadata()
+        .ok_or("xlsx session metadata is missing")?;
+    assert_eq!(0, metadata.sheet_index);
+    assert!(metadata.visible_row_count > 0);
     assert!(
         session
             .apply_spreadsheet_filter(SpreadsheetFilterCommand::Candidates {

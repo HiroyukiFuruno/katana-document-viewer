@@ -75,6 +75,11 @@ impl SpreadsheetViewerSession {
         &self.artifact
     }
 
+    #[cfg(test)]
+    pub(super) fn artifact_mut(&mut self) -> &mut SpreadsheetDocumentArtifact {
+        &mut self.artifact
+    }
+
     pub fn materialize_cells(
         &mut self,
         sheet_index: usize,

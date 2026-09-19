@@ -129,7 +129,19 @@ fn invalid_filter_and_materialization_requests_fail_closed() -> TestResult {
         engine.materialize(0, &too_many),
         Err(SpreadsheetEngineError::ResourceLimit { .. })
     ));
+    assert_invalid_filter_indices_fail_closed(&mut engine);
     Ok(())
+}
+
+fn assert_invalid_filter_indices_fail_closed(engine: &mut SpreadsheetEngineSession) {
+    assert!(matches!(
+        engine.auto_filter(usize::MAX),
+        Err(SpreadsheetEngineError::SheetOutsideDocument { .. })
+    ));
+    assert!(matches!(
+        engine.auto_filter_mut(usize::MAX),
+        Err(SpreadsheetEngineError::SheetOutsideDocument { .. })
+    ));
 }
 
 #[test]

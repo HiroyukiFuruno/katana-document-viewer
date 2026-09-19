@@ -41,6 +41,13 @@ fn cache_capacity_keeps_scalar_cell_values_inline() {
     }
 }
 
+#[test]
+fn materialized_cell_deref_mut_updates_its_cell_artifact() {
+    let mut cell = rich_cell(0);
+    std::ops::DerefMut::deref_mut(&mut cell).display_text = "updated".to_owned();
+    assert_eq!("updated", cell.cell.display_text);
+}
+
 fn legacy_cell_bytes(cell: &SpreadsheetCellArtifact) -> usize {
     std::mem::size_of::<SpreadsheetCellArtifact>()
         .saturating_add(cell.display_text.len())

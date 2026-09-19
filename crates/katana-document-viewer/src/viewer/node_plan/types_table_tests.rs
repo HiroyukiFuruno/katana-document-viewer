@@ -27,6 +27,33 @@ fn table_projection_preserves_rows_alignment_and_export_geometry() -> Result<(),
     Ok(())
 }
 
+#[test]
+fn table_projection_rejects_non_tables_and_empty_geometry() -> Result<(), &'static str> {
+    let mut node = table_node();
+    node.kind = ViewerNodeKind::Paragraph;
+    assert!(node.table_projection().is_none());
+
+    let projection = ViewerTableProjection {
+        rows: Vec::new(),
+        column_count: 0,
+    };
+    assert!(projection.column_widths(640).is_empty());
+    assert!(ViewerTableProjection::from_text("| --- |\n").is_none());
+
+    let mut unaligned = table_node();
+    unaligned.source.raw = RawSnippet::new("| Value |\n| --- |\n| 1 |");
+    assert_eq!(
+        ViewerTableAlignment::Unspecified,
+        unaligned
+            .table_projection()
+            .ok_or("unaligned table projection")?
+            .rows[0]
+            .cells[0]
+            .alignment
+    );
+    Ok(())
+}
+
 fn assert_alignments(projection: &ViewerTableProjection) {
     assert_eq!(
         ViewerTableAlignment::Left,
