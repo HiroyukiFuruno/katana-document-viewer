@@ -109,7 +109,7 @@ fn pdf_uses_the_unified_session_for_fit_zoom_resize_and_typed_errors() -> TestRe
         )),
         Err(DocumentSessionError::State(_))
     ));
-    session.close();
+    session.close_in_place();
     assert!(session.is_closed());
     assert!(matches!(
         session.apply(DocumentSessionCommand::Surface(

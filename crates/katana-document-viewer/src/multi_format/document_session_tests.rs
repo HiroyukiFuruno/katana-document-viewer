@@ -77,8 +77,8 @@ fn pdf_session_owns_navigation_surface_and_rendering() -> TestResult {
 }
 
 fn assert_idempotent_close(session: &mut DocumentSession) {
-    session.close();
-    session.close();
+    session.close_in_place();
+    session.close_in_place();
     assert!(session.is_closed());
     assert_eq!(Err(closed_session_error()), session.frame());
     assert_eq!(

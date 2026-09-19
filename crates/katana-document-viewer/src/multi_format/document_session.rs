@@ -102,7 +102,11 @@ impl DocumentSession {
         self.runtime.is_none()
     }
 
-    pub fn close(&mut self) {
+    pub fn close(mut self) {
+        self.close_in_place();
+    }
+
+    pub fn close_in_place(&mut self) {
         let _close = super::debug_trace::DebugTrace::start("document.close");
         self.runtime.take();
         self.resource_lease.take();
@@ -128,7 +132,7 @@ impl DocumentSession {
 impl Drop for DocumentSession {
     fn drop(&mut self) {
         let _drop = super::debug_trace::DebugTrace::start("document.drop");
-        self.close();
+        self.close_in_place();
     }
 }
 

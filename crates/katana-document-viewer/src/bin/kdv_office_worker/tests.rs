@@ -34,7 +34,7 @@ fn closed_session() -> Result<DocumentSession, Box<dyn std::error::Error>> {
         source,
         DocumentSessionConfig::new(DocumentViewport::new(320, 240)),
     )?;
-    session.close();
+    session.close_in_place();
     Ok(session)
 }
 

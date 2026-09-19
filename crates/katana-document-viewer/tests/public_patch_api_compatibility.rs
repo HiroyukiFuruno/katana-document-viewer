@@ -3,7 +3,7 @@
 use katana_document_viewer::{
     DocumentFrame, DocumentGridCellAppearance, DocumentGridDataBar,
     DocumentGridHorizontalAlignment, DocumentGridIcon, DocumentGridRating,
-    DocumentGridVerticalAlignment, DocumentSurfaceFrame, DocumentViewerState,
+    DocumentGridVerticalAlignment, DocumentSession, DocumentSurfaceFrame, DocumentViewerState,
     SpreadsheetCellStyleArtifact, SpreadsheetHorizontalAlignment, SpreadsheetMergedCellArtifact,
     SpreadsheetSheetArtifact, SpreadsheetTrackArtifact, SpreadsheetVerticalAlignment,
     ViewerCapabilities, ViewerDiagnostic, ViewerDocumentFormat,
@@ -87,4 +87,8 @@ fn v0_5_5_grid_cell_appearance(
         icon,
         rating,
     }
+}
+
+fn v0_5_5_document_session_close(session: DocumentSession) {
+    session.close();
 }
