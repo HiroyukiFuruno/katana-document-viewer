@@ -183,7 +183,6 @@ impl<'a> ViewerNodePlanBuilder<'a> {
     ) -> f32 {
         self.html_rule_gap_before(previous_kind, next_kind)
             .or_else(|| self.canonical_block_gap_before(previous_kind, next_kind))
-            .or_else(|| self.html_pair_gap_before(previous_kind, next_kind))
             .unwrap_or_else(|| self.fixed_block_gap_before(previous_kind, next_kind))
     }
 
@@ -226,48 +225,15 @@ impl<'a> ViewerNodePlanBuilder<'a> {
         }
     }
 
-    fn html_pair_gap_before(
-        &self,
-        previous_kind: &ViewerNodeKind,
-        next_kind: &ViewerNodeKind,
-    ) -> Option<f32> {
-        match (previous_kind, next_kind) {
-            (
-                ViewerNodeKind::Html {
-                    role: ViewerHtmlRole::Heading { .. },
-                },
-                ViewerNodeKind::Html {
-                    role: ViewerHtmlRole::Centered,
-                },
-            ) => Some(14.0),
-            (
-                ViewerNodeKind::Html {
-                    role: ViewerHtmlRole::Centered,
-                },
-                ViewerNodeKind::Html {
-                    role: ViewerHtmlRole::Heading { .. },
-                },
-            ) => Some(17.0),
-            _ => None,
-        }
-    }
-
     fn fixed_block_gap_before(
         &self,
         previous_kind: &ViewerNodeKind,
         next_kind: &ViewerNodeKind,
     ) -> f32 {
         match (previous_kind, next_kind) {
-            (
-                ViewerNodeKind::Heading { .. },
-                ViewerNodeKind::Html {
-                    role: ViewerHtmlRole::BadgeRow,
-                },
-            ) => 13.0,
             (ViewerNodeKind::Paragraph, ViewerNodeKind::Html { .. }) => {
                 self.html_body_line_height() - self.html_top_adjustment()
             }
-            (ViewerNodeKind::Rule, ViewerNodeKind::Heading { .. }) => 14.0,
             (ViewerNodeKind::Heading { .. }, ViewerNodeKind::Diagram { .. }) => 6.0,
             _ => PREVIEW_BLOCK_GAP,
         }

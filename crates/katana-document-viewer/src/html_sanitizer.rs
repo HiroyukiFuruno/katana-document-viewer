@@ -43,7 +43,7 @@ impl HtmlFragmentNormalizer {
 
     fn image_source_attribute_tail(fragment: &str, mut index: usize) -> Option<&str> {
         let bytes = fragment.as_bytes();
-        while index < bytes.len() {
+        loop {
             index = Self::skip_ascii_whitespace(bytes, index);
             if index == bytes.len() || bytes[index] == b'>' {
                 return None;
@@ -61,7 +61,6 @@ impl HtmlFragmentNormalizer {
             }
             index = next_index;
         }
-        None
     }
 
     fn image_source_attribute_tail_state<'a>(

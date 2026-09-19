@@ -40,3 +40,20 @@ fn normalizes_a_malformed_svg_namespace_without_matching_a_fixture_uri() {
     assert!(normalized.contains("xmlns=%22https%3A%2F%2Fexample.test%2Fsvg%22%20"));
     assert!(!normalized.contains("xmlns=%22<https://example.test/svg%22>"));
 }
+
+#[test]
+fn accepts_boolean_and_unquoted_image_attributes_without_rewriting() {
+    let fragment = r#"<img loading src=icon.svg alt="icon">"#;
+
+    assert!(!HtmlFragmentNormalizer::has_malformed_image_source_attribute(fragment));
+    assert_eq!(fragment, HtmlFragmentNormalizer::normalize(fragment));
+}
+
+#[test]
+fn preserves_a_malformed_svg_namespace_that_cannot_be_repaired_safely() {
+    let fragment =
+        r#"<img src="data:image/svg+xml,%3Csvg xmlns=%22<bad namespace%22>%3C/svg%3E" alt="icon">"#;
+
+    assert!(HtmlFragmentNormalizer::has_malformed_image_source_attribute(fragment));
+    assert_eq!(fragment, HtmlFragmentNormalizer::normalize(fragment));
+}
