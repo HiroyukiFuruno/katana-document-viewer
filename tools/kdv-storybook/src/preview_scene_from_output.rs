@@ -74,6 +74,7 @@ impl PreviewBuilder {
             &tree,
             &theme,
             request.typography,
+            request.export_surface,
             config.viewport.width,
             content_height,
         );
@@ -103,6 +104,7 @@ impl PreviewBuilder {
             node_count: node_plan.nodes.len(),
             mode: output.state.mode,
             typography: request.typography,
+            export_surface: request.export_surface,
             asset_request_count,
             asset_request_key,
             loaded_asset_count: asset_report.loaded_artifact_count,

@@ -158,7 +158,7 @@ impl<'a> KucNodeFactory<'a> {
                     image = image.selection_text(text);
                 }
                 let media_node: UiNode = self.image_surface_transform(node, image).into();
-                self.export_surface_media_node(media_node, node)
+                self.export_surface_media_node(media_node)
             }
             Err(error) => {
                 eprintln!(
@@ -181,8 +181,8 @@ impl<'a> KucNodeFactory<'a> {
         ))
     }
 
-    fn export_surface_media_node(&self, media: UiNode, node: &ViewerNode) -> UiNode {
-        if self.export_surface && matches!(node.kind, ViewerNodeKind::Diagram { .. }) {
+    fn export_surface_media_node(&self, media: UiNode) -> UiNode {
+        if self.export_surface {
             return media.visual_role(UiVisualRole::ExportMediaFrame);
         }
         media.visual_role(UiVisualRole::MediaFrame)

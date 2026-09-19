@@ -89,6 +89,7 @@ fn scene_with_targets<const N: usize>(ys: [f32; N]) -> PreviewScene {
         node_count: 0,
         mode: ViewerMode::Document,
         typography: Default::default(),
+        export_surface: false,
         asset_request_count: 0,
         asset_request_key: String::new(),
         loaded_asset_count: 0,

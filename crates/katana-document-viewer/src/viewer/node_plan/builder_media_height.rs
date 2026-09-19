@@ -44,6 +44,7 @@ impl ViewerMediaHeight {
         data_image::HtmlDataImageHeight::height(
             planned,
             Self::content_width(viewport_width, height_mode),
+            height_mode,
         )
     }
 
@@ -73,9 +74,11 @@ impl ViewerMediaHeight {
     }
 
     fn precomputed_height(context: MediaHeightContext<'_>) -> Option<f32> {
-        if let Some(height) =
-            data_image::HtmlDataImageHeight::height(context.planned, context.content_width)
-        {
+        if let Some(height) = data_image::HtmlDataImageHeight::height(
+            context.planned,
+            context.content_width,
+            context.height_mode,
+        ) {
             return Some(height);
         }
         if context.height_mode == ViewerHeightMode::ExportSurface

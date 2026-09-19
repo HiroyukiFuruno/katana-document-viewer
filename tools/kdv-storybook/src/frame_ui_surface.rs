@@ -58,8 +58,10 @@ pub(crate) fn render_document_ui_tree_with_theme(
     area: SurfaceArea,
     theme: &ThemeSnapshot,
     typography: ViewerTypographyConfig,
+    export_surface: bool,
 ) {
-    KucThemeBridge::document_host(theme.clone(), typography).render(canvas, root, area);
+    KucThemeBridge::document_host_for_surface(theme.clone(), typography, export_surface)
+        .render(canvas, root, area);
 }
 
 pub(crate) fn sidebar_area(request: &FrameRenderRequest<'_>) -> SurfaceArea {

@@ -71,11 +71,26 @@ impl KucThemeBridge {
         theme: ThemeSnapshot,
         typography: ViewerTypographyConfig,
     ) -> UiTreeSurfaceHost {
+        Self::document_host_for_surface(theme, typography, false)
+    }
+
+    pub(crate) fn document_host_for_surface(
+        theme: ThemeSnapshot,
+        typography: ViewerTypographyConfig,
+        export_surface: bool,
+    ) -> UiTreeSurfaceHost {
+        // export role は KUC 自身が KDV export と同じ compact metrics を持つ。
+        // interactive 用 baseline override を重ねると独立 export reference とずれるため分離する。
+        let document_typography = if export_surface {
+            UiTreeDocumentTypography::new()
+        } else {
+            Self::document_typography(typography)
+        };
         UiTreeSurfaceHost::with_text_raster_config_and_document_typography(
             theme,
             katana_ui_core::text_raster::PlatformTextRasterConfig::default(),
             katana_ui_core::text_raster::PlatformTextFaceSelection::FirstCandidate,
-            Self::document_typography(typography),
+            document_typography,
         )
     }
 

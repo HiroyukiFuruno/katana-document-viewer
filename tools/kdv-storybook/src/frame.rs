@@ -576,6 +576,7 @@ impl StorybookFrameRenderer {
             },
             &scene.theme,
             scene.typography,
+            scene.export_surface,
         );
     }
 

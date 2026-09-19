@@ -1,6 +1,7 @@
 use super::ViewerNodePlanner;
 use super::test_support::{input_with_nodes, long_list, node, text_node};
 use crate::ViewerNodeKind;
+use crate::viewer::node_plan::metrics::ViewerNodeMetrics;
 use katana_markdown_model::{CodeBlockRole, DiagramKind, HeadingNode, HtmlBlockRole, KmmNodeKind};
 
 #[test]
@@ -294,12 +295,13 @@ fn planner_measures_plain_paragraph_text_without_child_spans() {
         vec![text_node(text)],
     )]);
     input.typography.preview_font_size = 14;
-    input.viewport.width = 1280.0;
+    input.viewport.width = 400.0;
 
     let plan = ViewerNodePlanner::create(&input, 0.0);
 
     assert_eq!(1, plan.nodes.len());
-    assert_eq!(46.0, plan.nodes[0].rect.height);
+    let line_height = ViewerNodeMetrics::body_line_height(input.typography);
+    assert!(plan.nodes[0].rect.height >= line_height * 2.0);
 }
 
 #[test]

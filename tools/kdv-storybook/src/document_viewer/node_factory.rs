@@ -177,12 +177,33 @@ impl<'a> KucNodeFactory<'a> {
     }
 
     fn text_node(&self, node: &ViewerNode) -> UiNode {
-        let mut text = Text::new(Self::text_label(node))
-            .font_role(self.font_role_for_node(node))
-            .text_role(self.text_role_for_node(node))
-            .wrap(Self::text_wrap_for_node(node))
-            .selectable(self.interaction.selection_enabled);
-        if !node.spans.is_empty() && !Self::is_html_image_source_recovery(node) {
+        let recovery_spans = Self::normalizable_html_data_image_source_spans(node);
+        let export_wrapped_spans = self.export_wrapped_paragraph_spans(node);
+        let export_wrapped_label = self.export_wrapped_centered_html_label(node);
+        let mut text = Text::new(
+            export_wrapped_spans
+                .as_ref()
+                .map(|spans| {
+                    spans
+                        .iter()
+                        .map(|span| span.text.as_str())
+                        .collect::<String>()
+                })
+                .or_else(|| export_wrapped_label.clone())
+                .unwrap_or_else(|| Self::text_label(node)),
+        )
+        .font_role(self.font_role_for_node(node))
+        .text_role(self.text_role_for_node(node))
+        .wrap(Self::text_wrap_for_node(node))
+        .selectable(self.interaction.selection_enabled);
+        if let Some(spans) = recovery_spans {
+            text = text.text_spans(spans);
+        } else if let Some(spans) = export_wrapped_spans {
+            text = text.text_spans(spans);
+        } else if export_wrapped_label.is_none()
+            && !node.spans.is_empty()
+            && !Self::is_html_image_source_recovery(node)
+        {
             text = text.text_spans(Self::text_spans(&node.spans));
         }
         let rendered: UiNode = text.into();
@@ -302,6 +323,16 @@ impl<'a> KucNodeFactory<'a> {
             return ui_node.props().common.height.clone();
         }
         let viewer_height = Self::viewer_height(node);
+        if self.export_surface
+            && ui_node.kind() == UiNodeKind::Text
+            && matches!(node.kind, ViewerNodeKind::Paragraph)
+            && let UiDimension::Px(viewer_height_px) = viewer_height
+        {
+            let wrapped_height = self.body_line_height_px().saturating_mul(
+                u16::try_from(ui_node.props().label.lines().count().max(1)).unwrap_or(u16::MAX),
+            );
+            return UiDimension::Px(viewer_height_px.max(wrapped_height));
+        }
         if matches!(node.kind, ViewerNodeKind::Diagram { .. })
             && matches!(ui_node.props().visual_role, UiVisualRole::MediaFrame)
             && let (UiDimension::Px(viewer), UiDimension::Px(media)) =

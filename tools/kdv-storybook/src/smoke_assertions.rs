@@ -159,6 +159,7 @@ mod tests {
             node_count: nodes,
             mode: ViewerMode::Document,
             typography: Default::default(),
+            export_surface: false,
             asset_request_count: 0,
             asset_request_key: String::new(),
             loaded_asset_count: images,

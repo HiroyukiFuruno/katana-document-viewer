@@ -287,20 +287,20 @@ fn preview_build_katana_sample_preserves_heading_spaces_in_kuc_tree()
 }
 
 #[test]
-fn preview_build_katana_sample_keeps_native_malformed_svg_tail_as_raw_text()
+fn preview_build_katana_sample_renders_normalizable_svg_without_raw_uri()
 -> Result<(), Box<dyn std::error::Error>> {
     let scene = build_scene("katana/sample.md")?;
 
     assert_eq!(
         0,
         label_fragment_count(scene.tree.root(), "data:image/svg+xml"),
-        "README header malformed data URI prefix must be omitted from the native raw-text fallback"
+        "README header SVG data URI must not leak into the semantic text label"
     );
     for fragment in ["width=%22128", "dominant-baseline", "text-anchor=%22middle"] {
         assert_eq!(
-            1,
+            0,
             label_fragment_count(scene.tree.root(), fragment),
-            "native malformed SVG source renders its visible tail once: {fragment}"
+            "normalized SVG data URI fragment must not remain visible raw text: {fragment}"
         );
     }
     assert!(

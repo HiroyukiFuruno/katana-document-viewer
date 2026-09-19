@@ -1484,13 +1484,54 @@ fn canvas_to_logical_rgba(canvas: &Canvas, width: usize, height: usize) -> Vec<u
     else {
         return vec![0xff; width * height * 4];
     };
-    image::imageops::resize(
-        &image,
-        width as u32,
-        height as u32,
-        image::imageops::FilterType::Triangle,
-    )
-    .into_raw()
+    box_resize_rgba(&image, width as u32, height as u32)
+}
+
+fn box_resize_rgba(image: &image::RgbaImage, width: u32, height: u32) -> Vec<u8> {
+    // WHY: KatanA canonical crop と同じ Box 縮小を、外部ツールなしで全OSに再現する。
+    let source_width = u64::from(image.width());
+    let source_height = u64::from(image.height());
+    let target_width = u64::from(width);
+    let target_height = u64::from(height);
+    let target_pixel_weight = source_width * source_height;
+    let mut output = Vec::with_capacity(width as usize * height as usize * 4);
+
+    for target_y in 0..target_height {
+        let target_top = target_y * source_height;
+        let target_bottom = (target_y + 1) * source_height;
+        let source_y_start = target_top / target_height;
+        let source_y_end = target_bottom.div_ceil(target_height);
+
+        for target_x in 0..target_width {
+            let target_left = target_x * source_width;
+            let target_right = (target_x + 1) * source_width;
+            let source_x_start = target_left / target_width;
+            let source_x_end = target_right.div_ceil(target_width);
+            let mut channels = [0_u64; 4];
+
+            for source_y in source_y_start..source_y_end {
+                let source_top = source_y * target_height;
+                let source_bottom = (source_y + 1) * target_height;
+                let vertical_weight = source_bottom.min(target_bottom) - source_top.max(target_top);
+                for source_x in source_x_start..source_x_end {
+                    let source_left = source_x * target_width;
+                    let source_right = (source_x + 1) * target_width;
+                    let horizontal_weight =
+                        source_right.min(target_right) - source_left.max(target_left);
+                    let weight = horizontal_weight * vertical_weight;
+                    let pixel = image.get_pixel(source_x as u32, source_y as u32);
+                    for (sum, channel) in channels.iter_mut().zip(pixel.0) {
+                        *sum += u64::from(channel) * weight;
+                    }
+                }
+            }
+
+            output.extend(
+                channels.map(|sum| ((sum + target_pixel_weight / 2) / target_pixel_weight) as u8),
+            );
+        }
+    }
+    output
 }
 
 fn content_bands(crop: &PreviewCrop) -> Vec<ContentBand> {

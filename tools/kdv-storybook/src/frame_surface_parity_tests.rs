@@ -205,6 +205,20 @@ fn katana_sample_long_inline_code_uses_export_surface_text_width()
 }
 
 #[test]
+fn katana_html_export_surface_reserves_rich_paragraph_wrapped_height()
+-> Result<(), Box<dyn std::error::Error>> {
+    let scene = SurfaceParitySupport::build_export_tree_scene("katana/sample_html.md", false)?;
+    let node = SurfaceParitySupport::direct_child_for_label(
+        scene.tree.root(),
+        "Three badges should appear",
+    )
+    .ok_or("rich badge note must be present in export surface tree")?;
+
+    assert_eq!(UiDimension::Px(46), node.props().common.height);
+    Ok(())
+}
+
+#[test]
 fn direct_html_export_surface_tree_preserves_right_link_span()
 -> Result<(), Box<dyn std::error::Error>> {
     let scene = SurfaceParitySupport::build_export_tree_scene("direct/html-alignment.htm", false)?;

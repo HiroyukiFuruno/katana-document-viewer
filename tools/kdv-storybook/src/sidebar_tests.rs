@@ -169,6 +169,7 @@ fn sidebar_state_shows_mode_and_human_slide_index() {
         node_count: 8,
         mode: ViewerMode::Slideshow,
         typography: Default::default(),
+        export_surface: false,
         asset_request_count: 0,
         asset_request_key: String::new(),
         loaded_asset_count: 2,

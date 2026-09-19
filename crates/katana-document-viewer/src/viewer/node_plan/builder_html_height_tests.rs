@@ -99,6 +99,22 @@ fn planner_keeps_html_data_svg_image_height_for_viewer_surface() {
 }
 
 #[test]
+fn export_planner_keeps_normalizable_katana_data_svg_image_height() {
+    let input = input_with_font_size(
+        vec![node(
+            KmmNodeKind::HtmlBlock(HtmlBlockRole::Centered),
+            r#"<p align="center"><img src="data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%22128%22 height=%22128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23ddd%22/%3E%3C/svg%3E" width="128" alt="icon"></p>"#,
+            Vec::new(),
+        )],
+        14,
+    );
+
+    let plan = ViewerNodePlanner::create_export_surface(&input, 0.0);
+
+    assert_eq!(164.0, plan.nodes[0].rect.height);
+}
+
+#[test]
 fn planner_preserves_html_margin_left_for_kuc_layout() {
     let input = input_with_font_size(
         vec![node(

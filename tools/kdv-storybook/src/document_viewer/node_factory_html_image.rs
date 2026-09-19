@@ -18,10 +18,15 @@ impl<'a> KucNodeFactory<'a> {
         if !matches!(node.kind, ViewerNodeKind::Html { .. }) {
             return None;
         }
-        if HtmlFragmentNormalizer::has_malformed_image_source_attribute(&node.source.raw.text) {
+        if !self.export_surface
+            && HtmlFragmentNormalizer::has_malformed_image_source_attribute(&node.source.raw.text)
+        {
             return None;
         }
         let fragment = HtmlFragmentNormalizer::normalize(&node.source.raw.text);
+        if HtmlFragmentNormalizer::has_malformed_image_source_attribute(&fragment) {
+            return None;
+        }
         let image = HtmlImageRef::parse(&fragment)?;
         let svg = svg_payload(&image.src)?;
         let surface = ViewerImageSurfaceFactory::from_svg_str(

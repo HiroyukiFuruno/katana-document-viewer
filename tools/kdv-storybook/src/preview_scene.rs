@@ -21,6 +21,7 @@ pub struct PreviewScene {
     pub node_count: usize,
     pub mode: ViewerMode,
     pub typography: ViewerTypographyConfig,
+    pub export_surface: bool,
     pub asset_request_count: usize,
     pub asset_request_key: String,
     pub loaded_asset_count: usize,
@@ -159,10 +160,11 @@ pub fn viewer_targets(
     tree: &UiTree,
     theme: &ThemeSnapshot,
     typography: ViewerTypographyConfig,
+    export_surface: bool,
     width: f32,
     height: f32,
 ) -> Vec<ViewerTarget> {
-    let rendered_hits = rendered_node_hits(tree, theme, typography, width, height);
+    let rendered_hits = rendered_node_hits(tree, theme, typography, export_surface, width, height);
     let rendered_rects = rendered_node_rects(&rendered_hits);
     let semantic_rects = rendered_semantic_rects(&rendered_hits);
     let mut targets = plan
@@ -251,19 +253,21 @@ fn rendered_node_hits(
     tree: &UiTree,
     theme: &ThemeSnapshot,
     typography: ViewerTypographyConfig,
+    export_surface: bool,
     width: f32,
     height: f32,
 ) -> Vec<UiTreeNodeHit> {
-    KucThemeBridge::document_host(theme.clone(), typography).document_node_hits(
-        tree.root(),
-        UiTreeRenderArea {
-            x: 0,
-            y: 0,
-            width: width.ceil().max(1.0) as usize,
-            height: height.ceil().max(1.0) as usize,
-            scroll_y: 0.0,
-        },
-    )
+    KucThemeBridge::document_host_for_surface(theme.clone(), typography, export_surface)
+        .document_node_hits(
+            tree.root(),
+            UiTreeRenderArea {
+                x: 0,
+                y: 0,
+                width: width.ceil().max(1.0) as usize,
+                height: height.ceil().max(1.0) as usize,
+                scroll_y: 0.0,
+            },
+        )
 }
 
 fn rendered_node_rects(hits: &[UiTreeNodeHit]) -> BTreeMap<String, ViewerRect> {
