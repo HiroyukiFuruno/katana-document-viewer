@@ -40,7 +40,7 @@ impl ViewerTableProjection {
                     .filter_map(|row| row.cells.get(column))
                     .map(|cell| cell.text.chars().count() as u32)
                     .max()
-                    .map_or(0, |value| value);
+                    .unwrap_or(0);
                 (
                     characters
                         .saturating_mul(ASCII_CELL_CHAR_WIDTH)
@@ -93,13 +93,10 @@ fn row_height(row: &super::ViewerTableRowProjection, widths: &[u32], line_height
         .iter()
         .enumerate()
         .map(|(column, cell)| {
-            wrapped_line_count(
-                &cell.text,
-                widths.get(column).copied().map_or(0, |value| value),
-            )
+            wrapped_line_count(&cell.text, widths.get(column).copied().unwrap_or(0))
         })
         .max()
-        .map_or(1, |value| value) as u32;
+        .unwrap_or(1) as u32;
     (lines * line_height + TABLE_ROW_VERTICAL_PADDING * 2).max(TABLE_ROW_HEIGHT)
 }
 
