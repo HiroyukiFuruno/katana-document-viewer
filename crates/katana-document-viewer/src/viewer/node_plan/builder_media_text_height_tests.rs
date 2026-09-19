@@ -8,12 +8,12 @@ use crate::viewer::settings_update::ViewerTypographyConfig;
 use katana_markdown_model::{ByteRange, KmmNodeId, LineColumn, LineColumnRange, RawSnippet};
 
 #[test]
-fn text_height_uses_no_wrap_html_text_height() {
+fn text_height_uses_no_wrap_html_text_height_for_malformed_quoted_attributes() {
     let planned = planned_node(
         ViewerNodeKind::Html {
             role: ViewerHtmlRole::Generic,
         },
-        "data:image/svg+xml,%3Csvg%20xmlns=%22<http",
+        r#"<img src="custom:payload<broken> visible tail">"#,
         16,
     );
     let typography_24 = ViewerTypographyConfig {

@@ -564,7 +564,7 @@ impl StorybookFrameRenderer {
         let render_root = staged_tree
             .as_ref()
             .map_or_else(|| scene.tree.root(), |tree| tree.root());
-        render_ui_tree_with_theme(
+        crate::frame_ui_surface::render_document_ui_tree_with_theme(
             canvas,
             render_root,
             SurfaceArea {
@@ -575,6 +575,7 @@ impl StorybookFrameRenderer {
                 scroll_y: Self::render_scroll_delta(scene, area.scroll_y),
             },
             &scene.theme,
+            scene.typography,
         );
     }
 

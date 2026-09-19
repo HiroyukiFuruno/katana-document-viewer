@@ -47,6 +47,15 @@ fn text_roles_cover_table_list_and_rule_nodes() {
     assert_eq!(UiDimension::Px(34), rule.props().common.height);
     assert_eq!(UiDimension::Px(0), rule.props().common.padding.top);
     assert!(rule.props().common.border.visible);
+    assert_eq!(1, rule.props().common.border.width_px);
+}
+
+#[test]
+fn export_rule_node_preserves_two_pixel_border() {
+    let factory = KucNodeFactory::new(&[], 120).export_surface(true);
+
+    let rule = factory.viewer_node(&viewer_node(ViewerNodeKind::Rule, ""));
+
     assert_eq!(2, rule.props().common.border.width_px);
 }
 

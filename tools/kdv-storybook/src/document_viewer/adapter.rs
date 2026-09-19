@@ -176,7 +176,7 @@ impl KucViewerAdapter {
 mod tests {
     use super::{KucViewerAdapter, KucViewerConfig};
     use katana_document_viewer::ViewerViewport;
-    use katana_ui_core::theme::{ThemeId, ThemeSnapshot};
+    use katana_ui_core::theme::ThemeSnapshot;
 
     #[test]
     fn preview_content_and_media_width_split_matches_katana_preview_contract() {
@@ -188,14 +188,14 @@ mod tests {
             },
         );
 
-        assert_eq!(1256, KucViewerAdapter::content_width(1280.0, &config));
-        assert_eq!(1268, KucViewerAdapter::media_content_width(1280.0, &config));
-        assert_eq!(12, KucViewerAdapter::padding_horizontal(&config));
+        assert_eq!(1280, KucViewerAdapter::content_width(1280.0, &config));
+        assert_eq!(1280, KucViewerAdapter::media_content_width(1280.0, &config));
+        assert_eq!(0, KucViewerAdapter::padding_horizontal(&config));
         assert_eq!(0, KucViewerAdapter::padding_right(&config));
     }
 
     #[test]
-    fn preview_top_padding_matches_katana_theme_reference_offsets() {
+    fn interactive_content_roi_has_no_internal_top_padding() {
         let light = KucViewerConfig::new(
             "preview-light",
             ViewerViewport {
@@ -211,20 +211,9 @@ mod tests {
             },
         )
         .theme(ThemeSnapshot::dark());
-        let mut katana_dark_theme = ThemeSnapshot::dark();
-        katana_dark_theme.id = ThemeId::new("katana-dark");
-        let katana_dark = KucViewerConfig::new(
-            "preview-katana-dark",
-            ViewerViewport {
-                width: 1280.0,
-                height: 720.0,
-            },
-        )
-        .theme(katana_dark_theme);
 
-        assert_eq!(14, KucViewerAdapter::padding_top(&light));
-        assert_eq!(24, KucViewerAdapter::padding_top(&dark));
-        assert_eq!(24, KucViewerAdapter::padding_top(&katana_dark));
+        assert_eq!(0, KucViewerAdapter::padding_top(&light));
+        assert_eq!(0, KucViewerAdapter::padding_top(&dark));
     }
 
     #[test]
@@ -239,6 +228,7 @@ mod tests {
         config.export_surface = true;
 
         assert_eq!(1168, KucViewerAdapter::content_width(1280.0, &config));
+        assert_eq!(56, KucViewerAdapter::padding_top(&config));
         assert_eq!(56, KucViewerAdapter::padding_right(&config));
     }
 }

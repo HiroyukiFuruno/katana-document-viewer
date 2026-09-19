@@ -55,7 +55,7 @@ LINUX_SANDBOX_DEPENDENCIES = {
     "seccompiler": "0.5.0",
     "skarn-sandbox": "1.0.1",
 }
-KUC_VERSION = "0.3.7"
+KUC_VERSION = "0.3.11"
 KUC_DECLARED_VERSION = f"={KUC_VERSION}"
 MULTI_FORMAT_SOURCES = (
     "crates/katana-document-viewer/src/multi_format/artifact.rs",
@@ -686,21 +686,37 @@ def self_test() -> None:
                 f'katana-ui-core = {{ version = "{KUC_DECLARED_VERSION}", features = ["raster-host"] }}',
             )
         )
-        (root / "Cargo.toml").write_text(
+        workspace_manifest_path = root / "Cargo.toml"
+        core_manifest_path = root / "crates/katana-document-viewer/Cargo.toml"
+        workspace_manifest_path.write_text(
             f"[workspace]\nmembers = []\n[workspace.dependencies]\n{selected_dependencies}\n",
             encoding="utf-8",
         )
-        (root / "crates/katana-document-viewer/Cargo.toml").write_text(
+        core_manifest_path.write_text(
             '[package]\nname = "test"\nversion = "0.0.0"\n'
             f'[dependencies]\nkatana-ui-core = "{KUC_DECLARED_VERSION}"\n',
             encoding="utf-8",
         )
         assert not multi_format_manifest_errors(root, "v0.5.2")
-        stale_manifest = (root / "Cargo.toml").read_text(encoding="utf-8").replace(
+        workspace_manifest = workspace_manifest_path.read_text(encoding="utf-8")
+        core_manifest = core_manifest_path.read_text(encoding="utf-8")
+        workspace_manifest_path.write_text(
+            workspace_manifest.replace(KUC_DECLARED_VERSION, KUC_VERSION, 1),
+            encoding="utf-8",
+        )
+        assert multi_format_manifest_errors(root, "v0.5.2")
+        workspace_manifest_path.write_text(workspace_manifest, encoding="utf-8")
+        core_manifest_path.write_text(
+            core_manifest.replace(KUC_DECLARED_VERSION, KUC_VERSION, 1),
+            encoding="utf-8",
+        )
+        assert multi_format_manifest_errors(root, "v0.5.2")
+        core_manifest_path.write_text(core_manifest, encoding="utf-8")
+        stale_manifest = workspace_manifest.replace(
             'office2pdf = { package = "office2pdf", version = "=0.6.8" }',
             'office2pdf = { package = "office2pdf", version = "=0.6.7" }',
         )
-        (root / "Cargo.toml").write_text(stale_manifest, encoding="utf-8")
+        workspace_manifest_path.write_text(stale_manifest, encoding="utf-8")
         assert multi_format_manifest_errors(root, "v0.5.2")
     registry_lock = """
 version = 4

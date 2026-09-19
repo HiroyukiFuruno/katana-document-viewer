@@ -28,6 +28,9 @@ impl KucNodeFactory<'_> {
     }
 
     pub(super) fn text_label(node: &ViewerNode) -> String {
+        if Self::is_html_image_source_recovery(node) {
+            return node.text.clone();
+        }
         if !matches!(node.kind, ViewerNodeKind::Table) && !node.spans.is_empty() {
             return node
                 .spans
@@ -47,10 +50,19 @@ impl KucNodeFactory<'_> {
     }
 
     pub(super) fn text_wrap_for_node(node: &ViewerNode) -> UiTextWrapMode {
-        if matches!(node.kind, ViewerNodeKind::Code { .. }) {
+        if matches!(node.kind, ViewerNodeKind::Code { .. })
+            || Self::is_html_image_source_recovery(node)
+        {
             return UiTextWrapMode::NoWrap;
         }
         UiTextWrapMode::Wrap
+    }
+
+    pub(super) fn is_html_image_source_recovery(node: &ViewerNode) -> bool {
+        matches!(node.kind, ViewerNodeKind::Html { .. })
+            && katana_document_viewer::HtmlFragmentNormalizer::has_malformed_image_source_attribute(
+                &node.source.raw.text,
+            )
     }
 
     fn is_inline_code_only_node(node: &ViewerNode) -> bool {

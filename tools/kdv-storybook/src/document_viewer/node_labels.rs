@@ -55,7 +55,10 @@ impl KucNodeLabels {
         match kind {
             ViewerNodeKind::Heading { level: 1 } => "heading",
             ViewerNodeKind::Heading { level: 2 } => "heading-2",
-            ViewerNodeKind::Heading { .. } => "heading-3",
+            ViewerNodeKind::Heading { level: 3 } => "heading-3",
+            ViewerNodeKind::Heading { level: 4 } => "heading-4",
+            ViewerNodeKind::Heading { level: 5 } => "heading-5",
+            ViewerNodeKind::Heading { .. } => "heading-6",
             ViewerNodeKind::Code { .. } => "code",
             ViewerNodeKind::Html {
                 role: ViewerHtmlRole::Heading { alignment, .. },

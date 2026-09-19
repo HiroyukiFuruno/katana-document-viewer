@@ -36,6 +36,17 @@ pub(super) enum ViewerHeightMode {
 pub(super) struct ViewerMediaHeight;
 
 impl ViewerMediaHeight {
+    pub(super) fn html_data_image_height(
+        planned: &PlannedNode,
+        viewport_width: f32,
+        height_mode: ViewerHeightMode,
+    ) -> Option<f32> {
+        data_image::HtmlDataImageHeight::height(
+            planned,
+            Self::content_width(viewport_width, height_mode),
+        )
+    }
+
     pub(super) fn block_height(
         graph: Option<&BuildGraph>,
         artifacts: &[Artifact],

@@ -7,6 +7,7 @@ use crate::media_host_action::StorybookMediaHostAction;
 use crate::mouse::StorybookHostActionHits;
 use crate::palette::StorybookPalette;
 use crate::preview::{PreviewBuilder, PreviewScene};
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{
     ViewerInteractionConfig, ViewerMediaControlKind, ViewerMode, ViewerRect, ViewerSearchEngine,
     ViewerViewport,
@@ -20,7 +21,6 @@ use std::{collections::BTreeMap, io, path::PathBuf};
 const FRAME_WIDTH: usize = 1280;
 const FRAME_HEIGHT: usize = 720;
 const PREVIEW_HEIGHT: f32 = 600.0;
-const SEARCH_HIGHLIGHT_PIXEL: u32 = 0x4a4620;
 const HOVER_BORDER_PIXEL: u32 = 0x569cd6;
 
 thread_local! {
@@ -33,9 +33,29 @@ fn search_highlight_reaches_storybook_frame_pixels() -> Result<(), Box<dyn std::
         "direct/sample.md",
         ViewerSearchEngine::state("Direct", Vec::new(), None),
     )?;
+    let baseline = FrameInteractionTestSupport::build_scene_with_interaction(
+        "direct/sample.md",
+        ViewerInteractionConfig::default(),
+    )?;
     let canvas = FrameInteractionTestSupport::render_scene("direct/sample.md", &scene);
+    let baseline_canvas = FrameInteractionTestSupport::render_scene("direct/sample.md", &baseline);
 
-    assert!(canvas.pixels().contains(&SEARCH_HIGHLIGHT_PIXEL));
+    let [red, green, blue, _] = scene
+        .theme
+        .color("text-highlight-background")
+        .ok_or("missing KUC text-highlight-background token")?;
+    let token = u32::from(red) << 16 | u32::from(green) << 8 | u32::from(blue);
+    let baseline_token_pixels = preview_color_count(&baseline_canvas, token);
+    let highlighted_token_pixels = preview_color_count(&canvas, token);
+
+    assert!(
+        highlighted_token_pixels > baseline_token_pixels,
+        "search highlight must add the bridged theme token: token={token:#08x} baseline={baseline_token_pixels} highlighted={highlighted_token_pixels}"
+    );
+    assert!(
+        preview_diff_pixel_count(&baseline_canvas, &canvas) > 128,
+        "native mark token must change visible preview pixels"
+    );
     assert!(FrameInteractionTestSupport::preview_pixel_count(&canvas) > 512);
     Ok(())
 }
@@ -115,29 +135,27 @@ fn media_control_hover_reaches_kuc_interactive_preset_border_pixels()
         &scene,
         &hit.action.target,
     );
-    let normal_count = preview_color_count(&normal, HOVER_BORDER_PIXEL);
-    let hovered_count = preview_color_count(&hovered, HOVER_BORDER_PIXEL);
     let preview_area = StorybookPreviewArea::for_window(FRAME_WIDTH, FRAME_HEIGHT, 0.0);
-    let x = preview_area.x + hit.rect.x;
-    let y = preview_area.y + hit.rect.y;
+    let host_hit = (
+        preview_area.x + hit.rect.x,
+        preview_area.y + hit.rect.y,
+        preview_area.x + hit.rect.x + hit.rect.width,
+        preview_area.y + hit.rect.y + hit.rect.height,
+    );
+    let normal_count = preview_color_count_in_rect(&normal, HOVER_BORDER_PIXEL, host_hit);
+    let hovered_count = preview_color_count_in_rect(&hovered, HOVER_BORDER_PIXEL, host_hit);
+    let diff_bounds = preview_diff_bounds(&normal, &hovered);
 
     assert!(
         hovered_count > normal_count,
-        "host action hover must increase KUC hover border pixels: normal={normal_count} hovered={hovered_count} rect=({}, {}, {}, {})",
-        hit.rect.x,
-        hit.rect.y,
-        hit.rect.width,
-        hit.rect.height
+        "host action hover must increase KUC border pixels inside its host hit: normal={normal_count} hovered={hovered_count} hit={host_hit:?}"
     );
-    assert_eq!(
-        HOVER_BORDER_PIXEL,
-        hovered.pixels()[y * hovered.width() + x],
-        "hovered KUC node id must paint the same rect used by host action hit-test; hit=({}, {}, {}, {}) hover_bounds={:?}",
-        hit.rect.x,
-        hit.rect.y,
-        hit.rect.width,
-        hit.rect.height,
-        preview_color_bounds(&hovered, HOVER_BORDER_PIXEL)
+    let Some((left, top, right, bottom, _)) = diff_bounds else {
+        panic!("hovered KUC host action must change pixels: hit={host_hit:?}");
+    };
+    assert!(
+        left >= host_hit.0 && top >= host_hit.1 && right < host_hit.2 && bottom < host_hit.3,
+        "hovered KUC node may change only its host hit: diff=({left}, {top}, {right}, {bottom}) hit={host_hit:?}"
     );
     Ok(())
 }
@@ -378,7 +396,7 @@ fn hovered_node_id_for_hit(
 }
 
 fn document_node_hits(scene: &PreviewScene) -> Vec<UiTreeNodeHit> {
-    UiTreeSurfaceHost::new(scene.theme.clone()).document_node_hits(
+    KucThemeBridge::document_host(scene.theme.clone(), scene.typography).document_node_hits(
         scene.tree.root(),
         UiTreeRenderArea {
             x: 0,
@@ -478,6 +496,14 @@ fn hit_scroll_y(hit: &UiTreeHostActionHit) -> usize {
     hit.rect.y.saturating_sub(96)
 }
 
+fn preview_color_count(canvas: &Canvas, color: u32) -> usize {
+    canvas
+        .pixels()
+        .iter()
+        .filter(|pixel| **pixel == color)
+        .count()
+}
+
 fn preview_diff_pixel_count(left: &Canvas, right: &Canvas) -> usize {
     left.pixels()
         .iter()
@@ -487,40 +513,6 @@ fn preview_diff_pixel_count(left: &Canvas, right: &Canvas) -> usize {
             inside_preview(*index, left.width()) && left_pixel != right_pixel
         })
         .count()
-}
-
-fn preview_color_count(canvas: &Canvas, color: u32) -> usize {
-    canvas
-        .pixels()
-        .iter()
-        .filter(|pixel| **pixel == color)
-        .count()
-}
-
-fn preview_color_bounds(canvas: &Canvas, color: u32) -> Option<(usize, usize, usize, usize)> {
-    let mut min_x = canvas.width();
-    let mut min_y = canvas.height();
-    let mut max_x = 0usize;
-    let mut max_y = 0usize;
-    let mut found = false;
-    for (index, pixel) in canvas.pixels().iter().enumerate() {
-        if *pixel != color || !inside_preview(index, canvas.width()) {
-            continue;
-        }
-        let x = index % canvas.width();
-        let y = index / canvas.width();
-        min_x = min_x.min(x);
-        min_y = min_y.min(y);
-        max_x = max_x.max(x);
-        max_y = max_y.max(y);
-        found = true;
-    }
-    found.then_some((
-        min_x,
-        min_y,
-        max_x.saturating_sub(min_x) + 1,
-        max_y.saturating_sub(min_y) + 1,
-    ))
 }
 
 fn preview_hover_diff_by_expected_target_rect(
@@ -557,6 +549,23 @@ fn preview_hover_diff_by_expected_target_rect(
         }
     }
     (inside, outside)
+}
+
+fn preview_color_count_in_rect(
+    canvas: &Canvas,
+    color: u32,
+    rect: (usize, usize, usize, usize),
+) -> usize {
+    canvas
+        .pixels()
+        .iter()
+        .enumerate()
+        .filter(|(index, pixel)| {
+            let x = index % canvas.width();
+            let y = index / canvas.width();
+            **pixel == color && x >= rect.0 && x < rect.2 && y >= rect.1 && y < rect.3
+        })
+        .count()
 }
 
 fn preview_diff_bounds(

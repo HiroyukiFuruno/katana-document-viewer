@@ -1,8 +1,7 @@
 use super::{DocumentViewerStorybookHost, KucViewerConfig, KucViewerError, KucViewerPlan};
 use katana_document_viewer::{
-    KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX, MarkdownSource, PreviewConfig, PreviewOutput,
-    PreviewOutputFactory, PreviewSurfaceImage, ViewerInteractionConfig, ViewerMode,
-    ViewerSlideshowControlAction, ViewerViewport,
+    MarkdownSource, PreviewConfig, PreviewOutput, PreviewOutputFactory, PreviewSurfaceImage,
+    ViewerInteractionConfig, ViewerMode, ViewerSlideshowControlAction, ViewerViewport,
 };
 use katana_ui_core::render_model::{UI_TASK_TOGGLE_ACTION_ID, UiCursor, UiNode, UiNodeId, UiTone};
 use katana_ui_core::theme::ThemeSnapshot;
@@ -11,10 +10,6 @@ use katana_ui_core_storybook::{
 };
 
 const CONTENT_HEIGHT: f32 = 480.0;
-const PREVIEW_SURFACE_PADDING_PX: f32 = KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX as f32;
-const KUC_PREVIEW_TOP_PADDING_PX: f32 = PREVIEW_SURFACE_PADDING_PX + 2.0;
-const KUC_PREVIEW_VERTICAL_PADDING_PX: f32 =
-    KUC_PREVIEW_TOP_PADDING_PX + PREVIEW_SURFACE_PADDING_PX;
 const LONG_DOCUMENT_PARAGRAPH_COUNT: usize = 30;
 const VIEWPORT_WIDTH: f32 = 320.0;
 const VIEWPORT_HEIGHT: f32 = 240.0;
@@ -128,9 +123,7 @@ fn document_viewer_scroll_extent_uses_node_plan_not_source_line_estimate()
 -> Result<(), Box<dyn std::error::Error>> {
     let output = preview_output_with_content_height("Body", 10_000.0)?;
     let plan = DocumentViewerStorybookHost::default().project(&output, &config())?;
-    let expected = plan.node_plan.content_height + KUC_PREVIEW_VERTICAL_PADDING_PX;
-
-    assert_eq!(expected, plan.content_height);
+    assert_eq!(plan.node_plan.content_height, plan.content_height);
     assert!(plan.content_height < output.content_height);
     Ok(())
 }
@@ -141,13 +134,12 @@ fn document_viewer_scroll_extent_keeps_bottom_tail_space_for_long_document()
     let output = preview_output_with_content_height(&long_document(), 1.0)?;
     let viewer_config = config();
     let plan = DocumentViewerStorybookHost::default().project(&output, &viewer_config)?;
-    let document_height = plan.node_plan.content_height + KUC_PREVIEW_VERTICAL_PADDING_PX;
-    let rendered_top_padding = KUC_PREVIEW_TOP_PADDING_PX;
+    let document_height = plan.node_plan.content_height;
     let last_anchor_y = plan
         .node_plan
         .nodes
         .iter()
-        .map(|node| node.rect.y + rendered_top_padding)
+        .map(|node| node.rect.y)
         .max_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal))
         .ok_or("missing last anchor")?;
 

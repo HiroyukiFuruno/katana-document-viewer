@@ -97,10 +97,22 @@ fn heading_text_roles_keep_level_specific_metrics() {
         "heading-3",
         KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 3 })
     );
+    assert_eq!(
+        "heading-4",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 4 })
+    );
+    assert_eq!(
+        "heading-5",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 5 })
+    );
+    assert_eq!(
+        "heading-6",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 6 })
+    );
 }
 
 #[test]
-fn export_surface_html_heading_uses_body_alignment_role() {
+fn export_surface_html_centered_h1_uses_body_alignment_role() {
     assert_eq!(
         "html-centered",
         KucNodeLabels::export_surface_text_role(&ViewerNodeKind::Html {

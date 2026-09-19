@@ -1,3 +1,4 @@
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{
     ArtifactId, DiagramViewportState, PreviewSurfaceImage, ViewerMode, ViewerRect, ViewerTarget,
     ViewerTypographyConfig,
@@ -6,19 +7,10 @@ use katana_document_viewer::{ViewerNodeKind, ViewerNodePlan, ViewerSearchTarget}
 use katana_ui_core::render_model::UiTree;
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::{
-    UiTreeHitRect, UiTreeHostActionHit, UiTreeNodeHit, UiTreeRenderArea, UiTreeSurfaceHost,
+    UiTreeHitRect, UiTreeHostActionHit, UiTreeNodeHit, UiTreeRenderArea,
 };
-use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
-
-thread_local! {
-    static DARK_TARGET_HOST: RefCell<UiTreeSurfaceHost> =
-        RefCell::new(UiTreeSurfaceHost::new(ThemeSnapshot::dark()));
-    static LIGHT_TARGET_HOST: RefCell<UiTreeSurfaceHost> =
-        RefCell::new(UiTreeSurfaceHost::new(ThemeSnapshot::light()));
-    static THEME_TARGET_HOSTS: RefCell<Vec<ThemeTargetHostCache>> = const { RefCell::new(Vec::new()) };
-}
 
 #[derive(Debug, Clone)]
 pub struct PreviewScene {
@@ -166,10 +158,11 @@ pub fn viewer_targets(
     plan: &ViewerNodePlan,
     tree: &UiTree,
     theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
     width: f32,
     height: f32,
 ) -> Vec<ViewerTarget> {
-    let rendered_hits = rendered_node_hits(tree, theme, width, height);
+    let rendered_hits = rendered_node_hits(tree, theme, typography, width, height);
     let rendered_rects = rendered_node_rects(&rendered_hits);
     let semantic_rects = rendered_semantic_rects(&rendered_hits);
     let mut targets = plan
@@ -257,10 +250,11 @@ fn scroll_redraw_band_y_for_diagram_boundaries(
 fn rendered_node_hits(
     tree: &UiTree,
     theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
     width: f32,
     height: f32,
 ) -> Vec<UiTreeNodeHit> {
-    document_node_hits_with_cached_host(
+    KucThemeBridge::document_host(theme.clone(), typography).document_node_hits(
         tree.root(),
         UiTreeRenderArea {
             x: 0,
@@ -269,42 +263,7 @@ fn rendered_node_hits(
             height: height.ceil().max(1.0) as usize,
             scroll_y: 0.0,
         },
-        theme,
     )
-}
-
-fn document_node_hits_with_cached_host(
-    root: &katana_ui_core::render_model::UiNode,
-    area: UiTreeRenderArea,
-    theme: &ThemeSnapshot,
-) -> Vec<UiTreeNodeHit> {
-    if theme.eq(&ThemeSnapshot::dark()) {
-        return DARK_TARGET_HOST.with(|host| host.borrow().document_node_hits(root, area));
-    }
-    if theme.eq(&ThemeSnapshot::light()) {
-        return LIGHT_TARGET_HOST.with(|host| host.borrow().document_node_hits(root, area));
-    }
-    THEME_TARGET_HOSTS.with(|hosts| {
-        let mut hosts = hosts.borrow_mut();
-        let index = target_host_index(&mut hosts, theme);
-        hosts[index].host.document_node_hits(root, area)
-    })
-}
-
-fn target_host_index(hosts: &mut Vec<ThemeTargetHostCache>, theme: &ThemeSnapshot) -> usize {
-    if let Some(index) = hosts.iter().position(|cached| cached.theme.eq(theme)) {
-        return index;
-    }
-    hosts.push(ThemeTargetHostCache {
-        theme: theme.clone(),
-        host: UiTreeSurfaceHost::new(theme.clone()),
-    });
-    hosts.len() - 1
-}
-
-struct ThemeTargetHostCache {
-    theme: ThemeSnapshot,
-    host: UiTreeSurfaceHost,
 }
 
 fn rendered_node_rects(hits: &[UiTreeNodeHit]) -> BTreeMap<String, ViewerRect> {

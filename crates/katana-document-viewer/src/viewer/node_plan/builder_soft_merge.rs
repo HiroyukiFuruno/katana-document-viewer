@@ -1,7 +1,8 @@
 use super::super::media_height::ViewerMediaHeight;
 use super::super::planned_node::PlannedNode;
 use super::super::types::{ViewerNode, ViewerNodeKind, ViewerTextSpan};
-use super::{ParagraphLayout, ViewerNodePlanBuilder};
+use super::ViewerNodePlanBuilder;
+use crate::markdown_line_break::MarkdownLineBreak;
 use katana_markdown_model::{KmmNode, SourceSpan};
 
 impl<'a> ViewerNodePlanBuilder<'a> {
@@ -25,9 +26,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
     }
 
     fn accepts_soft_paragraph_merge(&self, planned: &PlannedNode) -> bool {
-        self.paragraph_layout == ParagraphLayout::SoftWrap
-            && matches!(planned.kind, ViewerNodeKind::Paragraph)
-            && planned.reference.is_none()
+        matches!(planned.kind, ViewerNodeKind::Paragraph) && planned.reference.is_none()
     }
 
     fn merge_previous_paragraph(&mut self, previous_index: usize, planned: &PlannedNode) {
@@ -70,14 +69,10 @@ impl<'a> ViewerNodePlanBuilder<'a> {
     fn can_merge_soft_paragraph(previous: &ViewerNode, planned: &PlannedNode) -> bool {
         matches!(previous.kind, ViewerNodeKind::Paragraph)
             && previous.artifact_id.is_none()
-            && !Self::is_image_paragraph_source(&previous.source)
-            && !Self::is_image_paragraph_source(&planned.source)
-            && previous.source.line_column_range.end.line + 1
-                == planned.source.line_column_range.start.line
-    }
-
-    fn is_image_paragraph_source(source: &SourceSpan) -> bool {
-        source.raw.text.trim_start().starts_with("![")
+            && MarkdownLineBreak::can_merge_soft_paragraph_sources(
+                &previous.source,
+                &planned.source,
+            )
     }
 
     fn merged_source(previous: &SourceSpan, next: &SourceSpan) -> SourceSpan {

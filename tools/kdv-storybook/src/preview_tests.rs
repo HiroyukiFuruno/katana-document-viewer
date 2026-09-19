@@ -3,8 +3,7 @@ use crate::catalog::StorybookFixture;
 use crate::frame::StorybookFrameRenderer;
 use crate::preview_build_request::{PreviewBuildAssetMode, PreviewBuildRequest};
 use katana_document_viewer::{
-    KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX, ViewerInteractionConfig, ViewerMode,
-    ViewerSearchState, ViewerTypographyConfig, ViewerViewport,
+    ViewerInteractionConfig, ViewerMode, ViewerSearchState, ViewerTypographyConfig, ViewerViewport,
 };
 use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind};
 use std::path::PathBuf;
@@ -288,25 +287,25 @@ fn preview_build_katana_sample_preserves_heading_spaces_in_kuc_tree()
 }
 
 #[test]
-fn preview_build_katana_sample_renders_readme_header_data_svg_without_raw_uri()
+fn preview_build_katana_sample_keeps_native_malformed_svg_tail_as_raw_text()
 -> Result<(), Box<dyn std::error::Error>> {
     let scene = build_scene("katana/sample.md")?;
 
     assert_eq!(
         0,
         label_fragment_count(scene.tree.root(), "data:image/svg+xml"),
-        "README header SVG data URI must be rendered as an image surface, not visible raw text"
+        "README header malformed data URI prefix must be omitted from the native raw-text fallback"
     );
     for fragment in ["width=%22128", "dominant-baseline", "text-anchor=%22middle"] {
         assert_eq!(
-            0,
+            1,
             label_fragment_count(scene.tree.root(), fragment),
-            "README header SVG data URI fragment must not be visible raw text: {fragment}"
+            "native malformed SVG source renders its visible tail once: {fragment}"
         );
     }
     assert!(
         kind_count(scene.tree.root(), UiNodeKind::ImageSurface) > 0,
-        "README header SVG data URI must produce a KUC image surface"
+        "other valid fixture SVG sources must still produce KUC image surfaces"
     );
     Ok(())
 }
@@ -320,11 +319,11 @@ fn preview_build_direct_html_keeps_alignment_roles() -> Result<(), Box<dyn std::
     assert!(role_count(scene.tree.root(), "html-left-preview") > 0);
     let right = first_node_for_role(scene.tree.root(), "html-right-preview")
         .ok_or("html-right-preview node missing")?;
-    let expected_content_width = 800 - KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX * 2;
+    let expected_content_width = 800;
     assert_eq!(
         UiDimension::Px(expected_content_width),
         right.props().common.width,
-        "html-right node width must follow KatanA interactive preview content padding"
+        "html-right node must use the full native document content viewport"
     );
     assert!(role_count(scene.tree.root(), "table") > 0);
     assert!(
@@ -354,6 +353,10 @@ fn build_scene(path: &str) -> Result<super::PreviewScene, Box<dyn std::error::Er
 #[test]
 fn sample_top_description_target_uses_rendered_line_height()
 -> Result<(), Box<dyn std::error::Error>> {
+    const NATIVE_VIEWPORT_WIDTH: f32 = 1187.0;
+    const NATIVE_VIEWPORT_HEIGHT: f32 = 2225.0;
+    const NATIVE_DESCRIPTION_TOP: f32 = 73.5;
+    const NATIVE_DESCRIPTION_HEIGHT: f32 = 42.0;
     let fixture = StorybookFixture {
         label: "katana/sample.md".to_string(),
         path: fixture_path("assets/fixtures/katana/sample.md"),
@@ -361,8 +364,8 @@ fn sample_top_description_target_uses_rendered_line_height()
     let scene = PreviewBuilder::default().build_with_typography(
         &fixture,
         ViewerViewport {
-            width: 1280.0,
-            height: 2400.0,
+            width: NATIVE_VIEWPORT_WIDTH,
+            height: NATIVE_VIEWPORT_HEIGHT,
         },
         false,
         ViewerTypographyConfig {
@@ -381,7 +384,10 @@ fn sample_top_description_target_uses_rendered_line_height()
         })
         .ok_or("sample top description target missing")?;
 
-    assert_eq!(46.0, target.rect.height);
+    let expected_bottom = (NATIVE_DESCRIPTION_TOP + NATIVE_DESCRIPTION_HEIGHT).ceil();
+    let expected_top = NATIVE_DESCRIPTION_TOP.floor();
+    assert_eq!(expected_top, target.rect.y);
+    assert_eq!(expected_bottom - expected_top, target.rect.height);
     Ok(())
 }
 

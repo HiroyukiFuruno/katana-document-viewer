@@ -73,6 +73,7 @@ impl PreviewBuilder {
             &node_plan,
             &tree,
             &theme,
+            request.typography,
             config.viewport.width,
             content_height,
         );
@@ -138,7 +139,9 @@ impl PreviewBuilder {
         else {
             return content_height;
         };
-        content_height.max(last_target_y + config.viewport.height)
+        // KUC host の矩形をスクロール契約とし、adapter の事前 geometry が持つ
+        // 二重の末尾余白を残すと最終 target の下で bottom scroll が止まるため。
+        last_target_y + config.viewport.height
     }
 
     fn document_id(source: &MarkdownSource, request: &PreviewBuildRequest<'_>) -> String {

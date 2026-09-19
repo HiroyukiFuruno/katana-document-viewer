@@ -19,7 +19,7 @@ impl HtmlDataImageHeight {
         if !matches!(planned.kind, ViewerNodeKind::Html { .. }) {
             return None;
         }
-        if Self::is_broken_katana_svg_data_uri(&planned.source.raw.text) {
+        if HtmlFragmentNormalizer::has_malformed_image_source_attribute(&planned.source.raw.text) {
             return None;
         }
         let fragment = HtmlFragmentNormalizer::normalize(&planned.source.raw.text);
@@ -80,9 +80,5 @@ impl HtmlDataImageHeight {
             }
         }
         String::from_utf8(bytes).ok()
-    }
-
-    fn is_broken_katana_svg_data_uri(raw: &str) -> bool {
-        raw.contains("data:image/svg+xml") && raw.contains("xmlns=%22<http")
     }
 }

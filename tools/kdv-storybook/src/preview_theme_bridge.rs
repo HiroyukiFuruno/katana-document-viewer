@@ -1,9 +1,84 @@
-use katana_document_viewer::{KdvThemeMode, KdvThemeSnapshot};
+use katana_document_viewer::{KdvThemeMode, KdvThemeSnapshot, ViewerTypographyConfig};
+use katana_ui_core::raster_host::{UiTreeDocumentTypography, UiTreeTextRoleBaselineTypography};
 use katana_ui_core::theme::{ColorToken, Rgba, ThemeId, ThemeSnapshot};
+use katana_ui_core_storybook::UiTreeSurfaceHost;
+
+const KATANA_HEADING_1_SIZE_RATIO: f32 = 1.5;
+const KATANA_HEADING_2_PROGRESS: f32 = 0.835;
+const KATANA_HEADING_3_PROGRESS: f32 = 0.668;
+const KATANA_HEADING_4_PROGRESS: f32 = 0.501;
+const KATANA_HEADING_5_PROGRESS: f32 = 0.334;
+const KATANA_HEADING_6_PROGRESS: f32 = 0.167;
 
 pub(crate) struct KucThemeBridge;
 
 impl KucThemeBridge {
+    pub(crate) fn document_typography(
+        typography: ViewerTypographyConfig,
+    ) -> UiTreeDocumentTypography {
+        let font_size = f32::from(typography.preview_font_size);
+        let heading_1_font_size = font_size * KATANA_HEADING_1_SIZE_RATIO;
+        let heading_2_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_2_PROGRESS;
+        let heading_3_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_3_PROGRESS;
+        let heading_4_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_4_PROGRESS;
+        let heading_5_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_5_PROGRESS;
+        let heading_6_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_6_PROGRESS;
+        let scale = font_size / 14.0;
+        UiTreeDocumentTypography::new()
+            .with_body_baseline(UiTreeTextRoleBaselineTypography::new(
+                font_size,
+                21.0 * scale,
+                12.5 * scale,
+            ))
+            .with_heading_1_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_1_font_size,
+                31.5 * scale,
+                18.5 * scale,
+            ))
+            .with_heading_2_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_2_font_size,
+                30.0 * scale,
+                17.5 * scale,
+            ))
+            .with_heading_3_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_3_font_size,
+                28.0 * scale,
+                16.5 * scale,
+            ))
+            .with_heading_4_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_4_font_size,
+                26.5 * scale,
+                15.5 * scale,
+            ))
+            .with_heading_5_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_5_font_size,
+                24.5 * scale,
+                14.5 * scale,
+            ))
+            .with_heading_6_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_6_font_size,
+                23.0 * scale,
+                13.5 * scale,
+            ))
+    }
+
+    pub(crate) fn document_host(
+        theme: ThemeSnapshot,
+        typography: ViewerTypographyConfig,
+    ) -> UiTreeSurfaceHost {
+        UiTreeSurfaceHost::with_text_raster_config_and_document_typography(
+            theme,
+            katana_ui_core::text_raster::PlatformTextRasterConfig::default(),
+            katana_ui_core::text_raster::PlatformTextFaceSelection::FirstCandidate,
+            Self::document_typography(typography),
+        )
+    }
+
     pub(crate) fn from_kdv(theme: &KdvThemeSnapshot) -> Result<ThemeSnapshot, String> {
         let mut snapshot = match theme.mode {
             KdvThemeMode::Light => ThemeSnapshot::light(),
@@ -13,6 +88,12 @@ impl KucThemeBridge {
         for token in Self::color_tokens(theme) {
             Self::set_color(&mut snapshot, token.0, token.1)?;
         }
+        let highlight_background = Self::highlight_background(theme)?;
+        Self::set_color(
+            &mut snapshot,
+            "text-highlight-background",
+            &highlight_background,
+        )?;
         Ok(snapshot)
     }
 
@@ -40,6 +121,7 @@ impl KucThemeBridge {
             ("link", Self::hyperlink_color(theme)),
             ("muted", &theme.quote_text),
             ("border", &theme.table_border),
+            ("document-rule-border", &theme.table_border),
             ("selection", &theme.task_active_background),
             ("table-row-background", &theme.background),
             ("table-header-background", &theme.table_header_background),
@@ -64,6 +146,23 @@ impl KucThemeBridge {
 
     fn footnote_background(theme: &KdvThemeSnapshot) -> &str {
         &theme.alert_background
+    }
+
+    fn highlight_background(theme: &KdvThemeSnapshot) -> Result<String, String> {
+        const MARK_YELLOW: [u8; 3] = [255, 255, 0];
+        const MARK_ALPHA: u16 = 60;
+        const OPAQUE: u16 = 255;
+        let background = Self::parse_hex_color("background", &theme.background)?;
+        let blend = |foreground: u8, background: u8| {
+            ((u16::from(foreground) * MARK_ALPHA + u16::from(background) * (OPAQUE - MARK_ALPHA))
+                / OPAQUE) as u8
+        };
+        Ok(format!(
+            "#{:02x}{:02x}{:02x}",
+            blend(MARK_YELLOW[0], background[0]),
+            blend(MARK_YELLOW[1], background[1]),
+            blend(MARK_YELLOW[2], background[2]),
+        ))
     }
 
     fn inline_code_background(theme: &KdvThemeSnapshot) -> &str {
@@ -130,6 +229,14 @@ mod tests {
             snapshot.color("table-even-row-background")
         );
         assert_eq!(Some([220, 220, 220, 255]), snapshot.color("border"));
+        assert_eq!(
+            Some([220, 220, 220, 255]),
+            snapshot.color("document-rule-border")
+        );
+        assert_eq!(
+            Some([255, 255, 195, 255]),
+            snapshot.color("text-highlight-background")
+        );
         assert_eq!(Some([0, 155, 255, 255]), snapshot.color("link"));
         assert_eq!(Some([36, 36, 36, 255]), snapshot.color("preview-text"));
         assert_eq!(
@@ -148,6 +255,21 @@ mod tests {
         assert_eq!(
             Some([243, 243, 243, 255]),
             snapshot.color("footnote-background")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn bridge_blends_mark_background_over_custom_kdv_background()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut theme = KdvThemeSnapshot::katana_light();
+        theme.background = "#112233".to_string();
+
+        let snapshot = KucThemeBridge::from_kdv(&theme)?;
+
+        assert_eq!(
+            Some([73, 86, 39, 255]),
+            snapshot.color("text-highlight-background")
         );
         Ok(())
     }

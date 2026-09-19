@@ -6,13 +6,14 @@ use katana_document_viewer::{
     ViewerNodeKind, ViewerTaskState, ViewerTypographyConfig,
 };
 use katana_ui_core::atom::{Divider, Text};
-use katana_ui_core::layout::Stack;
+use katana_ui_core::layout::{Alignment, Row, Stack};
 use katana_ui_core::render_model::{
     UiBorder, UiDimension, UiEdgeInsets, UiNode, UiNodeKind, UiPosition, UiVisualRole,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
 const KATANA_MEDIA_ROW_IMAGE_TOP_INSET_PX: u16 = 0;
+const KATANA_HTML_TOP_ADJUSTMENT_PX: u16 = 7;
 const RGBA_CHANNEL_COUNT: usize = 4;
 type RgbaChannels = [u8; RGBA_CHANNEL_COUNT];
 
@@ -154,7 +155,11 @@ impl<'a> KucNodeFactory<'a> {
                 divider
                     .width(UiDimension::Px(Self::rule_width(self.content_width)))
                     .common(common)
-                    .border(UiBorder::solid(2, 0, "document.rule.border"))
+                    .border(UiBorder::solid(
+                        if self.export_surface { 2 } else { 1 },
+                        0,
+                        "document.rule.border",
+                    ))
             }
             ViewerNodeKind::Alert { .. } => self.alert_node(node),
             ViewerNodeKind::List => self.list_node(node),
@@ -177,17 +182,41 @@ impl<'a> KucNodeFactory<'a> {
             .text_role(self.text_role_for_node(node))
             .wrap(Self::text_wrap_for_node(node))
             .selectable(self.interaction.selection_enabled);
-        if !node.spans.is_empty() {
+        if !node.spans.is_empty() && !Self::is_html_image_source_recovery(node) {
             text = text.text_spans(Self::text_spans(&node.spans));
         }
         let rendered: UiNode = text.into();
         let rendered = self.html_margin_node(rendered, node);
+        let rendered = self.centered_link_row_node(rendered, node);
         if node.spans.iter().any(|span| !span.link_target.is_empty()) {
             return rendered
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }
         rendered
+    }
+
+    fn centered_link_row_node(&self, ui_node: UiNode, node: &ViewerNode) -> UiNode {
+        if self.export_surface
+            || !matches!(
+                node.kind,
+                ViewerNodeKind::Html {
+                    role: ViewerHtmlRole::Centered
+                }
+            )
+            || !node.spans.iter().any(|span| !span.link_target.is_empty())
+        {
+            return ui_node;
+        }
+        UiNode::from(Row::new().align(Alignment::Center).child(ui_node))
+            .height(UiDimension::Px(self.interactive_html_parent_row_height()))
+    }
+
+    fn interactive_html_parent_row_height(&self) -> u16 {
+        (f32::from(self.typography.preview_font_size) * 1.5
+            + f32::from(KATANA_HTML_TOP_ADJUSTMENT_PX))
+        .ceil()
+        .min(f32::from(u16::MAX)) as u16
     }
 
     fn html_margin_node(&self, ui_node: UiNode, node: &ViewerNode) -> UiNode {
@@ -213,6 +242,16 @@ impl<'a> KucNodeFactory<'a> {
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }
+        if (ui_node.kind() == UiNodeKind::Text
+            || matches!(node.kind, ViewerNodeKind::List)
+            || Self::uses_native_interactive_html_height(node))
+            && !self.export_surface
+        {
+            return ui_node
+                .width(self.viewer_width_for_node(node))
+                .stable_node_id(node.node_id.0.clone())
+                .stable_state_id(node.node_id.0.clone());
+        }
         let width = self.viewer_width_for_node(node);
         let height = self.viewer_height_for_rendered_node(&ui_node, node);
         if Self::uses_media_row_wrapper(&ui_node, node) {
@@ -223,6 +262,20 @@ impl<'a> KucNodeFactory<'a> {
             .height(height)
             .stable_node_id(node.node_id.0.clone())
             .stable_state_id(node.node_id.0.clone())
+    }
+
+    fn uses_native_interactive_html_height(node: &ViewerNode) -> bool {
+        matches!(
+            node.kind,
+            ViewerNodeKind::Html {
+                role: ViewerHtmlRole::BadgeRow
+            }
+        ) || (matches!(
+            node.kind,
+            ViewerNodeKind::Html {
+                role: ViewerHtmlRole::Centered
+            }
+        ) && node.spans.iter().any(|span| !span.link_target.is_empty()))
     }
 
     fn uses_media_row_wrapper(ui_node: &UiNode, node: &ViewerNode) -> bool {

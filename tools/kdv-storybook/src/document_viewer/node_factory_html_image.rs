@@ -18,6 +18,9 @@ impl<'a> KucNodeFactory<'a> {
         if !matches!(node.kind, ViewerNodeKind::Html { .. }) {
             return None;
         }
+        if HtmlFragmentNormalizer::has_malformed_image_source_attribute(&node.source.raw.text) {
+            return None;
+        }
         let fragment = HtmlFragmentNormalizer::normalize(&node.source.raw.text);
         let image = HtmlImageRef::parse(&fragment)?;
         let svg = svg_payload(&image.src)?;

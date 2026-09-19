@@ -3,6 +3,8 @@ use crate::frame::FrameRenderRequest;
 use crate::layout::{
     SIDEBAR_CONTENT_INSET, sidebar_content_height, sidebar_content_width, sidebar_content_x,
 };
+use crate::preview_theme_bridge::KucThemeBridge;
+use katana_document_viewer::ViewerTypographyConfig;
 use katana_ui_core::render_model::UiNode;
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::UiTreeSurfaceHost;
@@ -48,6 +50,16 @@ pub(crate) fn render_ui_tree_with_theme(
         let index = renderer_index(&mut renderers, theme);
         renderers[index].renderer.render(canvas, root, area);
     });
+}
+
+pub(crate) fn render_document_ui_tree_with_theme(
+    canvas: &mut crate::canvas::Canvas,
+    root: &UiNode,
+    area: SurfaceArea,
+    theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+) {
+    KucThemeBridge::document_host(theme.clone(), typography).render(canvas, root, area);
 }
 
 pub(crate) fn sidebar_area(request: &FrameRenderRequest<'_>) -> SurfaceArea {

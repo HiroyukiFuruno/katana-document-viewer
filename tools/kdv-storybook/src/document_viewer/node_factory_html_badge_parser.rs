@@ -30,7 +30,11 @@ impl HtmlBadge {
         let marker = "/badge/";
         let badge_start = src.find(marker)? + marker.len();
         let badge_path = &src[badge_start..];
-        let without_extension = badge_path.split('.').next().unwrap_or(badge_path);
+        let without_query_or_fragment = badge_path.split(['?', '#']).next().unwrap_or(badge_path);
+        let without_extension = without_query_or_fragment
+            .strip_suffix(".svg")
+            .or_else(|| without_query_or_fragment.strip_suffix(".SVG"))
+            .unwrap_or(without_query_or_fragment);
         let mut segments = without_extension.split('-');
         Some(Self {
             label: decode_badge_segment(segments.next()?),
@@ -138,6 +142,20 @@ mod tests {
         assert_eq!("MIT", row.badges[0].message);
         assert_eq!("#007bc0", row.badges[0].color);
         assert_eq!("#44cc11", row.badges[1].color);
+        Ok(())
+    }
+
+    #[test]
+    fn preserves_dots_and_escapes_in_shields_badge_segments()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let row = HtmlBadgeRow::parse(
+            r#"<img src="https://img.shields.io/badge/R%26D-1.0%25-blue.svg?style=flat">"#,
+        )
+        .ok_or("badge row")?;
+
+        assert_eq!("R&D", row.badges[0].label);
+        assert_eq!("1.0%", row.badges[0].message);
+        assert_eq!("#007bc0", row.badges[0].color);
         Ok(())
     }
 }

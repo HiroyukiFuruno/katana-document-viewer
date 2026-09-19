@@ -1,9 +1,9 @@
-use super::support::{MediaControlFrameSupport, color, frame_pixel_for_hit};
+use super::support::{MediaControlFrameSupport, color, frame_rect_for_hit};
 use crate::KucDiagramControlResolver;
 use crate::canvas::Canvas;
 use crate::layout::preview_content_width;
-use katana_ui_core_storybook::UiTreeHostActionHit;
-use katana_ui_core_storybook::{UiTreeRenderArea, UiTreeSurfaceHost};
+use crate::preview_theme_bridge::KucThemeBridge;
+use katana_ui_core_storybook::UiTreeRenderArea;
 
 #[test]
 fn every_diagram_control_hover_draws_kuc_preset_border() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,10 +35,10 @@ fn assert_every_control_hover(dark: bool) -> Result<(), Box<dyn std::error::Erro
             Some(&action_hit.hit.action.target),
             &sidebar,
         );
-        assert_hover_border_pixel(
+        assert_hover_border_within_hit(
             &normal,
             &hovered,
-            &action_hit.hit,
+            frame_rect_for_hit(&action_hit.hit),
             hover_border,
             normal_count,
             action_hit.command.as_str(),
@@ -82,11 +82,15 @@ fn assert_every_internal_control_hover(dark: bool) -> Result<(), Box<dyn std::er
             Some(&action_hit.node_id),
             &sidebar,
         );
-        assert_hover_border_pixel_at(
+        assert_hover_border_within_hit(
             &normal,
             &hovered,
-            action_hit.center_x,
-            action_hit.center_y,
+            (
+                super::support::FRAME_PREVIEW_LEFT + action_hit.host_x,
+                super::support::FRAME_PREVIEW_TOP + action_hit.host_y,
+                super::support::FRAME_PREVIEW_LEFT + action_hit.host_x + action_hit.host_width,
+                super::support::FRAME_PREVIEW_TOP + action_hit.host_y + action_hit.host_height,
+            ),
             hover_border,
             normal_count,
             action_hit.command.as_str(),
@@ -95,37 +99,10 @@ fn assert_every_internal_control_hover(dark: bool) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
-fn assert_hover_border_pixel(
+fn assert_hover_border_within_hit(
     normal: &Canvas,
     hovered: &Canvas,
-    hit: &UiTreeHostActionHit,
-    hover_border: u32,
-    normal_count: usize,
-    command: &str,
-) {
-    let (x, y) = frame_pixel_for_hit(hit);
-    let hovered_count = color_count(hovered, hover_border);
-    assert!(
-        hovered_count > normal_count,
-        "hover must increase KUC hover border pixels: command={command} normal={normal_count} hovered={hovered_count}"
-    );
-    assert_ne!(
-        hover_border,
-        normal.pixels()[y * normal.width() + x],
-        "normal frame already has hover border at {command}"
-    );
-    assert_eq!(
-        hover_border,
-        hovered.pixels()[y * hovered.width() + x],
-        "hovered KUC node id must paint the same rect used by host action hit-test: command={command}"
-    );
-}
-
-fn assert_hover_border_pixel_at(
-    normal: &Canvas,
-    hovered: &Canvas,
-    x: usize,
-    y: usize,
+    hit: (usize, usize, usize, usize),
     hover_border: u32,
     normal_count: usize,
     command: &str,
@@ -135,15 +112,12 @@ fn assert_hover_border_pixel_at(
         hovered_count > normal_count,
         "hover must increase KUC hover border pixels: command={command} normal={normal_count} hovered={hovered_count}"
     );
-    assert_ne!(
-        hover_border,
-        normal.pixels()[y * normal.width() + x],
-        "normal frame already has hover border at {command}"
-    );
-    assert_eq!(
-        hover_border,
-        hovered.pixels()[y * hovered.width() + x],
-        "hovered KUC internal control node id must paint the same rect used by node hit-test: command={command}"
+    let Some((left, top, right, bottom)) = changed_pixel_bounds(normal, hovered) else {
+        panic!("hovered KUC node id must change pixels: command={command}");
+    };
+    assert!(
+        left >= hit.0 && top >= hit.1 && right < hit.2 && bottom < hit.3,
+        "hovered KUC node id must only change pixels inside its host hit: command={command} diff=({left}, {top}, {right}, {bottom}) hit={hit:?}"
     );
 }
 
@@ -155,8 +129,28 @@ fn color_count(canvas: &Canvas, color: u32) -> usize {
         .count()
 }
 
+fn changed_pixel_bounds(normal: &Canvas, hovered: &Canvas) -> Option<(usize, usize, usize, usize)> {
+    let mut bounds: Option<(usize, usize, usize, usize)> = None;
+    for (index, (normal_pixel, hovered_pixel)) in
+        normal.pixels().iter().zip(hovered.pixels()).enumerate()
+    {
+        if normal_pixel == hovered_pixel {
+            continue;
+        }
+        let x = index % normal.width();
+        let y = index / normal.width();
+        bounds = Some(match bounds {
+            Some((left, top, right, bottom)) => {
+                (left.min(x), top.min(y), right.max(x), bottom.max(y))
+            }
+            None => (x, y, x, y),
+        });
+    }
+    bounds
+}
+
 fn internal_diagram_control_hits(scene: &crate::preview::PreviewScene) -> Vec<InternalControlHit> {
-    UiTreeSurfaceHost::new(scene.theme.clone())
+    KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .document_node_hits(
             scene.tree.root(),
             UiTreeRenderArea {
@@ -176,9 +170,10 @@ fn internal_diagram_control_hits(scene: &crate::preview::PreviewScene) -> Vec<In
             Some(InternalControlHit {
                 command: action.command,
                 node_id: hit.node_id,
-                center_x: super::support::FRAME_PREVIEW_LEFT
-                    + hit.rect.x.saturating_add(hit.rect.width.saturating_div(2)),
-                center_y: super::support::FRAME_PREVIEW_TOP + hit.rect.y,
+                host_x: hit.rect.x,
+                host_y: hit.rect.y,
+                host_width: hit.rect.width,
+                host_height: hit.rect.height,
             })
         })
         .collect()
@@ -187,6 +182,8 @@ fn internal_diagram_control_hits(scene: &crate::preview::PreviewScene) -> Vec<In
 struct InternalControlHit {
     command: String,
     node_id: katana_ui_core::render_model::UiNodeId,
-    center_x: usize,
-    center_y: usize,
+    host_x: usize,
+    host_y: usize,
+    host_width: usize,
+    host_height: usize,
 }

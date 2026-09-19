@@ -73,13 +73,13 @@ mod forge_types;
 mod html_sanitizer;
 mod html_style;
 mod markdown_fence_normalizer;
+mod markdown_line_break;
 pub mod multi_format;
 mod preview_runtime;
 mod preview_surface;
 mod render_runtime;
 mod theme;
 pub mod viewer;
-
 pub use artifact::{
     Artifact, ArtifactBytes, ArtifactDiagnostic, ArtifactDiagnostics, ArtifactFactory,
     ArtifactFormat, ArtifactId, ArtifactKind, ArtifactManifest, ArtifactTextExtraction,
