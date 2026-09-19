@@ -538,6 +538,14 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         )
         if recipe_command not in workflow:
             errors.append(f"{label} must run the KDV {required_recipe} recipe.")
+        if label == "release workflow":
+            semver_install = "uses: taiki-e/install-action@cargo-semver-checks"
+            semver_position = workflow.find(semver_install)
+            recipe_position = workflow.find(recipe_command)
+            if semver_position < 0 or semver_position > recipe_position:
+                errors.append(
+                    "release workflow must install cargo-semver-checks before release-verify."
+                )
         artifact_position = workflow.find(artifact_command)
         recipe_position = workflow.find(recipe_command)
         if artifact_position < 0 or recipe_position < 0 or artifact_position > recipe_position:
@@ -762,6 +770,7 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
     release_workflow = "\n".join(
         (
             "xvfb-run -a just storybook-release-acceptance-artifacts",
+            "uses: taiki-e/install-action@cargo-semver-checks",
             'xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify',
             "name: Upload Storybook preview-crop diagnostics on failure",
             "if: failure()",
@@ -777,6 +786,12 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
     )
     assert release_workflow_errors(
         "\n".join(reversed(release_preflight.splitlines())), release_workflow
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace(
+            "uses: taiki-e/install-action@cargo-semver-checks\n", ""
+        ),
     )
     v8_cache_workflow = "\n".join(
         (
