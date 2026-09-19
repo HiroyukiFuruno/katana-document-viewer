@@ -151,7 +151,7 @@ fn media_control_hover_reaches_kuc_interactive_preset_border_pixels()
         "host action hover must increase KUC border pixels inside its host hit: normal={normal_count} hovered={hovered_count} hit={host_hit:?}"
     );
     let Some((left, top, right, bottom, _)) = diff_bounds else {
-        panic!("hovered KUC host action must change pixels: hit={host_hit:?}");
+        return Err(format!("hovered KUC host action must change pixels: hit={host_hit:?}").into());
     };
     assert!(
         left >= host_hit.0 && top >= host_hit.1 && right < host_hit.2 && bottom < host_hit.3,

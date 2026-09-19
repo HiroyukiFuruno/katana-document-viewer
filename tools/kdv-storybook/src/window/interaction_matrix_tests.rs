@@ -867,17 +867,15 @@ fn storybook_window_internal_diagram_control_hover_draws_kuc_border()
     let staged_control = storybook
         .scene
         .as_ref()
-        .expect("diagram scene must remain installed")
+        .ok_or("diagram scene must remain installed")?
         .tree
         .with_hovered_node_id(storybook.hovered_action_node_id.as_ref());
-    let hovered_control = find_node_by_id(
-        staged_control.root(),
-        storybook
-            .hovered_action_node_id
-            .as_ref()
-            .expect("resolved internal control id must remain installed"),
-    )
-    .expect("resolved internal control must remain in the staged render tree");
+    let hovered_action_node_id = storybook
+        .hovered_action_node_id
+        .as_ref()
+        .ok_or("resolved internal control id must remain installed")?;
+    let hovered_control = find_node_by_id(staged_control.root(), hovered_action_node_id)
+        .ok_or("resolved internal control must remain in the staged render tree")?;
     assert!(hovered_control.props().interaction.hovered);
     let hovered = storybook.render_canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
 

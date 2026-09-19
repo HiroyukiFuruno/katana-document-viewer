@@ -99,7 +99,8 @@ fn viewer_text_node_exposes_stable_id_for_host_hover() {
 }
 
 #[test]
-fn hover_surface_preserves_natural_host_geometry_and_semantic_id() {
+fn hover_surface_preserves_natural_host_geometry_and_semantic_id()
+-> Result<(), Box<dyn std::error::Error>> {
     let mut node = viewer_node(ViewerNodeKind::Paragraph, "Body");
     node.rect.width = 184.0;
     node.rect.height = 36.0;
@@ -141,12 +142,12 @@ fn hover_surface_preserves_natural_host_geometry_and_semantic_id() {
         .document_node_hits(&normal_node, area)
         .into_iter()
         .find(|hit| hit.node_id.as_str() == node.node_id.0)
-        .expect("normal text must expose its semantic node hit");
+        .ok_or("normal text must expose its semantic node hit")?;
     let hovered_hit = host
         .document_node_hits(&hovered_node, area)
         .into_iter()
         .find(|hit| hit.node_id.as_str() == node.node_id.0)
-        .expect("hovered text must retain its semantic node hit");
+        .ok_or("hovered text must retain its semantic node hit")?;
 
     assert_eq!(
         normal_hit.rect, hovered_hit.rect,
@@ -164,14 +165,14 @@ fn hover_surface_preserves_natural_host_geometry_and_semantic_id() {
         .document_node_hits(&normal_row, area)
         .into_iter()
         .find(|hit| hit.node_id.as_str() == "following")
-        .expect("normal following node must be hit-testable")
+        .ok_or("normal following node must be hit-testable")?
         .rect
         .y;
     let hovered_following_y = host
         .document_node_hits(&hovered_row, area)
         .into_iter()
         .find(|hit| hit.node_id.as_str() == "following")
-        .expect("hovered following node must be hit-testable")
+        .ok_or("hovered following node must be hit-testable")?
         .rect
         .y;
     assert_eq!(
@@ -185,6 +186,7 @@ fn hover_surface_preserves_natural_host_geometry_and_semantic_id() {
             .is_some_and(|id| id.as_str() == node.node_id.0),
         "hovered text hit must retain its semantic id"
     );
+    Ok(())
 }
 
 #[test]

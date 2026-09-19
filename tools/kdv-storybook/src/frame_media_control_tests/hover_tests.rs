@@ -42,7 +42,7 @@ fn assert_every_control_hover(dark: bool) -> Result<(), Box<dyn std::error::Erro
             hover_border,
             normal_count,
             action_hit.command.as_str(),
-        );
+        )?;
     }
     Ok(())
 }
@@ -94,7 +94,7 @@ fn assert_every_internal_control_hover(dark: bool) -> Result<(), Box<dyn std::er
             hover_border,
             normal_count,
             action_hit.command.as_str(),
-        );
+        )?;
     }
     Ok(())
 }
@@ -106,19 +106,20 @@ fn assert_hover_border_within_hit(
     hover_border: u32,
     normal_count: usize,
     command: &str,
-) {
+) -> Result<(), Box<dyn std::error::Error>> {
     let hovered_count = color_count(hovered, hover_border);
     assert!(
         hovered_count > normal_count,
         "hover must increase KUC hover border pixels: command={command} normal={normal_count} hovered={hovered_count}"
     );
     let Some((left, top, right, bottom)) = changed_pixel_bounds(normal, hovered) else {
-        panic!("hovered KUC node id must change pixels: command={command}");
+        return Err(format!("hovered KUC node id must change pixels: command={command}").into());
     };
     assert!(
         left >= hit.0 && top >= hit.1 && right < hit.2 && bottom < hit.3,
         "hovered KUC node id must only change pixels inside its host hit: command={command} diff=({left}, {top}, {right}, {bottom}) hit={hit:?}"
     );
+    Ok(())
 }
 
 fn color_count(canvas: &Canvas, color: u32) -> usize {
