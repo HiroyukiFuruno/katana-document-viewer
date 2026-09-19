@@ -78,17 +78,22 @@ impl StorybookFrameCache {
         let Some(presented) = self.presented.as_mut() else {
             return false;
         };
-        if !presented.scroll_rect_vertically(
-            redraw.area_x,
-            redraw.area_y,
-            redraw.area_width,
-            redraw.content_height,
-            redraw.logical_delta_y,
-        ) {
-            return false;
-        }
-        if redraw.band_height == 0 {
-            return true;
+        let full_band_redraw = redraw.content_height > 0
+            && redraw.band_y == 0
+            && redraw.band_height == redraw.content_height;
+        if !full_band_redraw {
+            if !presented.scroll_rect_vertically(
+                redraw.area_x,
+                redraw.area_y,
+                redraw.area_width,
+                redraw.content_height,
+                redraw.logical_delta_y,
+            ) {
+                return false;
+            }
+            if redraw.band_height == 0 {
+                return true;
+            }
         }
         let source = &self.canvas;
         StorybookPresentation::present_frame_region_for_window_into(
@@ -267,6 +272,7 @@ pub(super) struct StorybookLoadedAssetScene {
 mod tests {
     use super::{StorybookFrameCache, StorybookPointerPosition, StorybookSidebarInteractionCache};
     use crate::canvas::Canvas;
+    use crate::frame::PreviewScrollRedraw;
     use crate::sidebar::StorybookSidebarScroll;
     use crate::sidebar_hit::SidebarInteraction;
     use crate::sidebar_settings_state::StorybookSettingsState;
@@ -275,6 +281,7 @@ mod tests {
     };
     use katana_document_viewer::{ViewerInteractionConfig, ViewerTypographyConfig};
     use katana_ui_core::molecule::FileTreeState;
+    use katana_ui_core_storybook::StorybookPresentation;
 
     #[test]
     fn frame_cache_matches_logical_size_for_scaled_canvas() {
@@ -294,6 +301,32 @@ mod tests {
         assert!(cache.matches(320, 240));
         assert!(cache.matches_scaled(320, 240, 1.0));
         assert!(!cache.matches_scaled(320, 240, 2.0));
+    }
+
+    #[test]
+    fn full_scroll_band_replaces_presented_region_without_stale_pixels() {
+        let mut cache = StorybookFrameCache::new(Canvas::new_scaled(8, 6, 2.0, 0x112233));
+        let _ = cache.presented_frame(8, 6);
+        cache
+            .canvas_mut_preserving_presented()
+            .fill_rect(0, 0, 8, 6, 0x445566);
+
+        assert!(cache.update_presented_scroll_region(
+            8,
+            6,
+            PreviewScrollRedraw {
+                area_x: 0,
+                area_y: 0,
+                area_width: 8,
+                content_height: 6,
+                logical_delta_y: 6,
+                band_y: 0,
+                band_height: 6,
+            },
+        ));
+
+        let expected = StorybookPresentation::present_frame_for_window(cache.canvas(), 8, 6, 0);
+        assert_eq!(expected.pixels(), cache.presented_frame(8, 6).pixels());
     }
 
     #[test]
