@@ -14,10 +14,7 @@ fn opening_persisted_auto_filter_keeps_criteria_and_clear_restores_filtered_rows
         "persisted-filter.xlsx",
         SpreadsheetViewerLimits::strict(),
     )?;
-    let filter = engine.sheets()[0]
-        .auto_filter
-        .as_ref()
-        .ok_or("auto filter is missing")?;
+    let filter = engine.auto_filter(0)?.ok_or("auto filter is missing")?;
     assert_eq!(vec![4, 5, 6], filter.filtered_out_rows);
     assert!(
         engine.sheets()[0].row_tracks[4..=6]
@@ -39,10 +36,7 @@ fn clear_persisted_filter_preserves_authored_hidden_rows() -> TestResult {
         "persisted-filter-with-authored-hidden.xlsx",
         SpreadsheetViewerLimits::strict(),
     )?;
-    let filter = engine.sheets()[0]
-        .auto_filter
-        .as_ref()
-        .ok_or("auto filter is missing")?;
+    let filter = engine.auto_filter(0)?.ok_or("auto filter is missing")?;
     assert_eq!(vec![4, 5, 6], filter.filtered_out_rows);
     assert!(engine.sheets()[0].row_tracks[3].hidden);
     assert!(!engine.sheets()[0].row_tracks[4].hidden);
@@ -57,9 +51,9 @@ fn clear_persisted_filter_preserves_authored_hidden_rows() -> TestResult {
 #[test]
 fn persisted_filter_initialization_fails_closed_for_invalid_materialization() -> TestResult {
     let mut engine = open_engine("invalid-persisted-filter.xlsx")?;
-    let sheet = &mut engine.sheets[0];
-    let filter = sheet.auto_filter.as_mut().ok_or("auto filter is missing")?;
-    filter.columns[0].column = sheet.column_count;
+    let column_count = engine.sheets[0].column_count;
+    let filter = engine.auto_filter_mut(0)?.ok_or("auto filter is missing")?;
+    filter.columns[0].column = column_count;
 
     assert!(matches!(
         engine.initialize_persisted_filters(),
@@ -72,7 +66,8 @@ fn persisted_filter_initialization_fails_closed_for_invalid_materialization() ->
 fn persisted_filter_skips_criteria_that_cannot_be_replayed_as_selected_values() -> TestResult {
     let mut engine = open_engine("persisted-criteria.xlsx")?;
     set_criteria(&mut engine, SpreadsheetFilterCriterion::Blank)?;
-    let active = crate::multi_format::spreadsheet_filter_engine::persisted_filters(engine.sheets());
+    let active =
+        crate::multi_format::spreadsheet_filter_engine::persisted_filters(engine.auto_filters());
     assert!(active[0][&0].contains(""));
 
     for criterion in [
@@ -81,8 +76,10 @@ fn persisted_filter_skips_criteria_that_cannot_be_replayed_as_selected_values() 
     ] {
         set_criteria(&mut engine, criterion)?;
         assert!(
-            crate::multi_format::spreadsheet_filter_engine::persisted_filters(engine.sheets())[0]
-                .is_empty()
+            crate::multi_format::spreadsheet_filter_engine::persisted_filters(
+                engine.auto_filters(),
+            )[0]
+            .is_empty()
         );
     }
     Ok(())
@@ -101,9 +98,8 @@ fn set_criteria(
     engine: &mut SpreadsheetEngineSession,
     criterion: SpreadsheetFilterCriterion,
 ) -> TestResult {
-    engine.sheets[0]
-        .auto_filter
-        .as_mut()
+    engine
+        .auto_filter_mut(0)?
         .ok_or("auto filter is missing")?
         .columns[0]
         .criteria = vec![criterion];

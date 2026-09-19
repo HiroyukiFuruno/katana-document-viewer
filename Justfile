@@ -576,8 +576,12 @@ release-contract-check:
     {{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked -- --test-threads=1
     {{RTK_CMD}}bash scripts/storybook-kuc-smoke.sh
 
+# Reject accidental breaking public-API changes against the latest registry release.
+semver-check:
+    {{CARGO}} semver-checks check-release -p katana-document-viewer
+
 # Verify package metadata and dry-run the crates.io publish target.
-release-verify: release-contract-check check coverage
+release-verify: release-contract-check semver-check check coverage
     bash scripts/release/verify-version.sh "{{VERSION}}"
     {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty

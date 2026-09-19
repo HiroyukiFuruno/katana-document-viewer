@@ -66,7 +66,7 @@ fn pdf_session_owns_navigation_surface_and_rendering() -> TestResult {
     assert_eq!(ViewerDocumentFormat::Pdf, initial.format);
     assert_eq!(DocumentSurfaceKind::Page, initial.surface.kind());
     assert!(initial.state.item_count > 0);
-    assert!(initial.spreadsheet.is_none());
+    assert!(session.spreadsheet_frame_metadata().is_none());
 
     assert_pdf_filter_is_rejected(&mut session);
 
@@ -80,15 +80,15 @@ fn assert_idempotent_close(session: &mut DocumentSession) {
     session.close();
     session.close();
     assert!(session.is_closed());
-    assert_eq!(Err(DocumentSessionError::Closed), session.frame());
+    assert_eq!(Err(closed_session_error()), session.frame());
     assert_eq!(
-        Err(DocumentSessionError::Closed),
+        Err(closed_session_error()),
         session.apply(DocumentSessionCommand::Surface(
             DocumentSurfaceCommand::Resize(DocumentViewport::new(1, 1)),
         ))
     );
     assert_eq!(
-        Err(DocumentSessionError::Closed),
+        Err(closed_session_error()),
         session.apply_spreadsheet_filter(SpreadsheetFilterCommand::Clear {
             sheet_index: 0,
             column: None,
@@ -100,7 +100,7 @@ fn assert_pdf_filter_is_rejected(session: &mut DocumentSession) {
     assert_eq!(
         Err(DocumentSessionError::UnsupportedCommand {
             format: ViewerDocumentFormat::Pdf,
-            command: DocumentSessionCommandKind::SpreadsheetFilter,
+            command: DocumentSessionCommandKind::Grid,
         }),
         session.apply_spreadsheet_filter(SpreadsheetFilterCommand::Clear {
             sheet_index: 0,

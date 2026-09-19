@@ -91,6 +91,20 @@ impl<'a> KucNodeFactory<'a> {
             UiVisualRole::MediaFrame
         };
         let container_height = Self::media_control_container_height(&media);
+        if visual_role == UiVisualRole::ExportMediaFrame {
+            let content_height =
+                container_height.saturating_sub(EXPORT_MEDIA_VERTICAL_MARGIN_PX.saturating_mul(2));
+            let media = media
+                .height(UiDimension::px(content_height))
+                .position(UiPosition::Absolute)
+                .margin(UiEdgeInsets {
+                    top: UiDimension::Px(EXPORT_MEDIA_VERTICAL_MARGIN_PX),
+                    ..UiEdgeInsets::default()
+                });
+            return UiNode::from(Stack::new().child(media))
+                .height(UiDimension::px(container_height))
+                .visual_role(UiVisualRole::ExportMediaFrame);
+        }
         media
             .height(UiDimension::px(container_height))
             .visual_role(visual_role)

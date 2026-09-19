@@ -1,4 +1,6 @@
-use super::{DocumentGridSurfaceFrame, DocumentSurfaceError};
+use super::{
+    DocumentGridCellBorders, DocumentGridCoordinate, DocumentGridSurfaceFrame, DocumentSurfaceError,
+};
 use katana_ui_core::render_model::{UiImageSurfaceProps, UiNode, UiNodeKind};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,7 @@ pub enum DocumentSurfaceKind {
 pub struct DocumentSurfaceFrame {
     content: DocumentSurfaceContent,
     navigation: DocumentNavigationMetadata,
+    grid_borders: Vec<(DocumentGridCoordinate, DocumentGridCellBorders)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -35,22 +38,12 @@ enum DocumentSurfaceContent {
 
 impl DocumentSurfaceFrame {
     pub(super) fn from_node(node: UiNode) -> Result<Self, DocumentSurfaceError> {
-        let content = match node.kind() {
-            UiNodeKind::ImageSurface => DocumentSurfaceContent::Page(
-                DocumentPageSurfaceFrame::from(&node.props().image_surface),
-            ),
-            UiNodeKind::Grid => {
-                DocumentSurfaceContent::Grid(DocumentGridSurfaceFrame::from(&node.props().grid))
-            }
-            kind => {
-                return Err(DocumentSurfaceError::UnsupportedNodeKind {
-                    detail: format!("{kind:?}"),
-                });
-            }
-        };
+        let grid_borders = grid_borders(&node)?;
+        let content = surface_content(&node)?;
         Ok(Self {
             content,
             navigation: DocumentNavigationMetadata::default(),
+            grid_borders,
         })
     }
 
@@ -98,6 +91,16 @@ impl DocumentSurfaceFrame {
         &self.navigation.outline_items
     }
 
+    #[must_use]
+    pub fn grid_cell_borders(
+        &self,
+        coordinate: DocumentGridCoordinate,
+    ) -> Option<&DocumentGridCellBorders> {
+        self.grid_borders
+            .iter()
+            .find_map(|(candidate, borders)| (*candidate == coordinate).then_some(borders))
+    }
+
     pub(crate) fn with_navigation_metadata(
         mut self,
         item_labels: Vec<String>,
@@ -108,6 +111,43 @@ impl DocumentSurfaceFrame {
             outline_items,
         };
         self
+    }
+}
+
+fn grid_borders(
+    node: &UiNode,
+) -> Result<Vec<(DocumentGridCoordinate, DocumentGridCellBorders)>, DocumentSurfaceError> {
+    match node.kind() {
+        UiNodeKind::Grid => Ok(node
+            .props()
+            .grid
+            .cells
+            .iter()
+            .map(|cell| {
+                (
+                    DocumentGridCoordinate::from(cell.coordinate),
+                    DocumentGridCellBorders::from(&cell.appearance.borders),
+                )
+            })
+            .collect()),
+        UiNodeKind::ImageSurface => Ok(Vec::new()),
+        kind => Err(DocumentSurfaceError::UnsupportedNodeKind {
+            detail: format!("{kind:?}"),
+        }),
+    }
+}
+
+fn surface_content(node: &UiNode) -> Result<DocumentSurfaceContent, DocumentSurfaceError> {
+    match node.kind() {
+        UiNodeKind::ImageSurface => Ok(DocumentSurfaceContent::Page(
+            DocumentPageSurfaceFrame::from(&node.props().image_surface),
+        )),
+        UiNodeKind::Grid => Ok(DocumentSurfaceContent::Grid(
+            DocumentGridSurfaceFrame::from(&node.props().grid),
+        )),
+        kind => Err(DocumentSurfaceError::UnsupportedNodeKind {
+            detail: format!("{kind:?}"),
+        }),
     }
 }
 

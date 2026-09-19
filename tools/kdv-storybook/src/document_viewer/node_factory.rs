@@ -162,6 +162,7 @@ impl<'a> KucNodeFactory<'a> {
                     ))
             }
             ViewerNodeKind::Alert { .. } => self.alert_node(node),
+            ViewerNodeKind::Table => self.table_node(node),
             ViewerNodeKind::List => self.list_node(node),
             ViewerNodeKind::BlockQuote => self.blockquote_node(node),
             ViewerNodeKind::FootnoteDefinition { .. } => self.footnote_node(node),
@@ -428,6 +429,8 @@ mod media_image_controls;
 mod media_impl;
 #[path = "node_factory_metrics.rs"]
 mod metrics;
+#[path = "node_factory_table.rs"]
+mod table;
 #[path = "node_factory_task_state.rs"]
 mod task_state;
 #[path = "node_factory_text.rs"]

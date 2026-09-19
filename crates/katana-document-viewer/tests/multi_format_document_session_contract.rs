@@ -4,8 +4,8 @@ use katana_document_viewer::{
     DocumentSessionCommandKind, DocumentSessionConfig, DocumentSessionError, DocumentSessionEvent,
     DocumentSurfaceCommand, DocumentSurfaceKind, DocumentViewerCommand, DocumentViewerEvent,
     DocumentViewport, OfficeDocumentFormat, OfficeDocumentSource, OfficeWorkerConfig,
-    SpreadsheetFilterCommand, ViewerDocumentFormat, ViewerFeature, ViewerFeatureStatus,
-    ViewerSource, ViewerSourceIdentity,
+    OfficeWorkerError, SpreadsheetFilterCommand, ViewerDocumentFormat, ViewerFeature,
+    ViewerFeatureStatus, ViewerSource, ViewerSourceIdentity,
 };
 use std::{
     path::{Path, PathBuf},
@@ -111,20 +111,26 @@ fn pdf_uses_the_unified_session_for_fit_zoom_resize_and_typed_errors() -> TestRe
     ));
     session.close();
     assert!(session.is_closed());
-    assert_eq!(
-        Err(DocumentSessionError::Closed),
+    assert!(matches!(
         session.apply(DocumentSessionCommand::Surface(
             DocumentSurfaceCommand::Resize(DocumentViewport::new(1, 1)),
-        ))
-    );
-    assert_eq!(Err(DocumentSessionError::Closed), session.frame());
-    assert_eq!(
-        Err(DocumentSessionError::Closed),
+        )),
+        Err(DocumentSessionError::Office(OfficeWorkerError::Protocol { ref message }))
+            if message == "document session is closed"
+    ));
+    assert!(matches!(
+        session.frame(),
+        Err(DocumentSessionError::Office(OfficeWorkerError::Protocol { ref message }))
+            if message == "document session is closed"
+    ));
+    assert!(matches!(
         session.apply_spreadsheet_filter(SpreadsheetFilterCommand::Clear {
             sheet_index: 0,
             column: None,
-        })
-    );
+        }),
+        Err(DocumentSessionError::Office(OfficeWorkerError::Protocol { ref message }))
+            if message == "document session is closed"
+    ));
     Ok(())
 }
 

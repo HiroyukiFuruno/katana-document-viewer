@@ -2,12 +2,12 @@ use super::{
     SpreadsheetGridSurface,
     appearance_tests::assert_materialized_appearance,
     mapping::{font_size, track_size},
-    test_support::{sample_cell, sample_sheet},
+    test_support::{sample_cell, sample_materialized_cell, sample_sheet},
 };
 use crate::{
     DocumentGridCommand, DocumentGridCoordinate, DocumentGridEvent, DocumentGridNavigation,
-    DocumentGridSurfaceFrame, DocumentSurfaceError, DocumentViewport, SpreadsheetCoordinate,
-    SpreadsheetMergedCellArtifact,
+    DocumentGridSurfaceFrame, DocumentSurfaceError, DocumentSurfaceFrame, DocumentViewport,
+    SpreadsheetCoordinate, SpreadsheetMergedCellArtifact,
 };
 use katana_ui_core::molecule::GridCoordinate;
 
@@ -15,12 +15,31 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn large_sheet_requests_only_the_visible_window_and_maps_cells() -> TestResult {
+    let frame = visible_materialized_frame()?;
+    let Some(grid) = frame.grid() else {
+        return Err("spreadsheet did not produce a grid frame".into());
+    };
+    assert_materialized_cell(grid)?;
+    let borders = frame
+        .grid_cell_borders(DocumentGridCoordinate { row: 2, column: 2 })
+        .ok_or("border metadata is missing")?;
+    assert_eq!(
+        Some(("thin", Some("#B7C4CE"))),
+        borders
+            .left
+            .as_ref()
+            .map(|border| (border.style.as_str(), border.color.as_deref()))
+    );
+    Ok(())
+}
+
+fn visible_materialized_frame() -> Result<DocumentSurfaceFrame, Box<dyn std::error::Error>> {
     let mut surface =
         SpreadsheetGridSurface::new(&sample_sheet(), DocumentViewport::new(360, 140))?;
     let _ = surface.apply_command(DocumentGridCommand::ScrollTo { x: 80, y: 0 });
     assert_eq!(3, surface.sheet_index());
-    let frame = surface.frame()?;
-    let Some(grid) = frame.grid() else {
+    let initial_frame = surface.frame()?;
+    let Some(grid) = initial_frame.grid() else {
         return Err("spreadsheet did not produce a grid frame".into());
     };
     assert!(grid.show_grid_lines);
@@ -30,13 +49,10 @@ fn large_sheet_requests_only_the_visible_window_and_maps_cells() -> TestResult {
     assert!(request.contains(&SpreadsheetCoordinate::new(2, 2)));
     assert!(!request.contains(&SpreadsheetCoordinate::new(2, 3)));
 
-    surface.supply_cells(vec![sample_cell(SpreadsheetCoordinate::new(2, 2))])?;
-    let frame = surface.frame()?;
-    let Some(grid) = frame.grid() else {
-        return Err("spreadsheet did not produce a grid frame".into());
-    };
-    assert_materialized_cell(grid)?;
-    Ok(())
+    surface.supply_materialized_cells(vec![sample_materialized_cell(
+        SpreadsheetCoordinate::new(2, 2),
+    )])?;
+    Ok(surface.frame()?)
 }
 
 #[test]

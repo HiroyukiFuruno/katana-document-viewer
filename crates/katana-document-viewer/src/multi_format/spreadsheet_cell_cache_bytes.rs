@@ -1,7 +1,8 @@
 use crate::multi_format::{
     SpreadsheetBorderSideArtifact, SpreadsheetCellArtifact, SpreadsheetCellBorderArtifact,
     SpreadsheetCellStyleArtifact, SpreadsheetCellValue, SpreadsheetConditionalFormattingArtifact,
-    SpreadsheetDataBarArtifact, SpreadsheetIconArtifact, SpreadsheetRatingArtifact,
+    SpreadsheetDataBarArtifact, SpreadsheetIconArtifact, SpreadsheetMaterializedCell,
+    SpreadsheetRatingArtifact,
 };
 
 pub(super) fn cell_bytes(cell: &SpreadsheetCellArtifact) -> usize {
@@ -11,6 +12,10 @@ pub(super) fn cell_bytes(cell: &SpreadsheetCellArtifact) -> usize {
         .saturating_add(optional_string_bytes(cell.formula.as_ref()))
         .saturating_add(cell_style_bytes(&cell.style))
         .saturating_add(conditional_formatting_bytes(&cell.conditional_formatting))
+}
+
+pub(super) fn materialized_cell_bytes(materialized: &SpreadsheetMaterializedCell) -> usize {
+    cell_bytes(&materialized.cell).saturating_add(cell_border_bytes(&materialized.borders))
 }
 
 fn string_bytes(value: &String) -> usize {
@@ -35,7 +40,6 @@ fn cell_style_bytes(style: &SpreadsheetCellStyleArtifact) -> usize {
         .saturating_add(optional_string_bytes(style.font_color.as_ref()))
         .saturating_add(optional_string_bytes(style.fill_color.as_ref()))
         .saturating_add(string_bytes(&style.number_format))
-        .saturating_add(cell_border_bytes(&style.borders))
 }
 
 fn cell_border_bytes(borders: &SpreadsheetCellBorderArtifact) -> usize {

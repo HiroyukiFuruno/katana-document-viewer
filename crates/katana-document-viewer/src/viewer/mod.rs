@@ -45,8 +45,9 @@ pub use media_control_spec::{
 };
 pub use node_plan::{
     VIEWER_TEXT_COLOR_CHANNELS, ViewerCodeHighlighter, ViewerDiagramKind, ViewerHtmlAlignment,
-    ViewerHtmlRole, ViewerNode, ViewerNodeKind, ViewerNodePlan, ViewerNodePlanner, ViewerTextSpan,
-    ViewerTextStyle,
+    ViewerHtmlRole, ViewerNode, ViewerNodeKind, ViewerNodePlan, ViewerNodePlanner,
+    ViewerTableAlignment, ViewerTableCellProjection, ViewerTableProjection,
+    ViewerTableRowProjection, ViewerTableVerticalAlignment, ViewerTextSpan, ViewerTextStyle,
 };
 pub use parity::{DiagramControlParity, DiagramControlRequirement};
 pub use search::{

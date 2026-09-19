@@ -1,7 +1,4 @@
-//! Document viewer runtime, presentation, and export foundation for KatanA.
-//!
-//! KDV receives KMM public DTOs, delegates supported rendering to KRR,
-//! and owns the document surface presented by host applications.
+//! KatanA document viewer runtime, presentation, and export foundation.
 
 pub mod artifact;
 pub mod backend;
@@ -190,9 +187,11 @@ pub use viewer::{
     ViewerSearchTarget, ViewerSearchTextMatch, ViewerSearchTextMatcher, ViewerSession,
     ViewerSettingsField, ViewerSettingsState, ViewerSettingsUpdate, ViewerSettingsUpdateError,
     ViewerSettingsValue, ViewerSlideshowControlAction, ViewerStateEngine, ViewerStateSnapshot,
-    ViewerTarget, ViewerTaskControlTarget, ViewerTaskState, ViewerTextRange, ViewerTextSpan,
-    ViewerTextStyle, ViewerTocCommandFactory, ViewerTocItem, ViewerTocModel,
-    ViewerTypographyConfig, ViewerVector, ViewerViewport, ViewerVisibleRange,
+    ViewerTableAlignment, ViewerTableCellProjection, ViewerTableProjection,
+    ViewerTableRowProjection, ViewerTableVerticalAlignment, ViewerTarget, ViewerTaskControlTarget,
+    ViewerTaskState, ViewerTextRange, ViewerTextSpan, ViewerTextStyle, ViewerTocCommandFactory,
+    ViewerTocItem, ViewerTocModel, ViewerTypographyConfig, ViewerVector, ViewerViewport,
+    ViewerVisibleRange,
 };
 #[cfg(test)]
 mod dependency_tests;

@@ -1,3 +1,4 @@
+use crate::multi_format::SpreadsheetMaterializedCell;
 use crate::{
     SpreadsheetBorderSideArtifact, SpreadsheetCellArtifact, SpreadsheetCellBorderArtifact,
     SpreadsheetCellStyleArtifact, SpreadsheetConditionalFormattingArtifact, SpreadsheetCoordinate,
@@ -74,13 +75,31 @@ pub(super) fn track_size(value: f32) -> u32 {
 }
 
 pub(super) fn cell_content(cell: SpreadsheetCellArtifact) -> GridCellContent {
-    GridCellContent::new(grid_coordinate(cell.coordinate), cell.display_text)
-        .appearance(cell_appearance(cell.style, cell.conditional_formatting))
+    GridCellContent::new(grid_coordinate(cell.coordinate), cell.display_text).appearance(
+        cell_appearance(
+            cell.style,
+            cell.conditional_formatting,
+            SpreadsheetCellBorderArtifact::default(),
+        ),
+    )
+}
+
+pub(super) fn materialized_cell_content(cell: SpreadsheetMaterializedCell) -> GridCellContent {
+    GridCellContent::new(
+        grid_coordinate(cell.cell.coordinate),
+        cell.cell.display_text,
+    )
+    .appearance(cell_appearance(
+        cell.cell.style,
+        cell.cell.conditional_formatting,
+        cell.borders,
+    ))
 }
 
 fn cell_appearance(
     style: SpreadsheetCellStyleArtifact,
     conditional: SpreadsheetConditionalFormattingArtifact,
+    borders: SpreadsheetCellBorderArtifact,
 ) -> GridCellAppearance {
     GridCellAppearance {
         font_family: style.font_name,
@@ -97,7 +116,7 @@ fn cell_appearance(
         data_bar: conditional.data_bar.map(values::data_bar),
         icon: conditional.icon.map(values::icon),
         rating: conditional.rating.map(values::rating),
-        borders: cell_borders(style.borders),
+        borders: cell_borders(borders),
     }
 }
 

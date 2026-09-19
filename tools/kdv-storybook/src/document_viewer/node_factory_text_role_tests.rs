@@ -28,10 +28,15 @@ fn text_roles_cover_html_nodes() {
 }
 
 #[test]
-fn text_roles_cover_table_list_and_rule_nodes() {
+fn structured_table_list_and_rule_nodes_use_typed_components() {
     let factory = KucNodeFactory::new(&[], 120);
 
-    assert_text_role(&factory, ViewerNodeKind::Table, "table", "A | B");
+    assert_eq!(
+        UiNodeKind::Row,
+        factory
+            .viewer_node(&viewer_node(ViewerNodeKind::Table, "A | B"))
+            .kind()
+    );
     assert_eq!(
         UiNodeKind::Column,
         factory

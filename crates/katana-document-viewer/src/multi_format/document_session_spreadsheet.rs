@@ -67,8 +67,8 @@ impl SpreadsheetDocumentSession {
         let coordinates = self.surface.materialization_request();
         let cells = self
             .engine
-            .materialize_cells(self.surface.sheet_index(), coordinates)?;
-        self.surface.supply_cells(cells)?;
+            .materialize_cells_with_metadata(self.surface.sheet_index(), coordinates)?;
+        self.surface.supply_materialized_cells(cells)?;
         let item_labels = self
             .engine
             .artifact()
@@ -76,7 +76,6 @@ impl SpreadsheetDocumentSession {
             .iter()
             .map(|sheet| sheet.name.clone())
             .collect();
-        let spreadsheet = frame_metadata(self.engine.artifact(), self.state.active_index);
         Ok(DocumentFrame {
             surface: self
                 .surface
@@ -86,7 +85,6 @@ impl SpreadsheetDocumentSession {
             capabilities: self.capabilities.clone(),
             diagnostics: self.diagnostics.clone(),
             format: ViewerDocumentFormat::Xlsx,
-            spreadsheet,
         })
     }
 
@@ -120,7 +118,12 @@ impl SpreadsheetDocumentSession {
                 requested: self.state.active_index,
                 item_count: self.engine.artifact().sheet_count,
             })?;
-        self.surface.replace_sheet(sheet, self.viewport)?;
+        let filtered_out_rows = self
+            .engine
+            .auto_filter(self.state.active_index)
+            .map_or(&[][..], |filter| filter.filtered_out_rows.as_slice());
+        self.surface
+            .replace_sheet_filtered(sheet, filtered_out_rows, self.viewport)?;
         Ok(())
     }
 
@@ -131,30 +134,33 @@ impl SpreadsheetDocumentSession {
             &self.diagnostics,
         )
     }
+
+    pub(super) fn frame_metadata(&self) -> SpreadsheetFrameMetadata {
+        frame_metadata(&self.engine, self.state.active_index)
+    }
 }
 
 fn frame_metadata(
-    artifact: &super::SpreadsheetDocumentArtifact,
+    engine: &SpreadsheetViewerSession,
     sheet_index: usize,
-) -> Option<SpreadsheetFrameMetadata> {
-    let sheet = artifact.sheets.get(sheet_index)?;
+) -> SpreadsheetFrameMetadata {
+    let sheet = &engine.artifact().sheets[sheet_index];
+    let auto_filter = engine.auto_filter(sheet_index);
     let visible_row_count = sheet
         .row_tracks
         .iter()
         .enumerate()
         .filter(|(row, track)| {
             !track.hidden
-                && sheet
-                    .auto_filter
-                    .as_ref()
+                && auto_filter
                     .is_none_or(|filter| filter.filtered_out_rows.binary_search(row).is_err())
         })
         .count();
-    Some(SpreadsheetFrameMetadata {
+    SpreadsheetFrameMetadata {
         sheet_index: sheet.index,
         visible_row_count,
-        auto_filter: sheet.auto_filter.clone(),
-    })
+        auto_filter: auto_filter.cloned(),
+    }
 }
 
 fn surface_for(
@@ -168,7 +174,14 @@ fn surface_for(
             item_count: engine.artifact().sheet_count,
         },
     )?;
-    Ok(SpreadsheetGridSurface::new(sheet, viewport)?)
+    let filtered_out_rows = engine
+        .auto_filter(sheet_index)
+        .map_or(&[][..], |filter| filter.filtered_out_rows.as_slice());
+    Ok(SpreadsheetGridSurface::new_filtered(
+        sheet,
+        filtered_out_rows,
+        viewport,
+    )?)
 }
 
 #[cfg(test)]

@@ -10,7 +10,7 @@ pub(in crate::multi_format) fn candidates(
     column: usize,
     limit: usize,
 ) -> Result<(Vec<String>, bool), SpreadsheetEngineError> {
-    let sheet = filter_sheet(engine, sheet_index, column)?;
+    let (sheet, filter) = filter_sheet(engine, sheet_index, column)?;
     if limit == 0 || limit > MAX_FILTER_VALUES {
         return Err(SpreadsheetEngineError::FilterValueLimit {
             actual: limit,
@@ -26,7 +26,7 @@ pub(in crate::multi_format) fn candidates(
     engine.visit_filter_grid(
         sheet_index,
         &[column],
-        filter_rows(sheet),
+        filter_rows(sheet, filter),
         &mut collect_candidates,
     )?;
     Ok((values.into_iter().collect(), truncated))

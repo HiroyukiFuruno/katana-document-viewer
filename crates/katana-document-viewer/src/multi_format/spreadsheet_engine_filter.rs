@@ -12,7 +12,7 @@ type FilterGridVisitor<'a> = dyn FnMut(
 impl SpreadsheetEngineSession {
     pub(super) fn initialize_persisted_filters(&mut self) -> Result<(), SpreadsheetEngineError> {
         let active =
-            crate::multi_format::spreadsheet_filter_engine::persisted_filters(&self.sheets);
+            crate::multi_format::spreadsheet_filter_engine::persisted_filters(&self.filters);
         let mut initial_filtered_rows = Vec::with_capacity(self.sheets.len());
         for sheet_index in 0..self.sheets.len() {
             initial_filtered_rows.push(
@@ -24,11 +24,13 @@ impl SpreadsheetEngineSession {
                 .filtered_out_rows,
             );
         }
-        for (sheet, filtered_out_rows) in self.sheets.iter_mut().zip(initial_filtered_rows) {
-            if let Some(filter) = &mut sheet.auto_filter {
+        for (sheet_index, filtered_out_rows) in initial_filtered_rows.into_iter().enumerate() {
+            if let Some(filter) = self.filters.get_mut(sheet_index).and_then(Option::as_mut) {
                 filter.filtered_out_rows = filtered_out_rows.clone();
             }
-            move_persisted_filter_hidden_rows_to_filter_layer(sheet, &filtered_out_rows);
+            if let Some(sheet) = self.sheets.get_mut(sheet_index) {
+                move_persisted_filter_hidden_rows_to_filter_layer(sheet, &filtered_out_rows);
+            }
         }
         self.active_filters = active;
         Ok(())
@@ -97,7 +99,12 @@ impl SpreadsheetEngineSession {
         for start in (rows.start..rows.end).step_by(chunk_rows) {
             let end = start.saturating_add(chunk_rows).min(rows.end);
             let coordinates = filter_coordinates(columns, start..end);
-            visitor(start..end, self.materialize(sheet_index, &coordinates)?)?;
+            let cells = self
+                .materialize(sheet_index, &coordinates)?
+                .into_iter()
+                .map(|materialized| materialized.cell)
+                .collect();
+            visitor(start..end, cells)?;
         }
         Ok(())
     }

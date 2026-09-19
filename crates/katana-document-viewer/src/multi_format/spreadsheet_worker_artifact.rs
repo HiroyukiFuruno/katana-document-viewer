@@ -70,42 +70,42 @@ pub struct SpreadsheetCellStyleArtifact {
     pub vertical_alignment: SpreadsheetVerticalAlignment,
     pub wrap_text: bool,
     pub number_format: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct SpreadsheetMaterializedCell {
+    pub(crate) cell: SpreadsheetCellArtifact,
     #[serde(default)]
-    pub borders: SpreadsheetCellBorderArtifact,
+    pub(crate) borders: SpreadsheetCellBorderArtifact,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SpreadsheetDataBarArtifact {
-    pub positive_color: Option<String>,
-    pub negative_color: Option<String>,
-    pub value: f64,
-    pub axis_position: f64,
-    pub gradient: bool,
-    pub show_value: bool,
+impl SpreadsheetMaterializedCell {
+    pub(super) fn without_borders(cell: SpreadsheetCellArtifact) -> Self {
+        Self {
+            cell,
+            borders: SpreadsheetCellBorderArtifact::default(),
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SpreadsheetIconArtifact {
-    pub name: String,
-    pub color: Option<String>,
-    pub show_value: bool,
+impl From<SpreadsheetCellArtifact> for SpreadsheetMaterializedCell {
+    fn from(cell: SpreadsheetCellArtifact) -> Self {
+        Self::without_borders(cell)
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SpreadsheetRatingArtifact {
-    pub icon_name: String,
-    pub count: u32,
-    pub maximum: u32,
-    pub color: Option<String>,
-    pub show_value: bool,
+impl std::ops::Deref for SpreadsheetMaterializedCell {
+    type Target = SpreadsheetCellArtifact;
+
+    fn deref(&self) -> &Self::Target {
+        &self.cell
+    }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SpreadsheetConditionalFormattingArtifact {
-    pub applied: bool,
-    pub data_bar: Option<SpreadsheetDataBarArtifact>,
-    pub icon: Option<SpreadsheetIconArtifact>,
-    pub rating: Option<SpreadsheetRatingArtifact>,
+impl std::ops::DerefMut for SpreadsheetMaterializedCell {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cell
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -135,52 +135,6 @@ pub struct SpreadsheetMergedCellArtifact {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpreadsheetFilterRange {
-    pub start: SpreadsheetCoordinate,
-    pub end: SpreadsheetCoordinate,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
-pub enum SpreadsheetFilterCriterion {
-    Values(Vec<String>),
-    Blank,
-    NonBlank,
-    Unsupported(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpreadsheetFilterColumnArtifact {
-    pub column: usize,
-    pub criteria: Vec<SpreadsheetFilterCriterion>,
-    pub candidates: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpreadsheetAutoFilterArtifact {
-    pub range: SpreadsheetFilterRange,
-    pub columns: Vec<SpreadsheetFilterColumnArtifact>,
-    pub filtered_out_rows: Vec<usize>,
-    pub diagnostics: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SpreadsheetSheetArtifact {
-    pub index: usize,
-    pub name: String,
-    pub row_count: usize,
-    pub column_count: usize,
-    pub row_tracks: Vec<SpreadsheetTrackArtifact>,
-    pub column_tracks: Vec<SpreadsheetTrackArtifact>,
-    pub frozen_rows: usize,
-    pub frozen_columns: usize,
-    pub merged_cells: Vec<SpreadsheetMergedCellArtifact>,
-    pub show_grid_lines: bool,
-    #[serde(default)]
-    pub auto_filter: Option<SpreadsheetAutoFilterArtifact>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpreadsheetViewerLimits {
     pub max_sheets: usize,
     pub max_logical_cells: usize,
@@ -197,3 +151,13 @@ impl SpreadsheetViewerLimits {
         }
     }
 }
+
+#[path = "spreadsheet_worker_artifact_types.rs"]
+mod types;
+pub(crate) use types::SpreadsheetOpenedSheet;
+pub use types::{
+    SpreadsheetAutoFilterArtifact, SpreadsheetConditionalFormattingArtifact,
+    SpreadsheetDataBarArtifact, SpreadsheetFilterColumnArtifact, SpreadsheetFilterCriterion,
+    SpreadsheetFilterRange, SpreadsheetIconArtifact, SpreadsheetRatingArtifact,
+    SpreadsheetSheetArtifact,
+};

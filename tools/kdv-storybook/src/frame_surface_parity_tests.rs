@@ -162,26 +162,29 @@ fn katana_sample_export_surface_tree_places_note_block_at_target_plus_padding()
 }
 
 #[test]
-fn katana_sample_export_surface_tree_places_graph_diagram_at_target_plus_padding()
+fn katana_sample_export_surface_tree_preserves_explicit_diagram_wrapper_geometry()
 -> Result<(), Box<dyn std::error::Error>> {
     let scene = SurfaceParitySupport::build_export_tree_scene("katana/sample.md", false)?;
     let target = SurfaceParitySupport::target_for_raw(&scene, "```mermaid\ngraph LR")
         .ok_or("graph diagram target must be present")?;
-    let diagram_y = SurfaceParitySupport::direct_child_y_for_semantic_id(
+    let (diagram, _) = SurfaceParitySupport::direct_child_with_y_for_semantic_id(
         scene.tree.root(),
         target.node_id.0.as_str(),
     )
     .ok_or("graph diagram child must be present in export surface tree")?;
+    let image = diagram
+        .children()
+        .first()
+        .ok_or("graph diagram export wrapper must contain the image")?;
+    let image_top_margin = SurfaceParitySupport::dimension_px(&image.props().common.margin.top);
+    let image_height = SurfaceParitySupport::node_height_px(image);
+    let wrapper_height = SurfaceParitySupport::node_height_px(diagram);
 
+    assert_eq!(EXPORT_MEDIA_VERTICAL_MARGIN_PX, image_top_margin);
     assert_eq!(
-        target.rect.y.round() as i32 - EXPORT_MEDIA_VERTICAL_MARGIN_PX,
-        diagram_y,
-        "export surface tree must keep KDV plan gap before graph diagrams and reserve export media top margin: {}",
-        SurfaceParitySupport::direct_children_summary_around(
-            scene.tree.root(),
-            target.rect.y.round() as i32,
-            80,
-        )
+        wrapper_height,
+        image_height + EXPORT_MEDIA_VERTICAL_MARGIN_PX * 2,
+        "the export wrapper must explicitly preserve both diagram margins"
     );
     Ok(())
 }
@@ -524,12 +527,15 @@ impl SurfaceParitySupport {
         Self::direct_child_with_y_for_label(root, label_fragment).map(|(_, y)| y)
     }
 
-    fn direct_child_y_for_semantic_id(root: &UiNode, semantic_node_id: &str) -> Option<i32> {
+    fn direct_child_with_y_for_semantic_id<'a>(
+        root: &'a UiNode,
+        semantic_node_id: &str,
+    ) -> Option<(&'a UiNode, i32)> {
         let column = root.children().first()?;
         let mut y = Self::padding_top_px(column);
         for child in column.children() {
             if child.props().common.semantic_node_id == semantic_node_id {
-                return Some(y);
+                return Some((child, y));
             }
             y += Self::node_height_px(child);
         }
@@ -575,28 +581,6 @@ impl SurfaceParitySupport {
             y += Self::node_height_px(child);
         }
         None
-    }
-
-    fn direct_children_summary_around(root: &UiNode, center_y: i32, radius: i32) -> String {
-        let Some(column) = root.children().first() else {
-            return "no content column".to_string();
-        };
-        let mut y = Self::padding_top_px(column);
-        let mut samples = Vec::new();
-        for child in column.children() {
-            let height = Self::node_height_px(child);
-            if y + height >= center_y - radius && y <= center_y + radius {
-                samples.push(format!(
-                    "y={y} h={height} kind={:?} role={} semantic={} label={:?}",
-                    child.kind(),
-                    child.props().text.role,
-                    child.props().common.semantic_node_id,
-                    child.props().label.chars().take(48).collect::<String>()
-                ));
-            }
-            y += height;
-        }
-        samples.join(" | ")
     }
 
     fn target_y_for_raw(scene: &crate::preview::PreviewScene, raw_fragment: &str) -> Option<i32> {

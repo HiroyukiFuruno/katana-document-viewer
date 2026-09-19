@@ -1,8 +1,8 @@
 use katana_document_viewer::{
     BinaryDocumentSource, DocumentSession, DocumentSessionCommand, DocumentSessionConfig,
     DocumentSessionError, DocumentSurfaceCommand, DocumentViewport, OfficeDocumentFormat,
-    OfficeDocumentSource, OfficePackagePreflight, OfficePreflightLimits, SpreadsheetFilterCommand,
-    ViewerSource, ViewerSourceIdentity,
+    OfficeDocumentSource, OfficePackagePreflight, OfficePreflightLimits, OfficeWorkerError,
+    SpreadsheetFilterCommand, ViewerSource, ViewerSourceIdentity,
 };
 use std::io::{Cursor, Write};
 use zip::write::SimpleFileOptions;
@@ -10,6 +10,21 @@ use zip::write::SimpleFileOptions;
 #[test]
 fn binary_linkage_preserves_closed_document_session_failures()
 -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = closed_session()?;
+    assert_closed_session_error(session.apply(DocumentSessionCommand::Surface(
+        DocumentSurfaceCommand::Resize(DocumentViewport::new(1, 1)),
+    )));
+    assert_closed_session_error(session.frame());
+    assert_closed_session_error(session.apply_spreadsheet_filter(
+        SpreadsheetFilterCommand::Clear {
+            sheet_index: 0,
+            column: None,
+        },
+    ));
+    Ok(())
+}
+
+fn closed_session() -> Result<DocumentSession, Box<dyn std::error::Error>> {
     let source = ViewerSource::Pdf(BinaryDocumentSource::new(
         ViewerSourceIdentity::new("file:///sample.pdf", "sha256:sample"),
         "application/pdf",
@@ -20,21 +35,15 @@ fn binary_linkage_preserves_closed_document_session_failures()
         DocumentSessionConfig::new(DocumentViewport::new(320, 240)),
     )?;
     session.close();
-    assert_eq!(
-        Err(DocumentSessionError::Closed),
-        session.apply(DocumentSessionCommand::Surface(
-            DocumentSurfaceCommand::Resize(DocumentViewport::new(1, 1)),
-        ))
-    );
-    assert_eq!(Err(DocumentSessionError::Closed), session.frame());
-    assert_eq!(
-        Err(DocumentSessionError::Closed),
-        session.apply_spreadsheet_filter(SpreadsheetFilterCommand::Clear {
-            sheet_index: 0,
-            column: None,
-        })
-    );
-    Ok(())
+    Ok(session)
+}
+
+fn assert_closed_session_error<T>(result: Result<T, DocumentSessionError>) {
+    assert!(matches!(
+        result,
+        Err(DocumentSessionError::Office(OfficeWorkerError::Protocol { ref message }))
+            if message == "document session is closed"
+    ));
 }
 
 #[test]

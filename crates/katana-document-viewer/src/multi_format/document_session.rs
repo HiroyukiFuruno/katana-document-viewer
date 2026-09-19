@@ -7,6 +7,7 @@ use super::{
 };
 use crate::DocumentFrame;
 use command_support::command_feature;
+use support::{open_runtime, session_info};
 
 pub struct DocumentSession {
     runtime: Option<DocumentSessionRuntime>,
@@ -42,7 +43,7 @@ impl DocumentSession {
         self.ensure_supported(command)?;
         let runtime = match self.runtime.as_mut() {
             Some(runtime) => runtime,
-            None => return Err(DocumentSessionError::Closed),
+            None => return Err(closed_session_error()),
         };
         match runtime {
             DocumentSessionRuntime::Paged(runtime) => runtime.apply(command),
@@ -53,7 +54,7 @@ impl DocumentSession {
     pub fn frame(&mut self) -> Result<DocumentFrame, DocumentSessionError> {
         let runtime = match self.runtime.as_mut() {
             Some(runtime) => runtime,
-            None => return Err(DocumentSessionError::Closed),
+            None => return Err(closed_session_error()),
         };
         match runtime {
             DocumentSessionRuntime::Paged(runtime) => runtime.frame(),
@@ -67,14 +68,22 @@ impl DocumentSession {
     ) -> Result<SpreadsheetFilterEvent, DocumentSessionError> {
         let runtime = match self.runtime.as_mut() {
             Some(runtime) => runtime,
-            None => return Err(DocumentSessionError::Closed),
+            None => return Err(closed_session_error()),
         };
         match runtime {
             DocumentSessionRuntime::Spreadsheet(runtime) => runtime.apply_filter(command),
             DocumentSessionRuntime::Paged(_) => Err(DocumentSessionError::UnsupportedCommand {
                 format: self.info.format,
-                command: super::DocumentSessionCommandKind::SpreadsheetFilter,
+                command: super::DocumentSessionCommandKind::Grid,
             }),
+        }
+    }
+
+    #[must_use]
+    pub fn spreadsheet_frame_metadata(&self) -> Option<super::SpreadsheetFrameMetadata> {
+        match self.runtime.as_ref()? {
+            DocumentSessionRuntime::Spreadsheet(runtime) => Some(runtime.frame_metadata()),
+            DocumentSessionRuntime::Paged(_) => None,
         }
     }
 
@@ -123,78 +132,14 @@ impl Drop for DocumentSession {
     }
 }
 
-fn open_runtime(
-    source: ViewerSource,
-    config: &DocumentSessionConfig,
-) -> Result<DocumentSessionRuntime, DocumentSessionError> {
-    match source {
-        ViewerSource::Pdf(source) => Ok(DocumentSessionRuntime::Paged(Box::new(
-            PagedDocumentSession::open_pdf(source, config.viewport)?,
-        ))),
-        ViewerSource::Office(source) if source.format == OfficeDocumentFormat::Xlsx => {
-            let worker = required_worker(config, source.format)?;
-            Ok(DocumentSessionRuntime::Spreadsheet(Box::new(
-                SpreadsheetDocumentSession::open(source, worker, config.viewport)?,
-            )))
-        }
-        ViewerSource::Office(source) => {
-            let worker = required_worker(config, source.format)?;
-            Ok(DocumentSessionRuntime::Paged(Box::new(
-                PagedDocumentSession::open_office(source, worker, config.viewport)?,
-            )))
-        }
-    }
-}
-
-fn session_info(
-    identity: super::ViewerSourceIdentity,
-    mime: String,
-    runtime: &DocumentSessionRuntime,
-) -> DocumentSessionInfo {
-    DocumentSessionInfo {
-        identity,
-        mime,
-        format: runtime.format(),
-        capabilities: runtime.capabilities().clone(),
-        diagnostics: runtime.diagnostics().to_vec(),
-    }
-}
-
-impl DocumentSessionRuntime {
-    fn format(&self) -> ViewerDocumentFormat {
-        match self {
-            Self::Paged(runtime) => runtime.info_parts().0,
-            Self::Spreadsheet(runtime) => runtime.info_parts().0,
-        }
-    }
-
-    fn capabilities(&self) -> &super::ViewerCapabilities {
-        match self {
-            Self::Paged(runtime) => runtime.info_parts().1,
-            Self::Spreadsheet(runtime) => runtime.info_parts().1,
-        }
-    }
-
-    fn diagnostics(&self) -> &[super::ViewerDiagnostic] {
-        match self {
-            Self::Paged(runtime) => runtime.info_parts().2,
-            Self::Spreadsheet(runtime) => runtime.info_parts().2,
-        }
-    }
-}
-
-fn required_worker(
-    config: &DocumentSessionConfig,
-    format: OfficeDocumentFormat,
-) -> Result<super::OfficeWorkerConfig, DocumentSessionError> {
-    config
-        .office_worker
-        .clone()
-        .ok_or(DocumentSessionError::MissingOfficeWorker { format })
+fn closed_session_error() -> DocumentSessionError {
+    super::OfficeWorkerError::protocol("document session is closed".to_owned()).into()
 }
 
 #[path = "document_session_command.rs"]
 mod command_support;
+#[path = "document_session_support.rs"]
+mod support;
 #[cfg(test)]
 #[path = "document_session_tests.rs"]
 mod tests;

@@ -1,19 +1,19 @@
-use super::{OfficeWorkerError, SpreadsheetCellArtifact, SpreadsheetCoordinate};
+use super::{OfficeWorkerError, SpreadsheetCoordinate, SpreadsheetMaterializedCell};
 use std::collections::{HashMap, HashSet};
 
 pub(super) struct SpreadsheetMaterializedResponse {
-    cells: HashMap<SpreadsheetCoordinate, SpreadsheetCellArtifact>,
+    cells: HashMap<SpreadsheetCoordinate, SpreadsheetMaterializedCell>,
 }
 
 impl SpreadsheetMaterializedResponse {
     pub(super) fn from_cells(
         coordinates: &[SpreadsheetCoordinate],
-        materialized: Vec<SpreadsheetCellArtifact>,
+        materialized: Vec<SpreadsheetMaterializedCell>,
     ) -> Result<Self, OfficeWorkerError> {
         let requested = coordinates.iter().copied().collect::<HashSet<_>>();
         let mut cells = HashMap::with_capacity(materialized.len());
         for cell in materialized {
-            let coordinate = cell.coordinate;
+            let coordinate = cell.cell.coordinate;
             if !requested.contains(&coordinate) {
                 return Err(materialization_error("unrequested", coordinate));
             }
@@ -27,15 +27,15 @@ impl SpreadsheetMaterializedResponse {
     pub(super) fn cell(
         &self,
         coordinate: SpreadsheetCoordinate,
-    ) -> Option<&SpreadsheetCellArtifact> {
+    ) -> Option<&SpreadsheetMaterializedCell> {
         self.cells.get(&coordinate)
     }
 
     pub(super) fn resolve(
         &self,
         coordinates: &[SpreadsheetCoordinate],
-        cached: &HashMap<SpreadsheetCoordinate, SpreadsheetCellArtifact>,
-    ) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
+        cached: &HashMap<SpreadsheetCoordinate, SpreadsheetMaterializedCell>,
+    ) -> Result<Vec<SpreadsheetMaterializedCell>, OfficeWorkerError> {
         let mut resolved = Vec::with_capacity(coordinates.len());
         for coordinate in coordinates {
             if let Some(cell) = self.cells.get(coordinate) {

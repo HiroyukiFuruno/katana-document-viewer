@@ -1,4 +1,4 @@
-use super::{OfficeWorkerError, SpreadsheetCellArtifact, SpreadsheetCoordinate};
+use super::{OfficeWorkerError, SpreadsheetCoordinate, SpreadsheetMaterializedCell};
 use std::collections::{HashMap, VecDeque};
 
 #[path = "spreadsheet_cell_cache_bytes.rs"]
@@ -6,7 +6,9 @@ mod bytes;
 #[path = "spreadsheet_cell_cache_materialized.rs"]
 mod materialized;
 
+#[cfg(test)]
 use bytes::cell_bytes;
+use bytes::materialized_cell_bytes;
 use materialized::SpreadsheetMaterializedResponse;
 
 const MAX_CACHED_CELLS: usize = 8_192;
@@ -14,7 +16,7 @@ const MAX_CACHED_BYTES: usize = 4 * 1024 * 1024;
 type CacheKey = (usize, SpreadsheetCoordinate);
 
 pub(super) struct SpreadsheetCellCache {
-    cells: HashMap<CacheKey, (SpreadsheetCellArtifact, usize)>,
+    cells: HashMap<CacheKey, (SpreadsheetMaterializedCell, usize)>,
     order: VecDeque<CacheKey>,
     bytes: usize,
     max_cells: usize,
@@ -55,12 +57,17 @@ impl SpreadsheetCellCache {
             .collect()
     }
 
-    pub(super) fn insert(&mut self, sheet_index: usize, cell: SpreadsheetCellArtifact) {
-        let key = (sheet_index, cell.coordinate);
+    pub(super) fn insert(
+        &mut self,
+        sheet_index: usize,
+        cell: impl Into<SpreadsheetMaterializedCell>,
+    ) {
+        let cell = cell.into();
+        let key = (sheet_index, cell.cell.coordinate);
         if self.cells.contains_key(&key) {
             self.remove(key);
         }
-        let bytes = cell_bytes(&cell);
+        let bytes = materialized_cell_bytes(&cell);
         if bytes > self.max_bytes {
             return;
         }
@@ -75,7 +82,7 @@ impl SpreadsheetCellCache {
         &mut self,
         sheet_index: usize,
         coordinates: &[SpreadsheetCoordinate],
-    ) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
+    ) -> Result<Vec<SpreadsheetMaterializedCell>, OfficeWorkerError> {
         let mut resolved = Vec::with_capacity(coordinates.len());
         for coordinate in coordinates {
             let key = (sheet_index, *coordinate);
@@ -91,14 +98,20 @@ impl SpreadsheetCellCache {
         Ok(resolved)
     }
 
-    pub(super) fn resolve_materialized(
+    pub(super) fn resolve_materialized<T>(
         &mut self,
         sheet_index: usize,
         coordinates: &[SpreadsheetCoordinate],
-        materialized: Vec<SpreadsheetCellArtifact>,
-    ) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
+        materialized: Vec<T>,
+    ) -> Result<Vec<SpreadsheetMaterializedCell>, OfficeWorkerError>
+    where
+        T: Into<SpreadsheetMaterializedCell>,
+    {
         let cached = self.snapshot_requested_cells(sheet_index, coordinates);
-        let fresh = SpreadsheetMaterializedResponse::from_cells(coordinates, materialized)?;
+        let fresh = SpreadsheetMaterializedResponse::from_cells(
+            coordinates,
+            materialized.into_iter().map(Into::into).collect(),
+        )?;
         self.cache_materialized_cells(sheet_index, coordinates, &fresh);
         fresh.resolve(coordinates, &cached)
     }
@@ -107,7 +120,7 @@ impl SpreadsheetCellCache {
         &mut self,
         sheet_index: usize,
         coordinates: &[SpreadsheetCoordinate],
-    ) -> HashMap<SpreadsheetCoordinate, SpreadsheetCellArtifact> {
+    ) -> HashMap<SpreadsheetCoordinate, SpreadsheetMaterializedCell> {
         let mut cached = HashMap::with_capacity(coordinates.len());
         for coordinate in coordinates {
             let key = (sheet_index, *coordinate);

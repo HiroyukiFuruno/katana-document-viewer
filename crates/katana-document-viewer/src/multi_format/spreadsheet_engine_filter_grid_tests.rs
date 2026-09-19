@@ -13,7 +13,10 @@ fn filter_grid_visits_one_bounded_materialization_chunk_at_a_time() -> TestResul
     };
     let engine =
         SpreadsheetEngineSession::open(representative_with_auto_filter()?, "filter.xlsx", limits)?;
-    let rows = crate::multi_format::spreadsheet_filter_engine::filter_rows(engine.sheet(0)?);
+    let rows = crate::multi_format::spreadsheet_filter_engine::filter_rows(
+        engine.sheet(0)?,
+        engine.auto_filter(0)?.ok_or("auto filter is missing")?,
+    );
     let mut largest_chunk = 0;
     let mut count_chunk = |chunk_rows: std::ops::Range<usize>,
                            cells: Vec<SpreadsheetCellArtifact>| {

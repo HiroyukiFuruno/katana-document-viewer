@@ -51,6 +51,9 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Install cargo-semver-checks
+        uses: taiki-e/install-action@cargo-semver-checks
+
       - name: Install diagram test dependencies
         run: |
           .github/scripts/install-linux-render-dependencies.sh

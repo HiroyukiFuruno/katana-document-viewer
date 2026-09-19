@@ -1,8 +1,8 @@
 use super::{
     SpreadsheetCellArtifact, SpreadsheetCellStyleArtifact, SpreadsheetCellValue,
     SpreadsheetConditionalFormattingArtifact, SpreadsheetCoordinate, SpreadsheetDataBarArtifact,
-    SpreadsheetHorizontalAlignment, SpreadsheetIconArtifact, SpreadsheetRatingArtifact,
-    SpreadsheetVerticalAlignment,
+    SpreadsheetHorizontalAlignment, SpreadsheetIconArtifact, SpreadsheetMaterializedCell,
+    SpreadsheetRatingArtifact, SpreadsheetVerticalAlignment,
     spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSupport},
     spreadsheet_engine_cell_border::{borders, color},
 };
@@ -20,21 +20,25 @@ impl SpreadsheetCellMaterializer {
         model: &Model<'_>,
         sheet_index: usize,
         coordinate: SpreadsheetCoordinate,
-    ) -> Result<SpreadsheetCellArtifact, SpreadsheetEngineError> {
+    ) -> Result<SpreadsheetMaterializedCell, SpreadsheetEngineError> {
         let (sheet, row, column) = Self::engine_coordinate(sheet_index, coordinate)?;
         let (value, display_text, formula, base, extended) =
             Self::cell_data(model, sheet, row, column)?;
-        Ok(SpreadsheetCellArtifact {
-            coordinate,
-            display_text,
-            value: Self::cell_value(value),
-            formula,
-            style: Self::cell_style(&extended.style, &model.workbook.theme),
-            conditional_formatting: Self::conditional_formatting(
-                &base,
-                extended,
-                &model.workbook.theme,
-            ),
+        let borders = borders(&extended.style.border, &model.workbook.theme);
+        Ok(SpreadsheetMaterializedCell {
+            cell: SpreadsheetCellArtifact {
+                coordinate,
+                display_text,
+                value: Self::cell_value(value),
+                formula,
+                style: Self::cell_style(&extended.style, &model.workbook.theme),
+                conditional_formatting: Self::conditional_formatting(
+                    &base,
+                    extended,
+                    &model.workbook.theme,
+                ),
+            },
+            borders,
         })
     }
 
@@ -92,7 +96,6 @@ impl SpreadsheetCellMaterializer {
             vertical_alignment: Self::vertical_alignment(&alignment),
             wrap_text: alignment.wrap_text,
             number_format: style.num_fmt.clone(),
-            borders: borders(&style.border, theme),
         }
     }
 

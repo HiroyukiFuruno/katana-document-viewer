@@ -4,12 +4,16 @@ use super::spreadsheet_worker_process::SpreadsheetWorkerProcess;
 use super::spreadsheet_worker_protocol::{SpreadsheetWorkerRequest, SpreadsheetWorkerResponse};
 use super::{
     OfficeDocumentFormat, OfficeDocumentSource, OfficePackagePreflight, OfficeWorkerConfig,
-    OfficeWorkerError, SpreadsheetCellArtifact, SpreadsheetCoordinate, SpreadsheetDocumentArtifact,
-    SpreadsheetSheetArtifact, ViewerQualityProfile,
+    OfficeWorkerError, SpreadsheetAutoFilterArtifact, SpreadsheetCellArtifact,
+    SpreadsheetCoordinate, SpreadsheetDocumentArtifact, SpreadsheetMaterializedCell,
+    SpreadsheetOpenedSheet, SpreadsheetSheetArtifact, ViewerQualityProfile,
 };
+pub(super) use response::SpreadsheetWorkerParentResponse;
+use response::{materialized_cells, opened_sheets, split_opened_sheets, spreadsheet_artifact};
 
 pub struct SpreadsheetViewerSession {
     artifact: SpreadsheetDocumentArtifact,
+    filters: Vec<Option<SpreadsheetAutoFilterArtifact>>,
     worker: SpreadsheetWorkerProcess,
     next_request_id: u64,
     cell_cache: SpreadsheetCellCache,
@@ -48,14 +52,16 @@ impl SpreadsheetViewerSession {
         let (_, preflight_diagnostics) =
             OfficePackagePreflight::inspect_with_diagnostics(&source, config.preflight_limits)?;
         let mut worker = SpreadsheetWorkerProcess::spawn(&source, &config)?;
-        let sheets = {
+        let opened_sheets = {
             let _engine = super::debug_trace::DebugTrace::start("spreadsheet.engine_open");
             opened_sheets(worker.receive()?)?
         };
         let materialized_cell_limit = config.spreadsheet_limits.max_materialized_cells;
+        let (sheets, filters) = split_opened_sheets(opened_sheets);
         let artifact = spreadsheet_artifact(source, sheets, preflight_diagnostics);
         Ok(Self {
             artifact,
+            filters,
             worker,
             next_request_id: 1,
             cell_cache: SpreadsheetCellCache::new(),
@@ -74,6 +80,15 @@ impl SpreadsheetViewerSession {
         sheet_index: usize,
         coordinates: Vec<SpreadsheetCoordinate>,
     ) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
+        self.materialize_cells_with_metadata(sheet_index, coordinates)
+            .map(|cells| cells.into_iter().map(|cell| cell.cell).collect())
+    }
+
+    pub(super) fn materialize_cells_with_metadata(
+        &mut self,
+        sheet_index: usize,
+        coordinates: Vec<SpreadsheetCoordinate>,
+    ) -> Result<Vec<SpreadsheetMaterializedCell>, OfficeWorkerError> {
         let _trace_scope = self.trace_scope();
         let _materialize = super::debug_trace::DebugTrace::start("spreadsheet.materialize");
         SpreadsheetMaterializationValidator::validate(
@@ -92,6 +107,11 @@ impl SpreadsheetViewerSession {
             .resolve_materialized(sheet_index, &coordinates, materialized)
     }
 
+    #[must_use]
+    pub fn auto_filter(&self, sheet_index: usize) -> Option<&SpreadsheetAutoFilterArtifact> {
+        self.filters.get(sheet_index).and_then(Option::as_ref)
+    }
+
     pub(super) fn trace_scope(&self) -> Option<super::debug_trace::TraceCorrelationGuard> {
         self.trace_session
             .map(super::debug_trace::DebugTrace::session)
@@ -101,7 +121,7 @@ impl SpreadsheetViewerSession {
         &mut self,
         sheet_index: usize,
         missing: Vec<SpreadsheetCoordinate>,
-    ) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
+    ) -> Result<Vec<SpreadsheetMaterializedCell>, OfficeWorkerError> {
         super::debug_trace::DebugTrace::event(
             "spreadsheet.cell_cache",
             format_args!("hit=false missing={}", missing.len()),
@@ -117,59 +137,10 @@ impl SpreadsheetViewerSession {
     }
 }
 
-fn spreadsheet_artifact(
-    source: OfficeDocumentSource,
-    sheets: Vec<SpreadsheetSheetArtifact>,
-    preflight_diagnostics: Vec<super::ViewerDiagnostic>,
-) -> SpreadsheetDocumentArtifact {
-    let profile = ViewerQualityProfile::interactive_grid();
-    let mut diagnostics = profile.diagnostics();
-    diagnostics.extend(preflight_diagnostics);
-    SpreadsheetDocumentArtifact {
-        identity: source.identity,
-        mime: source.mime,
-        sheet_count: sheets.len(),
-        sheets,
-        capabilities: profile.capabilities,
-        diagnostics,
-    }
-}
-
-fn opened_sheets(
-    response: SpreadsheetWorkerResponse,
-) -> Result<Vec<SpreadsheetSheetArtifact>, OfficeWorkerError> {
-    match response {
-        SpreadsheetWorkerResponse::Opened { sheets } => Ok(sheets),
-        response => Err(unexpected_response("open", response)),
-    }
-}
-
-fn materialized_cells(
-    request_id: u64,
-    response: SpreadsheetWorkerResponse,
-) -> Result<Vec<SpreadsheetCellArtifact>, OfficeWorkerError> {
-    match response {
-        SpreadsheetWorkerResponse::Materialized {
-            request_id: response_id,
-            cells,
-        } if response_id == request_id => Ok(cells),
-        SpreadsheetWorkerResponse::Failed {
-            request_id: Some(response_id),
-            stage,
-            message,
-        } if response_id == request_id => Err(OfficeWorkerError::EngineFailure { stage, message }),
-        response => Err(unexpected_response("materialize", response)),
-    }
-}
-
-fn unexpected_response(operation: &str, response: SpreadsheetWorkerResponse) -> OfficeWorkerError {
-    OfficeWorkerError::protocol(format!(
-        "unexpected spreadsheet response during {operation}: {response:?}"
-    ))
-}
-
 #[path = "spreadsheet_worker_parent_filter.rs"]
 mod filter;
+#[path = "spreadsheet_worker_parent_response.rs"]
+mod response;
 
 #[cfg(test)]
 #[path = "spreadsheet_worker_parent_tests.rs"]

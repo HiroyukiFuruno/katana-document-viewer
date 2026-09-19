@@ -95,7 +95,7 @@ impl SpreadsheetWorkerLoop {
         };
         worker
             .write(&SpreadsheetWorkerResponse::Opened {
-                sheets: worker.engine.sheets().to_vec(),
+                sheets: worker.engine.opened_sheets(),
             })
             .map_err(protocol_failure)?;
         worker.run_requests().map_err(protocol_failure)

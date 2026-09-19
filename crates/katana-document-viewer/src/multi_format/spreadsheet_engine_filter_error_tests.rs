@@ -44,7 +44,7 @@ fn assert_missing_active_errors(engine: &SpreadsheetEngineSession) {
 
 fn assert_invalid_filter_errors(engine: &SpreadsheetEngineSession) {
     let mut active =
-        crate::multi_format::spreadsheet_filter_engine::persisted_filters(engine.sheets());
+        crate::multi_format::spreadsheet_filter_engine::persisted_filters(engine.auto_filters());
     assert!(matches!(
         crate::multi_format::spreadsheet_filter_engine::clear(
             engine,
@@ -63,9 +63,8 @@ fn assert_invalid_filter_errors(engine: &SpreadsheetEngineSession) {
 fn assert_candidate_materialization_error() -> TestResult {
     let mut malformed = open_engine("filter-materialization-error.xlsx")?;
     let invalid_column = malformed.sheets[0].column_count;
-    malformed.sheets[0]
-        .auto_filter
-        .as_mut()
+    malformed
+        .auto_filter_mut(0)?
         .ok_or("auto filter is missing")?
         .range
         .end

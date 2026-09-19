@@ -1,4 +1,4 @@
-use super::{mapping::cell_content, test_support::sample_cell};
+use super::{mapping::materialized_cell_content, test_support::sample_materialized_cell};
 use crate::{SpreadsheetBorderSideArtifact, SpreadsheetCoordinate};
 use katana_ui_core::render_model::UiGridBorderLineStyle;
 
@@ -8,21 +8,21 @@ fn color(bytes: [u8; 3]) -> String {
 
 #[test]
 fn spreadsheet_border_sides_project_to_public_kuc_grid_model() {
-    let mut cell = sample_cell(SpreadsheetCoordinate::new(2, 2));
-    cell.style.borders.right = Some(SpreadsheetBorderSideArtifact {
+    let mut cell = sample_materialized_cell(SpreadsheetCoordinate::new(2, 2));
+    cell.borders.right = Some(SpreadsheetBorderSideArtifact {
         style: "double".to_owned(),
         color: Some(color([0x11, 0x33, 0x55])),
     });
-    cell.style.borders.top = Some(SpreadsheetBorderSideArtifact {
+    cell.borders.top = Some(SpreadsheetBorderSideArtifact {
         style: "dotted".to_owned(),
         color: Some(color([0xAA, 0x55, 0x00])),
     });
-    cell.style.borders.bottom = Some(SpreadsheetBorderSideArtifact {
+    cell.borders.bottom = Some(SpreadsheetBorderSideArtifact {
         style: "future-visible-style".to_owned(),
         color: Some(color([0x88, 0x44, 0x00])),
     });
 
-    let content = cell_content(cell);
+    let content = materialized_cell_content(cell);
     let borders = content.appearance.borders;
 
     assert_eq!(UiGridBorderLineStyle::Thin, borders.left.line_style);

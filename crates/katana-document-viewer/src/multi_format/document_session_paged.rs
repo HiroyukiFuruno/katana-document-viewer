@@ -126,7 +126,6 @@ impl PagedDocumentSession {
                 capabilities: self.capabilities.clone(),
                 diagnostics: self.diagnostics.clone(),
                 format: self.format,
-                spreadsheet: None,
             })
             .map_err(DocumentSessionError::from)
     }

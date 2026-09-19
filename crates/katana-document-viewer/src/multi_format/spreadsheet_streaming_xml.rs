@@ -116,7 +116,6 @@ fn sheet_artifact(
         frozen_columns: metadata.frozen_columns,
         merged_cells: Vec::new(),
         show_grid_lines: metadata.show_grid_lines,
-        auto_filter: None,
     }
 }
 

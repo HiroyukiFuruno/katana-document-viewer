@@ -67,7 +67,8 @@ fn assert_filter_visibility(session: &mut SpreadsheetDocumentSession) -> TestRes
 }
 
 fn assert_frame_metadata_and_clear(session: &mut SpreadsheetDocumentSession) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     assert_eq!(4, metadata.visible_row_count);
     assert_eq!(
         vec![4, 5, 6],
@@ -97,7 +98,8 @@ fn clear_all_filters(session: &mut SpreadsheetDocumentSession) -> TestResult {
 }
 
 fn assert_cleared_filter_state(session: &mut SpreadsheetDocumentSession) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     let filter = metadata.auto_filter.ok_or("filter missing")?;
     assert!(filter.filtered_out_rows.is_empty());
     assert!(
@@ -114,7 +116,8 @@ fn assert_filter_criteria(
     column: usize,
     expected: &[&str],
 ) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     let filter = metadata.auto_filter.ok_or("filter missing")?;
     assert_eq!(
         [crate::SpreadsheetFilterCriterion::Values(

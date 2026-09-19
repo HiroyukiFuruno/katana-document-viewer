@@ -1,5 +1,5 @@
 use super::spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSession};
-use super::{SpreadsheetCellArtifact, SpreadsheetSheetArtifact};
+use super::{SpreadsheetAutoFilterArtifact, SpreadsheetCellArtifact, SpreadsheetSheetArtifact};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_FILTER_VALUES: usize = 4_096;
@@ -13,8 +13,10 @@ pub(super) use candidate_values::candidates;
 
 pub(super) type SpreadsheetActiveFilters = Vec<BTreeMap<usize, BTreeSet<String>>>;
 
-pub(super) fn persisted_filters(sheets: &[SpreadsheetSheetArtifact]) -> SpreadsheetActiveFilters {
-    persisted::SpreadsheetPersistedFilterEngine::persisted_filters(sheets)
+pub(super) fn persisted_filters(
+    filters: &[Option<SpreadsheetAutoFilterArtifact>],
+) -> SpreadsheetActiveFilters {
+    persisted::SpreadsheetPersistedFilterEngine::persisted_filters(filters)
 }
 
 pub(super) struct SpreadsheetFilterResult {
@@ -47,8 +49,8 @@ pub(super) fn clear(
     sheet_index: usize,
     column: Option<usize>,
 ) -> Result<SpreadsheetFilterResult, SpreadsheetEngineError> {
-    let sheet = engine.sheet(sheet_index)?;
-    if sheet.auto_filter.is_none() {
+    engine.sheet(sheet_index)?;
+    if engine.auto_filter(sheet_index)?.is_none() {
         return Err(SpreadsheetEngineError::FilterUnavailable { sheet_index });
     }
     let filters = active_sheet(active, sheet_index)?;
@@ -75,20 +77,34 @@ pub(super) fn evaluate(
         })?;
     let mut filtered_out_rows = Vec::new();
     if !filters.is_empty() {
-        let rows = filter_rows(sheet);
-        let columns = filters.keys().copied().collect::<Vec<_>>();
-        let mut collect_rejected_rows =
-            |chunk_rows: std::ops::Range<usize>, cells: Vec<SpreadsheetCellArtifact>| {
-                filtered_out_rows.extend(rejected_rows(chunk_rows, &columns, filters, cells));
-                Ok(())
-            };
-        engine.visit_filter_grid(sheet_index, &columns, rows, &mut collect_rejected_rows)?;
+        filtered_out_rows = filtered_rows(engine, sheet_index, sheet, filters)?;
     }
     Ok(SpreadsheetFilterResult {
         applied_columns: filters.keys().copied().collect(),
         visible_row_count: visible_row_count(sheet, &filtered_out_rows),
         filtered_out_rows,
     })
+}
+
+fn filtered_rows(
+    engine: &SpreadsheetEngineSession,
+    sheet_index: usize,
+    sheet: &SpreadsheetSheetArtifact,
+    filters: &BTreeMap<usize, BTreeSet<String>>,
+) -> Result<Vec<usize>, SpreadsheetEngineError> {
+    let filter = engine
+        .auto_filter(sheet_index)?
+        .ok_or(SpreadsheetEngineError::FilterUnavailable { sheet_index })?;
+    let rows = filter_rows(sheet, filter);
+    let columns = filters.keys().copied().collect::<Vec<_>>();
+    let mut filtered_out_rows = Vec::new();
+    let mut collect_rejected_rows =
+        |chunk_rows: std::ops::Range<usize>, cells: Vec<SpreadsheetCellArtifact>| {
+            filtered_out_rows.extend(rejected_rows(chunk_rows, &columns, filters, cells));
+            Ok(())
+        };
+    engine.visit_filter_grid(sheet_index, &columns, rows, &mut collect_rejected_rows)?;
+    Ok(filtered_out_rows)
 }
 
 pub(super) fn rejected_rows(
@@ -117,9 +133,9 @@ fn filter_sheet(
     engine: &SpreadsheetEngineSession,
     sheet_index: usize,
     column: usize,
-) -> Result<&SpreadsheetSheetArtifact, SpreadsheetEngineError> {
+) -> Result<(&SpreadsheetSheetArtifact, &SpreadsheetAutoFilterArtifact), SpreadsheetEngineError> {
     let sheet = engine.sheet(sheet_index)?;
-    let Some(filter) = &sheet.auto_filter else {
+    let Some(filter) = engine.auto_filter(sheet_index)? else {
         return Err(SpreadsheetEngineError::FilterUnavailable { sheet_index });
     };
     if column < filter.range.start.column || column > filter.range.end.column {
@@ -128,13 +144,13 @@ fn filter_sheet(
             column,
         });
     }
-    Ok(sheet)
+    Ok((sheet, filter))
 }
 
-pub(super) fn filter_rows(sheet: &SpreadsheetSheetArtifact) -> std::ops::Range<usize> {
-    let Some(filter) = &sheet.auto_filter else {
-        return 0..0;
-    };
+pub(super) fn filter_rows(
+    sheet: &SpreadsheetSheetArtifact,
+    filter: &SpreadsheetAutoFilterArtifact,
+) -> std::ops::Range<usize> {
     let start = filter
         .range
         .start

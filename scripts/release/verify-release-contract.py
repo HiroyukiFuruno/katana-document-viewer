@@ -452,7 +452,7 @@ def justfile_errors(justfile: str) -> list[str]:
         "release-contract-check:",
         "verify-release-contract.py --target-version \"{{TAG}}\"",
         "{{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked",
-        "release-verify: release-contract-check check coverage",
+        "release-verify: release-contract-check semver-check check coverage",
         'COVERAGE_TARGET_PACKAGES := "-p katana-document-viewer"',
         "coverage-v8-refresh:",
         "{{CARGO}} clean -p v8 --target-dir target/llvm-cov-target",

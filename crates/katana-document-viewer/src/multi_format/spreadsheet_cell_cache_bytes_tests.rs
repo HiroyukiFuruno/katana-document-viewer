@@ -1,4 +1,5 @@
-use super::{SpreadsheetCellCache, cell_bytes};
+use super::{SpreadsheetCellCache, cell_bytes, materialized_cell_bytes};
+use crate::multi_format::SpreadsheetMaterializedCell;
 use crate::{
     SpreadsheetBorderSideArtifact, SpreadsheetCellArtifact, SpreadsheetCellBorderArtifact,
     SpreadsheetCellStyleArtifact, SpreadsheetCellValue, SpreadsheetConditionalFormattingArtifact,
@@ -9,7 +10,7 @@ use crate::{
 #[test]
 fn cache_capacity_includes_all_owned_cell_heap_values() -> Result<(), Box<dyn std::error::Error>> {
     let cell = rich_cell(0);
-    let bytes = cell_bytes(&cell);
+    let bytes = materialized_cell_bytes(&cell);
     assert!(bytes > legacy_cell_bytes(&cell));
 
     let mut too_small = SpreadsheetCellCache::with_limits(1, bytes.saturating_sub(1));
@@ -48,12 +49,20 @@ fn legacy_cell_bytes(cell: &SpreadsheetCellArtifact) -> usize {
         .saturating_add(cell.style.number_format.len())
 }
 
-fn rich_cell(row: usize) -> SpreadsheetCellArtifact {
+fn rich_cell(row: usize) -> SpreadsheetMaterializedCell {
     let mut artifact = basic_cell(row, &"display".repeat(16));
     artifact.formula = Some("formula".repeat(16));
     configure_rich_style(&mut artifact);
     artifact.conditional_formatting = rich_conditional_formatting();
-    artifact
+    SpreadsheetMaterializedCell {
+        cell: artifact,
+        borders: SpreadsheetCellBorderArtifact {
+            left: Some(border_side("left")),
+            right: Some(border_side("right")),
+            top: Some(border_side("top")),
+            bottom: Some(border_side("bottom")),
+        },
+    }
 }
 
 fn configure_rich_style(artifact: &mut SpreadsheetCellArtifact) {
@@ -61,12 +70,6 @@ fn configure_rich_style(artifact: &mut SpreadsheetCellArtifact) {
     artifact.style.font_color = Some("font-color".repeat(16));
     artifact.style.fill_color = Some("fill-color".repeat(16));
     artifact.style.number_format = "number-format".repeat(16);
-    artifact.style.borders = SpreadsheetCellBorderArtifact {
-        left: Some(border_side("left")),
-        right: Some(border_side("right")),
-        top: Some(border_side("top")),
-        bottom: Some(border_side("bottom")),
-    };
 }
 
 fn rich_conditional_formatting() -> SpreadsheetConditionalFormattingArtifact {
@@ -121,7 +124,6 @@ fn basic_cell(row: usize, text: &str) -> SpreadsheetCellArtifact {
             vertical_alignment: SpreadsheetVerticalAlignment::Bottom,
             wrap_text: false,
             number_format: "General".to_owned(),
-            borders: SpreadsheetCellBorderArtifact::default(),
         },
         conditional_formatting: SpreadsheetConditionalFormattingArtifact::default(),
     }

@@ -37,7 +37,8 @@ fn assert_missing_filter_column(
     session: &mut SpreadsheetDocumentSession,
     column: usize,
 ) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     let filter = metadata.auto_filter.ok_or("filter missing")?;
     assert!(
         !filter
@@ -53,7 +54,8 @@ fn assert_filter_criteria(
     column: usize,
     expected: &[&str],
 ) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     let filter = metadata.auto_filter.ok_or("filter missing")?;
     let criteria = &filter
         .columns
@@ -74,7 +76,8 @@ fn assert_cleared_filter_criteria(
     session: &mut SpreadsheetDocumentSession,
     column: usize,
 ) -> TestResult {
-    let metadata = session.frame()?.spreadsheet.ok_or("metadata missing")?;
+    session.frame()?;
+    let metadata = session.frame_metadata();
     let filter = metadata.auto_filter.ok_or("filter missing")?;
     let criteria = &filter
         .columns

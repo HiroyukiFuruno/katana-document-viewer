@@ -24,7 +24,6 @@ pub struct DocumentGridCellAppearance {
     pub data_bar: Option<DocumentGridDataBar>,
     pub icon: Option<DocumentGridIcon>,
     pub rating: Option<DocumentGridRating>,
-    pub borders: DocumentGridCellBorders,
 }
 
 impl From<&UiGridCellAppearance> for DocumentGridCellAppearance {
@@ -44,7 +43,6 @@ impl From<&UiGridCellAppearance> for DocumentGridCellAppearance {
             data_bar: value.data_bar.as_ref().map(DocumentGridDataBar::from),
             icon: value.icon.as_ref().map(DocumentGridIcon::from),
             rating: value.rating.as_ref().map(DocumentGridRating::from),
-            borders: DocumentGridCellBorders::from(&value.borders),
         }
     }
 }

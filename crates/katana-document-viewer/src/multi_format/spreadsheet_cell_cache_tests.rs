@@ -1,7 +1,7 @@
 use super::{MAX_CACHED_BYTES, SpreadsheetCellCache};
 use crate::{
-    SpreadsheetCellArtifact, SpreadsheetCellBorderArtifact, SpreadsheetCellStyleArtifact,
-    SpreadsheetCellValue, SpreadsheetConditionalFormattingArtifact, SpreadsheetCoordinate,
+    SpreadsheetCellArtifact, SpreadsheetCellStyleArtifact, SpreadsheetCellValue,
+    SpreadsheetConditionalFormattingArtifact, SpreadsheetCoordinate,
     SpreadsheetHorizontalAlignment, SpreadsheetVerticalAlignment,
 };
 
@@ -124,29 +124,26 @@ fn materialization_cache_evicts_in_request_order() -> Result<(), Box<dyn std::er
 #[test]
 fn materialization_response_rejects_unrequested_duplicate_and_missing_cells() {
     let coordinate = SpreadsheetCoordinate::new(0, 0);
-    let unrequested = SpreadsheetCellCache::new().resolve_materialized(
+    assert_protocol_error(SpreadsheetCellCache::new().resolve_materialized(
         0,
         &[coordinate],
         vec![cell(1, "unrequested")],
-    );
-    assert!(matches!(
-        unrequested,
-        Err(crate::OfficeWorkerError::Protocol { .. })
     ));
-
-    let duplicate = SpreadsheetCellCache::new().resolve_materialized(
+    assert_protocol_error(SpreadsheetCellCache::new().resolve_materialized(
         0,
         &[coordinate],
         vec![cell(0, "first"), cell(0, "second")],
-    );
-    assert!(matches!(
-        duplicate,
-        Err(crate::OfficeWorkerError::Protocol { .. })
     ));
+    assert_protocol_error(SpreadsheetCellCache::new().resolve_materialized(
+        0,
+        &[coordinate],
+        Vec::<SpreadsheetCellArtifact>::new(),
+    ));
+}
 
-    let missing = SpreadsheetCellCache::new().resolve_materialized(0, &[coordinate], Vec::new());
+fn assert_protocol_error(result: Result<impl Sized, crate::OfficeWorkerError>) {
     assert!(matches!(
-        missing,
+        result,
         Err(crate::OfficeWorkerError::Protocol { .. })
     ));
 }
@@ -170,7 +167,6 @@ fn cell(row: usize, text: &str) -> SpreadsheetCellArtifact {
             vertical_alignment: SpreadsheetVerticalAlignment::Bottom,
             wrap_text: false,
             number_format: "General".to_owned(),
-            borders: SpreadsheetCellBorderArtifact::default(),
         },
         conditional_formatting: SpreadsheetConditionalFormattingArtifact::default(),
     }

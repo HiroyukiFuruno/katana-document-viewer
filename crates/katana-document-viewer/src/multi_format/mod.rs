@@ -130,5 +130,6 @@ pub use spreadsheet_worker_artifact::{
     SpreadsheetRatingArtifact, SpreadsheetSheetArtifact, SpreadsheetTrackArtifact,
     SpreadsheetVerticalAlignment, SpreadsheetViewerLimits,
 };
+pub(crate) use spreadsheet_worker_artifact::{SpreadsheetMaterializedCell, SpreadsheetOpenedSheet};
 pub use spreadsheet_worker_entrypoint::SpreadsheetWorkerEntrypoint;
 pub use spreadsheet_worker_parent::SpreadsheetViewerSession;

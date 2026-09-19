@@ -1,4 +1,4 @@
-use super::{SpreadsheetCellArtifact, SpreadsheetCoordinate, SpreadsheetSheetArtifact};
+use super::{SpreadsheetCoordinate, SpreadsheetMaterializedCell, SpreadsheetOpenedSheet};
 use serde::{Deserialize, Serialize};
 
 pub(super) const SPREADSHEET_MODE: &str = "--spreadsheet";
@@ -37,11 +37,11 @@ pub(super) enum SpreadsheetWorkerRequest {
 #[serde(tag = "status", rename_all = "snake_case")]
 pub(super) enum SpreadsheetWorkerResponse {
     Opened {
-        sheets: Vec<SpreadsheetSheetArtifact>,
+        sheets: Vec<SpreadsheetOpenedSheet>,
     },
     Materialized {
         request_id: u64,
-        cells: Vec<SpreadsheetCellArtifact>,
+        cells: Vec<SpreadsheetMaterializedCell>,
     },
     FilterCandidates {
         request_id: u64,

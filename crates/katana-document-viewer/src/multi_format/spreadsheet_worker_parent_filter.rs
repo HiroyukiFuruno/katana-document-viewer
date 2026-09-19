@@ -1,9 +1,6 @@
 use super::SpreadsheetViewerSession;
 use crate::multi_format::spreadsheet_worker_protocol::SpreadsheetWorkerResponse;
-use crate::multi_format::{
-    OfficeWorkerError, SpreadsheetFilterCommand, SpreadsheetFilterEvent,
-    spreadsheet_worker_parent::unexpected_response,
-};
+use crate::multi_format::{OfficeWorkerError, SpreadsheetFilterCommand, SpreadsheetFilterEvent};
 
 #[path = "spreadsheet_worker_parent_filter_metadata.rs"]
 mod metadata;
@@ -12,6 +9,7 @@ mod request;
 
 use metadata::update_filter_criteria;
 use request::filter_request;
+use response::filter_success_event;
 
 impl SpreadsheetViewerSession {
     pub fn apply_filter(
@@ -52,12 +50,7 @@ impl SpreadsheetViewerSession {
         column: usize,
         values: &[String],
     ) {
-        let Some(filter) = self
-            .artifact
-            .sheets
-            .get_mut(sheet_index)
-            .and_then(|sheet| sheet.auto_filter.as_mut())
-        else {
+        let Some(filter) = self.filters.get_mut(sheet_index).and_then(Option::as_mut) else {
             return;
         };
         if let Some(filter_column) = filter
@@ -75,12 +68,7 @@ impl SpreadsheetViewerSession {
         sheet_index: usize,
         filtered_out_rows: &[usize],
     ) {
-        if let Some(filter) = self
-            .artifact
-            .sheets
-            .get_mut(sheet_index)
-            .and_then(|sheet| sheet.auto_filter.as_mut())
-        {
+        if let Some(filter) = self.filters.get_mut(sheet_index).and_then(Option::as_mut) {
             filter.filtered_out_rows = filtered_out_rows.to_vec();
             update_filter_criteria(filter, command);
         }
@@ -101,60 +89,5 @@ pub(super) fn filter_event(
     }
 }
 
-fn filter_success_event(
-    request_id: u64,
-    response: SpreadsheetWorkerResponse,
-) -> Result<SpreadsheetFilterEvent, OfficeWorkerError> {
-    match response {
-        SpreadsheetWorkerResponse::FilterCandidates {
-            request_id: response_id,
-            sheet_index,
-            column,
-            values,
-            truncated,
-        } if response_id == request_id => {
-            Ok(candidate_event(sheet_index, column, values, truncated))
-        }
-        SpreadsheetWorkerResponse::FilterVisibility {
-            request_id: response_id,
-            sheet_index,
-            applied_columns,
-            visible_row_count,
-            filtered_out_rows,
-        } if response_id == request_id => Ok(visibility_event(
-            sheet_index,
-            applied_columns,
-            visible_row_count,
-            filtered_out_rows,
-        )),
-        response => Err(unexpected_response("filter", response)),
-    }
-}
-
-fn candidate_event(
-    sheet_index: usize,
-    column: usize,
-    values: Vec<String>,
-    truncated: bool,
-) -> SpreadsheetFilterEvent {
-    SpreadsheetFilterEvent::Candidates {
-        sheet_index,
-        column,
-        values,
-        truncated,
-    }
-}
-
-fn visibility_event(
-    sheet_index: usize,
-    applied_columns: Vec<usize>,
-    visible_row_count: usize,
-    filtered_out_rows: Vec<usize>,
-) -> SpreadsheetFilterEvent {
-    SpreadsheetFilterEvent::VisibilityChanged {
-        sheet_index,
-        applied_columns,
-        visible_row_count,
-        filtered_out_rows,
-    }
-}
+#[path = "spreadsheet_worker_parent_filter_response.rs"]
+mod response;

@@ -171,9 +171,6 @@ fn assert_plain_sheet_has_no_filter() -> TestResult {
         plain.filter_candidates(0, 0, 8),
         Err(SpreadsheetEngineError::FilterUnavailable { .. })
     ));
-    assert_eq!(
-        0..0,
-        crate::multi_format::spreadsheet_filter_engine::filter_rows(plain.sheet(0)?)
-    );
+    assert!(plain.auto_filter(0)?.is_none());
     Ok(())
 }

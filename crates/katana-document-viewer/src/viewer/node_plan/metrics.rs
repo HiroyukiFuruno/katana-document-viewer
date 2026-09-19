@@ -199,10 +199,6 @@ impl ViewerNodeMetrics {
             (font_size - COMPACT_BODY_FONT_SIZE) / (BASE_BODY_FONT_SIZE - COMPACT_BODY_FONT_SIZE);
         compact_height + (default_height - compact_height) * t
     }
-
-    fn code_scale(typography: ViewerTypographyConfig) -> f32 {
-        ViewerCodeBlockMetrics::code_scale(typography)
-    }
 }
 
 #[path = "metrics_table.rs"]

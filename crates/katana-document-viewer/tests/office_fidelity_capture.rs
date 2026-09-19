@@ -110,7 +110,11 @@ fn capture_docx(output: &Path) -> TestResult<Value> {
     Ok(json!({"page_count": page_count, "pages": pages}))
 }
 
-fn grid_cell(cell: &katana_document_viewer::DocumentGridCell) -> Value {
+fn grid_cell(
+    surface: &katana_document_viewer::DocumentSurfaceFrame,
+    cell: &katana_document_viewer::DocumentGridCell,
+) -> Value {
+    let borders = surface.grid_cell_borders(cell.coordinate);
     json!({
         "row": cell.coordinate.row,
         "column": cell.coordinate.column,
@@ -137,10 +141,10 @@ fn grid_cell(cell: &katana_document_viewer::DocumentGridCell) -> Value {
             "wrap_text": cell.appearance.wrap_text,
         },
         "borders": {
-            "left": border_side(cell.appearance.borders.left.as_ref()),
-            "right": border_side(cell.appearance.borders.right.as_ref()),
-            "top": border_side(cell.appearance.borders.top.as_ref()),
-            "bottom": border_side(cell.appearance.borders.bottom.as_ref()),
+            "left": border_side(borders.and_then(|value| value.left.as_ref())),
+            "right": border_side(borders.and_then(|value| value.right.as_ref())),
+            "top": border_side(borders.and_then(|value| value.top.as_ref())),
+            "bottom": border_side(borders.and_then(|value| value.bottom.as_ref())),
         },
     })
 }
@@ -179,7 +183,11 @@ fn capture_xlsx() -> TestResult<Value> {
             .surface
             .grid()
             .ok_or("XLSX frame did not expose a grid surface")?;
-        let cells = grid.cells.iter().map(grid_cell).collect::<Vec<_>>();
+        let cells = grid
+            .cells
+            .iter()
+            .map(|cell| grid_cell(&frame.surface, cell))
+            .collect::<Vec<_>>();
         let merged_cell_count = grid
             .cells
             .iter()

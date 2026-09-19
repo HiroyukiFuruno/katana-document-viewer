@@ -18,13 +18,14 @@ fn sheet(hidden_rows: &[usize]) -> SpreadsheetSheetArtifact {
 #[test]
 fn selection_restore_handles_empty_extended_and_hidden_ranges() {
     let mut grid = GenericGrid::new("grid", 4, 4);
-    restore_selection(&mut grid, &sheet(&[]), None);
+    restore_selection(&mut grid, &sheet(&[]), &[], None);
     assert_eq!(None, grid.selection());
 
     let forward = sheet(&[1]);
     restore_selection(
         &mut grid,
         &forward,
+        &[],
         Some(GridSelection::new(
             GridCoordinate::new(1, 0),
             GridCoordinate::new(3, 1),
@@ -39,5 +40,5 @@ fn selection_restore_handles_empty_extended_and_hidden_ranges() {
     );
 
     let backward = sheet(&[2, 3]);
-    assert_eq!(1, nearest_visible_row(&backward, 3));
+    assert_eq!(1, nearest_visible_row(&backward, &[], 3));
 }

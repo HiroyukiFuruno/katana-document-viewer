@@ -1,9 +1,9 @@
+use super::SpreadsheetAutoFilterArtifact;
 use super::spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSupport};
 use super::spreadsheet_filter_xml_parser::parse_worksheet;
 use super::spreadsheet_streaming_xml::{
     WorkbookSheet, parse_relationships, parse_workbook_sheets, read_zip_entry,
 };
-use super::{SpreadsheetAutoFilterArtifact, SpreadsheetSheetArtifact};
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 use zip::ZipArchive;
@@ -34,15 +34,6 @@ impl SpreadsheetFilterCatalog {
             .iter()
             .map(|sheet| Self::read_sheet(&mut archive, sheet, &targets))
             .collect()
-    }
-
-    pub(super) fn attach(
-        sheets: &mut [SpreadsheetSheetArtifact],
-        filters: Vec<Option<SpreadsheetAutoFilterArtifact>>,
-    ) {
-        for (sheet, filter) in sheets.iter_mut().zip(filters) {
-            sheet.auto_filter = filter;
-        }
     }
 
     fn read_sheet(

@@ -1,17 +1,17 @@
 use super::SpreadsheetActiveFilters;
-use crate::multi_format::{SpreadsheetFilterCriterion, SpreadsheetSheetArtifact};
+use crate::multi_format::{SpreadsheetAutoFilterArtifact, SpreadsheetFilterCriterion};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) struct SpreadsheetPersistedFilterEngine;
 
 impl SpreadsheetPersistedFilterEngine {
     pub(super) fn persisted_filters(
-        sheets: &[SpreadsheetSheetArtifact],
+        filters: &[Option<SpreadsheetAutoFilterArtifact>],
     ) -> SpreadsheetActiveFilters {
-        sheets
+        filters
             .iter()
-            .map(|sheet| {
-                let Some(filter) = &sheet.auto_filter else {
+            .map(|filter| {
+                let Some(filter) = filter else {
                     return BTreeMap::new();
                 };
                 filter

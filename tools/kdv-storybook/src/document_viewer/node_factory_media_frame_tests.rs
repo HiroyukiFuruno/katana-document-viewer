@@ -219,10 +219,20 @@ fn export_surface_diagram_frame_includes_export_vertical_margins_when_controls_a
     let framed = factory.media_with_controls(&node, media);
 
     assert_eq!(UiVisualRole::ExportMediaFrame, framed.props().visual_role);
+    assert_eq!(UiNodeKind::Stack, framed.kind());
     assert_eq!(
         UiDimension::Px(189),
         framed.props().common.height,
         "export surface diagram frame must include the same top/bottom media margins as the reference surface"
+    );
+    let image = framed.children().first().kuc_expect("export image child");
+    assert_eq!(UiNodeKind::ImageSurface, image.kind());
+    assert_eq!(UiDimension::Px(18), image.props().common.margin.top);
+    assert_eq!(UiDimension::Px(153), image.props().common.height);
+    assert_eq!(
+        189,
+        18 + 153 + 18,
+        "wrapper geometry must explicitly account for the image and both margins"
     );
 }
 
