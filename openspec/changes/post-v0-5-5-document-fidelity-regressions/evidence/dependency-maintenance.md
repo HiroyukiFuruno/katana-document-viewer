@@ -233,3 +233,24 @@ rtk proxy python3 scripts/release/verify-release-contract.py --self-test
 
 The latest-head local release gate, three-OS CI, public KDV artifact, registry
 consumer, and KatanA adoption remain separate release DoD items.
+
+## 2026-09-19 KRR 0.4.20 registry adoption
+
+- GitHub Release `v0.4.20` and crates.io checksum
+  `4c204d2cd53ee1ced2f51076cd23198826e905cf9b9690ea9492b5ef250e5202`
+  were verified before adoption. KDV now declares caret-compatible registry
+  `katana-render-runtime = "0.4.20"`; the lockfile contains that version and
+  checksum without path, git, or patch overrides.
+- `cargo tree -i v8@152.2.0` reports one V8 package owned by KDV and KRR
+  `0.4.20`. The release-contract and registry-consumer-link self-tests pass
+  with KRR `0.4.20`, and strict all-target Clippy passes.
+- Candidate commit `1b0ad91875a5a7062972614f6272fc118c56bc3b` packages as
+  SHA-256 `3ea7eb4dd58409b9ac37345036186c38043e3d2cf3db7e711eba9261cd58659d`
+  in `target/candidate-registry/1b0ad91`. KatanA was asked to regenerate both
+  canonical crops from this exact package. The previous KRR `0.4.19` crop is
+  retained only as historical evidence and is not a final reference.
+- KRR `0.4.20` emits direct-HTML table Markdown before KDV normalization. KDV
+  now preserves consecutive pipe rows as one table block; the focused
+  `direct/html-alignment.html` surface-parity gate passes at the unchanged
+  minimum score. The full Storybook gate remains pending only on replacement
+  KatanA crops: the two stale KRR `0.4.19` references produced seven failures.

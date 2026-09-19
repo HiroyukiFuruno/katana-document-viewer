@@ -27,7 +27,7 @@ KDV 0.5.5はXLSXを別processのIronCalc/streaming engineとKUC GenericGridで�
 5. PPTXはsource identityと変換設定からcache keyを作り、同一sessionの不変入力では変換artifactを再利用する。global無制限cacheは採用せず、session所有の個数・bytes上限付きLRUとする。
 6. worker spawn、runtime init、package parse、preflight、convert、decode、frame publication、rasterを`DEBUG=true`時だけstage traceへ出す。XLSXには同じ責務の`spreadsheet.*` stageを出し、release版の通常出力と処理分岐は変えない。
 7. `close`と`Drop`の両方がworker shutdown、temporary workspace、frame/cacheを解放する。二重closeは成功する冪等操作とする。
-8. KDV direct `v8 =152.2.0`とKRR 0.4.19のV8を単一registry packageへ解決する。local `cargo tree -d`と公開KDV APIを参照するconsumer linkに加え、publish後はpath/gitなしのtemporary registry consumerをfresh resolveして同じ条件を再確認する。
+8. KDV direct `v8 =152.2.0`とKRR 0.4.20のV8を単一registry packageへ解決する。local `cargo tree -d`と公開KDV APIを参照するconsumer linkに加え、publish後はpath/gitなしのtemporary registry consumerをfresh resolveして同じ条件を再確認する。
 9. DOCX/XLSX fidelityのsource rendererはLibreOffice 26.8.0.3、72 dpi、`representative.docx`/`representative.xlsx`のSHA-256、DOCX 842x596/XLSX 596x842 viewportに固定する。KDV runtimeへLibreOffice等を追加するのではなく、比較harnessのsourceとしてのみ扱う。XLSX border metadataはworker artifactから公開frameまでKDVが保持し、KUCのcustom border描画が公開された時だけthin projectionを接続する。
 10. 公式`office2pdf 0.6.8`はPowerPoint段落間隔とCJK font fallbackに加え、malformed PPTX raster omissionとPPTX header-rowspan preservationをrelease tagへ含め、crates.ioにunyankedで公開された。KDVはdependency keyを`office2pdf`のまま維持し、`office2pdf-katana 0.6.10`のpackage aliasを廃止して公式`office2pdf =0.6.8`へ戻す。release contractはpackage名、exact version、registry source、checksumを検査し、path/git fallbackを拒否する。
 

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: KDVとKRRは一つのV8 runtimeを解決しなければならない
-KDV v0.5.6はdirect `v8 =152.2.0`とpublic KRR 0.4.19を一つのregistry V8 packageへ解決しなければならない（MUST）。path/git override、異なるV8 version、同一consumer binaryへの二重linkを残してはならない（MUST NOT）。
+KDV v0.5.6はdirect `v8 =152.2.0`とpublic KRR 0.4.20を一つのregistry V8 packageへ解決しなければならない（MUST）。path/git override、異なるV8 version、同一consumer binaryへの二重linkを残してはならない（MUST NOT）。
 
 #### Scenario: local KDV graphを検証する
 - **WHEN** release gateがlocked KDV dependency graphを検証する

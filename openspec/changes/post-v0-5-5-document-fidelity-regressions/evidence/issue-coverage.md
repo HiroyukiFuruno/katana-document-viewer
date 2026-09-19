@@ -67,7 +67,7 @@
 
 ## V8 consumer integrity
 
-- The local singleton verifier passed for `v8 152.2.0` with KDV and KRR 0.4.19
+- The local singleton verifier passed for `v8 152.2.0` with KDV and KRR 0.4.20
   in the inverse graph and a public KDV API link test.
 - The temporary registry consumer template has no path/git dependency. Its
   actual fresh-resolve build runs only after the exact KDV version is visible on
