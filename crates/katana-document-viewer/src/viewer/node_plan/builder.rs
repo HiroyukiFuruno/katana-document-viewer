@@ -125,6 +125,9 @@ mod search_tests;
 mod footnote_tests;
 
 #[cfg(test)]
+#[path = "builder_html_data_image_tests.rs"]
+mod html_data_image_tests;
+#[cfg(test)]
 #[path = "builder_html_height_tests.rs"]
 mod html_height_tests;
 
