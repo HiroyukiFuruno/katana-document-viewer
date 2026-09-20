@@ -560,7 +560,8 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         diagnostic_required = (
             "if: failure()",
             "uses: actions/upload-artifact@v4",
-            "path: target/acceptance/preview-crop-reference",
+            "path:",
+            "target/acceptance/preview-crop-reference",
             "if-no-files-found: warn",
         )
         if diagnostic_position <= recipe_position or any(
