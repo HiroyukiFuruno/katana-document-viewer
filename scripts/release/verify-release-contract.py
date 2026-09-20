@@ -47,7 +47,7 @@ FORBIDDEN_ADAPTER_MARKERS = (
 )
 SELECTED_ENGINES = {
     "hayro": ("hayro", "0.7.1"),
-    "office2pdf": ("office2pdf", "0.6.8"),
+    "office2pdf": ("office2pdf", "0.7.0"),
     "ironcalc": ("ironcalc", "0.8.3"),
 }
 LINUX_SANDBOX_DEPENDENCIES = {
@@ -686,7 +686,7 @@ def self_test() -> None:
         selected_dependencies = "\n".join(
             (
                 'hayro = "=0.7.1"',
-                'office2pdf = { package = "office2pdf", version = "=0.6.8" }',
+                'office2pdf = { package = "office2pdf", version = "=0.7.0" }',
                 'ironcalc = "=0.8.3"',
                 'libc = "=0.2.189"',
                 'seccompiler = "=0.5.0"',
@@ -721,8 +721,8 @@ def self_test() -> None:
         assert multi_format_manifest_errors(root, "v0.5.2")
         core_manifest_path.write_text(core_manifest, encoding="utf-8")
         stale_manifest = workspace_manifest.replace(
+            'office2pdf = { package = "office2pdf", version = "=0.7.0" }',
             'office2pdf = { package = "office2pdf", version = "=0.6.8" }',
-            'office2pdf = { package = "office2pdf", version = "=0.6.7" }',
         )
         workspace_manifest_path.write_text(stale_manifest, encoding="utf-8")
         assert multi_format_manifest_errors(root, "v0.5.2")
@@ -856,7 +856,7 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
     )
     assert not multi_format_lockfile_errors(selected_lock)
     assert multi_format_lockfile_errors(
-        selected_lock.replace('version = "0.6.8"', 'version = "0.6.7"', 1)
+        selected_lock.replace('version = "0.7.0"', 'version = "0.6.8"', 1)
     )
 
 

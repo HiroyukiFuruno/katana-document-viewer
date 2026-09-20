@@ -98,14 +98,8 @@ impl KucThemeBridge {
     }
 
     fn katana_text_face_selection() -> PlatformTextFaceSelection {
-        // Windows は OS の fallback 解決を含む platform font family を使う。
-        // 先頭候補の固定では fallback を失い、同じ本文が一行に縮退する。
-        #[cfg(target_os = "windows")]
-        {
-            return PlatformTextFaceSelection::System;
-        }
-
-        #[cfg(not(target_os = "windows"))]
+        // KatanA はOSごとの候補列から最初に解決できる本文fontをprimaryにする。
+        // WindowsだけSystemへ委譲するとYu Gothic候補を使わず、本文の行高がKatanAと乖離する。
         PlatformTextFaceSelection::FirstCandidate
     }
 
@@ -395,12 +389,6 @@ mod tests {
 
     #[test]
     fn bridge_preserves_katana_platform_font_resolution_contract() {
-        #[cfg(target_os = "windows")]
-        assert_eq!(
-            PlatformTextFaceSelection::System,
-            KucThemeBridge::katana_text_face_selection()
-        );
-        #[cfg(not(target_os = "windows"))]
         assert_eq!(
             PlatformTextFaceSelection::FirstCandidate,
             KucThemeBridge::katana_text_face_selection()
