@@ -91,6 +91,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
         run: |
           xvfb-run -a just storybook-release-acceptance-artifacts
+          mkdir -p "$RUNNER_TEMP/storybook-preview-crop-diagnostics"
+          cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"
+          cargo clean
           xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
 
       - name: Upload Storybook preview-crop diagnostics on failure
@@ -98,5 +101,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: storybook-preview-crop-diagnostics
-          path: target/acceptance/preview-crop-reference
+          path: |
+            target/acceptance/preview-crop-reference
+            ${{ runner.temp }}/storybook-preview-crop-diagnostics
           if-no-files-found: warn
