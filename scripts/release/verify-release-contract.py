@@ -471,6 +471,9 @@ def justfile_errors(justfile: str) -> list[str]:
         "measure-office-fidelity.py --self-test",
         "measure-office-fidelity.py --verify-record",
         "verify-registry-consumer-link.py --self-test",
+        "release-governance-check:",
+        "verify-issue-governance.py --self-test",
+        "post-release-cleanup.py --self-test",
     )
     missing = [token for token in required if token not in justfile]
     if not missing:
@@ -585,6 +588,25 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
             errors.append(
                 f"{label} must upload preview-crop diagnostics after a failed release gate."
             )
+    release_created = release.find("name: Create GitHub Release")
+    cleanup = release.find("name: Clean up merged remote release branch")
+    publish = release.find("name: Publish crates.io")
+    cleanup_required = (
+        "post-release-cleanup.py",
+        '--scope remote',
+        '--branch "${RELEASE_BRANCH}"',
+        "--apply",
+    )
+    if (
+        release_created < 0
+        or cleanup < 0
+        or publish < 0
+        or not release_created < cleanup < publish
+        or any(token not in release for token in cleanup_required)
+    ):
+        errors.append(
+            "release workflow must run safe remote branch cleanup after the GitHub Release and before publishing."
+        )
     return errors
 
 
@@ -795,6 +817,10 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             "uses: actions/upload-artifact@v4",
             "path: target/acceptance/preview-crop-reference",
             "if-no-files-found: warn",
+            "name: Create GitHub Release",
+            "name: Clean up merged remote release branch",
+            "post-release-cleanup.py --scope remote --branch \"${RELEASE_BRANCH}\" --apply",
+            "name: Publish crates.io",
         )
     )
     assert not release_workflow_errors(release_preflight, release_workflow)

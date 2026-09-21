@@ -599,6 +599,15 @@ release-check: release-target-check release-verify
 release-publish: release-check
     bash scripts/release/publish-crates.sh "{{VERSION}}"
 
+# Install an Issue-linked pre-push dispatcher while preserving an executable existing hook.
+install-governance-hook:
+    bash scripts/release/install-governance-hook.sh
+
+# Validate the Issue and post-release cleanup governance tools without mutating Git state.
+release-governance-check:
+    python3 scripts/release/verify-issue-governance.py --self-test
+    python3 scripts/release/post-release-cleanup.py --self-test
+
 # Sweep old build artifacts locally
 sweep:
     @{{RTK_CMD}}cargo sweep --time 7 || true

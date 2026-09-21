@@ -136,6 +136,18 @@ jobs:
           else
             gh release create "${TAG}" --verify-tag --latest --generate-notes
           fi
+      - name: Clean up merged remote release branch
+        if: github.event_name == 'pull_request'
+        env:
+          TAG: ${{ steps.version.outputs.version }}
+          RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: >
+          python3 scripts/release/post-release-cleanup.py
+          --repo "${{ github.repository }}"
+          --version "${TAG}"
+          --scope remote
+          --branch "${RELEASE_BRANCH}"
+          --apply
       - name: Publish crates.io
         if: github.event_name == 'pull_request' || inputs.publish_crate == true
         env:
