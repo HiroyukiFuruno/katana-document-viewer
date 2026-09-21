@@ -1,0 +1,97 @@
+name: office2pdf upstream monitor
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_evidence:
+        description: 'Optional upstream Issue or PR URL retained in the candidate PR body'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: office2pdf-upstream-monitor
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  JAVA_TOOL_OPTIONS: -Xss16m -Djava.awt.headless=true -Djdk.lang.processReaperUseDefaultStackSize=true
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      status: ${{ steps.monitor.outputs.status }}
+      candidate_version: ${{ steps.monitor.outputs.candidate_version }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: monitor
+        name: Compare official registry and upstream release
+        run: python3 scripts/release/monitor-office2pdf-upstream.py --output monitor-result.json --github-output "$GITHUB_OUTPUT"
+      - name: Upload monitor result
+        uses: actions/upload-artifact@v4
+        with:
+          name: office2pdf-monitor-result
+          path: monitor-result.json
+          if-no-files-found: error
+
+  candidate:
+    needs: discover
+    if: needs.discover.outputs.status == 'eligible'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
+        with:
+          toolchain: stable
+          components: clippy, rustfmt, llvm-tools-preview
+      - uses: taiki-e/install-action@just
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Install release render dependencies
+        run: .github/scripts/install-linux-render-dependencies.sh
+      - name: Prepare exact registry candidate
+        env:
+          CANDIDATE: ${{ needs.discover.outputs.candidate_version }}
+        run: |
+          git switch -c "automation/office2pdf-v${CANDIDATE}"
+          python3 scripts/release/monitor-office2pdf-upstream.py --prepare-candidate "$CANDIDATE" --output monitor-result.json
+          cargo update -p office2pdf --precise "$CANDIDATE"
+          python3 scripts/release/monitor-office2pdf-upstream.py --output monitor-result.json
+          test "$(git diff --name-only | tr '\n' ' ')" = "Cargo.lock Cargo.toml "
+      - name: Run unchanged candidate quality gates
+        run: |
+          just JOBS=2 check
+          just coverage
+          just release-contract-check
+          cargo package -p katana-document-viewer --locked --allow-dirty
+          cargo publish -p katana-document-viewer --dry-run --locked --allow-dirty
+      - name: Create draft quality-gated dependency PR
+        env:
+          CANDIDATE: ${{ needs.discover.outputs.candidate_version }}
+          UPSTREAM_EVIDENCE: ${{ inputs.upstream_evidence }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml Cargo.lock monitor-result.json
+          git commit -m "chore: office2pdf ${CANDIDATE} を品質ゲート済みに更新" -m "Refs https://github.com/HiroyukiFuruno/katana-document-viewer/issues/45"
+          git push --set-upstream origin "automation/office2pdf-v${CANDIDATE}"
+          gh pr create --draft --base master --head "automation/office2pdf-v${CANDIDATE}" --title "chore: office2pdf ${CANDIDATE} を品質ゲート済みに更新" --body "Refs #45\n\nUpstream registry: office2pdf ${CANDIDATE}\nMigration: exact official registry dependency update; no path/git override\nManifest: Cargo.toml exact version updated\nLockfile: Cargo.lock registry source and checksum updated\nVerification: complete candidate quality, Office, fidelity, resource, package, and release-contract gates passed\nUpstream evidence: ${UPSTREAM_EVIDENCE:-not supplied}\n\nKDV publication and KatanA adoption remain required post-merge release steps."
+      - name: Upload candidate evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: office2pdf-candidate-diagnostics
+          path: |
+            monitor-result.json
+            Cargo.toml
+            Cargo.lock
+          if-no-files-found: warn

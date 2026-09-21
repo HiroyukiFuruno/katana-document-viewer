@@ -65,7 +65,7 @@ coverage-missing: coverage-v8-refresh
     DEBUG=true {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
-check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check v8-runtime-check check-subagent-harness
+check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness
     @echo "checks passed"
 
 # Run release-line mapping tests without contacting external services.
@@ -92,6 +92,11 @@ office-performance-harness-check:
 office-fidelity-harness-check:
     python3 scripts/feasibility/measure-office-fidelity.py --self-test
     python3 scripts/feasibility/measure-office-fidelity.py --verify-record openspec/changes/post-v0-5-5-document-fidelity-regressions/evidence/fidelity-baseline.json
+
+office2pdf-upstream-monitor-check:
+    python3 scripts/release/monitor-office2pdf-upstream.py --self-test
+    python3 scripts/release/verify-office2pdf-monitor-contract.py --self-test
+    python3 scripts/release/verify-office2pdf-monitor-contract.py
 
 v8-runtime-check:
     python3 scripts/release/verify-v8-runtime-singleton.py --self-test

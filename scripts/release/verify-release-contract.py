@@ -45,9 +45,8 @@ FORBIDDEN_ADAPTER_MARKERS = (
     "WebView",
     "KRR_CHROME_BIN",
 )
-SELECTED_ENGINES = {
+FIXED_SELECTED_ENGINES = {
     "hayro": ("hayro", "0.7.1"),
-    "office2pdf": ("office2pdf", "0.7.0"),
     "ironcalc": ("ironcalc", "0.8.3"),
 }
 LINUX_SANDBOX_DEPENDENCIES = {
@@ -155,6 +154,19 @@ def dependency_version(declared: object) -> str | None:
     return version if isinstance(version, str) else None
 
 
+def selected_engines(dependencies: dict[str, object]) -> dict[str, tuple[str, str]]:
+    office2pdf = dependencies.get("office2pdf")
+    version = dependency_version(office2pdf)
+    if (
+        not isinstance(office2pdf, dict)
+        or office2pdf.get("package") != "office2pdf"
+        or version is None
+        or not re.fullmatch(r"=[0-9]+\.[0-9]+\.[0-9]+", version)
+    ):
+        return {**FIXED_SELECTED_ENGINES, "office2pdf": ("office2pdf", "0.7.0")}
+    return {**FIXED_SELECTED_ENGINES, "office2pdf": ("office2pdf", version[1:])}
+
+
 def krr_lock_version_is_allowed(version: object) -> bool:
     if not isinstance(version, str):
         return False
@@ -214,7 +226,8 @@ def multi_format_manifest_errors(root: Path, _target_version: str) -> list[str]:
         root / "crates/katana-document-viewer-kuc"
     ).exists():
         errors.append("the cross-layer katana-document-viewer-kuc crate must not exist.")
-    for name, (package, version) in SELECTED_ENGINES.items():
+    engines = selected_engines(dependencies)
+    for name, (package, version) in engines.items():
         declared = dependencies.get(name)
         if dependency_version(declared) != f"={version}":
             errors.append(f"Cargo.toml must pin {name} to ={version}.")
@@ -264,11 +277,12 @@ def multi_format_manifest_errors(root: Path, _target_version: str) -> list[str]:
     return errors
 
 
-def multi_format_lockfile_errors(lockfile: str) -> list[str]:
+def multi_format_lockfile_errors(manifest: str, lockfile: str) -> list[str]:
     packages = toml_loads(lockfile).get("package", [])
     errors: list[str] = []
+    dependencies = toml_loads(manifest).get("workspace", {}).get("dependencies", {})
     selected_packages = {
-        package: version for package, version in SELECTED_ENGINES.values()
+        package: version for package, version in selected_engines(dependencies).values()
     }
     for name, version in {
         **selected_packages,
@@ -640,7 +654,7 @@ def validate(root: Path, target_version: str) -> list[str]:
     errors = manifest_errors((root / "Cargo.toml").read_text(encoding="utf-8"))
     errors.extend(lockfile_errors((root / "Cargo.lock").read_text(encoding="utf-8")))
     errors.extend(multi_format_manifest_errors(root, target_version))
-    errors.extend(multi_format_lockfile_errors((root / "Cargo.lock").read_text(encoding="utf-8")))
+    errors.extend(multi_format_lockfile_errors((root / "Cargo.toml").read_text(encoding="utf-8"), (root / "Cargo.lock").read_text(encoding="utf-8")))
     errors.extend(cargo_config_errors(root / ".cargo/config.toml"))
     errors.extend(adapter_source_errors(root))
     errors.extend(integration_contract_errors(root))
@@ -760,7 +774,7 @@ def self_test() -> None:
         core_manifest_path.write_text(core_manifest, encoding="utf-8")
         stale_manifest = workspace_manifest.replace(
             'office2pdf = { package = "office2pdf", version = "=0.7.0" }',
-            'office2pdf = { package = "office2pdf", version = "=0.6.8" }',
+            'office2pdf = { package = "office2pdf", version = "0.7.0" }',
         )
         workspace_manifest_path.write_text(stale_manifest, encoding="utf-8")
         assert multi_format_manifest_errors(root, "v0.5.2")
@@ -893,14 +907,14 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             f'checksum = "{"0" * 64}"'
         )
         for name, version in {
-            **{package: version for package, version in SELECTED_ENGINES.values()},
+            **{package: version for package, version in selected_engines(toml_loads(workspace_manifest).get("workspace", {}).get("dependencies", {})).values()},
             **LINUX_SANDBOX_DEPENDENCIES,
             "katana-ui-core": KUC_VERSION,
         }.items()
     )
-    assert not multi_format_lockfile_errors(selected_lock)
+    assert not multi_format_lockfile_errors(workspace_manifest, selected_lock)
     assert multi_format_lockfile_errors(
-        selected_lock.replace('version = "0.7.0"', 'version = "0.6.8"', 1)
+        workspace_manifest, selected_lock.replace('version = "0.7.0"', 'version = "0.6.8"', 1)
     )
 
 
