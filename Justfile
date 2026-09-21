@@ -581,7 +581,12 @@ semver-check:
     {{CARGO}} semver-checks check-release -p katana-document-viewer
 
 # Verify package metadata and dry-run the crates.io publish target.
-release-verify: release-contract-check semver-check check coverage
+# `check`と`coverage`は各々V8 link済みworkspaceをbuildするため、release runnerで
+# 両targetを同時にlinkしないよう、実行時点を分離する。
+release-verify: release-contract-check semver-check check
+    {{CARGO}} clean
+    {{RTK_CMD}}just coverage
+    {{CARGO}} clean --target-dir target/llvm-cov-target
     bash scripts/release/verify-version.sh "{{VERSION}}"
     {{CARGO}} package -p katana-document-viewer --locked --allow-dirty
     {{CARGO}} publish -p katana-document-viewer --dry-run --locked --allow-dirty
