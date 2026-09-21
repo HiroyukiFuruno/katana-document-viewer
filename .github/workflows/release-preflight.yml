@@ -94,6 +94,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/storybook-preview-crop-diagnostics"
           cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"
           cargo clean
+          cargo clean --target-dir target/llvm-cov-target
           xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
 
       - name: Upload Storybook preview-crop diagnostics on failure

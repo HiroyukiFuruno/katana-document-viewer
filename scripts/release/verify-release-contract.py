@@ -553,6 +553,20 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
                 f"{label} must refresh static and live Storybook acceptance artifacts "
                 f"before the KDV {required_recipe} recipe."
             )
+        if label == "release preflight":
+            cleanup_commands = (
+                "cargo clean\n",
+                "cargo clean --target-dir target/llvm-cov-target",
+            )
+            if any(
+                workflow.find(command) < artifact_position
+                or workflow.find(command) > recipe_position
+                for command in cleanup_commands
+            ):
+                errors.append(
+                    "release preflight must clear default and coverage build outputs "
+                    "after preserving diagnostics and before release-check."
+                )
         diagnostic_position = workflow.find(
             "name: Upload Storybook preview-crop diagnostics on failure"
         )
@@ -760,6 +774,8 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
     release_preflight = "\n".join(
         (
             "xvfb-run -a just storybook-release-acceptance-artifacts",
+            "cargo clean",
+            "cargo clean --target-dir target/llvm-cov-target",
             'xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check',
             "name: Upload Storybook preview-crop diagnostics on failure",
             "if: failure()",
