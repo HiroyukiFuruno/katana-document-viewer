@@ -9,6 +9,7 @@ import io
 import json
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -218,13 +219,19 @@ def remote_cleanup(default: str, branch: str, apply: bool) -> int:
         print(f"remote branch {branch} already deleted")
         return 0
     fetch_remote_tracking(branch)
+    verified_tip = run([
+        "git", "rev-parse", "--verify", f"refs/remotes/origin/{branch}",
+    ]).strip()
     if not is_merged(f"origin/{branch}", default):
         print(f"retain remote branch {branch}: not merged into origin/{default}")
         return 1
     if not apply:
         print(f"audit: would delete remote branch {branch}")
         return 0
-    run(["git", "push", "origin", "--delete", branch])
+    run([
+        "git", "push", f"--force-with-lease=refs/heads/{branch}:{verified_tip}",
+        "origin", "--delete", branch,
+    ])
     print(f"deleted remote branch {branch}")
     return 0
 
@@ -253,6 +260,7 @@ def self_test() -> None:
         "worktree has uncommitted changes",
     ]
     _self_test_remote_cleanup()
+    _self_test_remote_deletion_lease()
     _self_test_remote_branch_lookup()
     _self_test_failure_diagnostic()
 
@@ -262,8 +270,14 @@ def _self_test_remote_cleanup() -> None:
     original_merged = is_merged
     original_exists = remote_branch_exists
     commands: list[list[str]] = []
+    expected_tip = "a" * 40
+
+    def fake_run(command: list[str], *, cwd: Path | None = None) -> str:
+        commands.append(command)
+        return f"{expected_tip}\n" if command[1] == "rev-parse" else ""
+
     try:
-        globals()["run"] = lambda command, cwd=None: commands.append(command) or ""
+        globals()["run"] = fake_run
         globals()["remote_branch_exists"] = lambda _branch: False
         assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
         assert commands == [["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"]]
@@ -274,6 +288,7 @@ def _self_test_remote_cleanup() -> None:
         assert commands == [
             ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
             ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
+            ["git", "rev-parse", "--verify", "refs/remotes/origin/release/v0.5.6"],
         ]
         commands.clear()
         globals()["is_merged"] = lambda _branch, _default: True
@@ -281,19 +296,61 @@ def _self_test_remote_cleanup() -> None:
         assert commands == [
             ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
             ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
+            ["git", "rev-parse", "--verify", "refs/remotes/origin/release/v0.5.6"],
         ]
         commands.clear()
         assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
         assert commands == [
             ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
             ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
-            ["git", "push", "origin", "--delete", "release/v0.5.6"],
+            ["git", "rev-parse", "--verify", "refs/remotes/origin/release/v0.5.6"],
+            ["git", "push", f"--force-with-lease=refs/heads/release/v0.5.6:{expected_tip}", "origin", "--delete", "release/v0.5.6"],
         ]
         assert all("--force" not in command for command in commands)
     finally:
         globals()["run"] = original_run
         globals()["is_merged"] = original_merged
         globals()["remote_branch_exists"] = original_exists
+
+
+def _self_test_remote_deletion_lease() -> None:
+    branch = "release/v0.5.6"
+    ref = f"refs/heads/{branch}"
+    with tempfile.TemporaryDirectory(prefix="kdv-cleanup-lease-") as directory:
+        root = Path(directory)
+        remote = root / "remote.git"
+        writer = root / "writer"
+        auditor = root / "auditor"
+        run(["git", "init", "--bare", str(remote)])
+        run(["git", "clone", str(remote), str(writer)])
+        run(["git", "config", "user.name", "Cleanup Test"], cwd=writer)
+        run(["git", "config", "user.email", "cleanup@example.invalid"], cwd=writer)
+        run(["git", "commit", "--allow-empty", "-m", "base"], cwd=writer)
+        run(["git", "push", "origin", "HEAD:refs/heads/master"], cwd=writer)
+        run(["git", "switch", "-c", branch], cwd=writer)
+        run(["git", "push", "origin", branch], cwd=writer)
+        run(["git", "clone", str(remote), str(auditor)])
+        original_tip = run(["git", "rev-parse", f"refs/remotes/origin/{branch}"], cwd=auditor).strip()
+
+        run(["git", "commit", "--allow-empty", "-m", "new remote tip"], cwd=writer)
+        run(["git", "push", "origin", branch], cwd=writer)
+        new_tip = run(["git", "rev-parse", "HEAD"], cwd=writer).strip()
+        rejected = subprocess.run(
+            ["git", "push", f"--force-with-lease={ref}:{original_tip}", "origin", "--delete", branch],
+            cwd=auditor,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        assert rejected.returncode != 0, "stale lease deleted an advanced release branch"
+        assert run(["git", "ls-remote", "origin", ref], cwd=auditor).split()[0] == new_tip
+
+        run(["git", "fetch", "origin", f"{ref}:refs/remotes/origin/{branch}"], cwd=auditor)
+        refreshed_tip = run(["git", "rev-parse", f"refs/remotes/origin/{branch}"], cwd=auditor).strip()
+        assert refreshed_tip == new_tip
+        run(["git", "push", f"--force-with-lease={ref}:{refreshed_tip}", "origin", "--delete", branch], cwd=auditor)
+        assert not run(["git", "ls-remote", "origin", ref], cwd=auditor).strip()
 
 
 def _self_test_remote_branch_lookup() -> None:

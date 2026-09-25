@@ -31,6 +31,8 @@ delegation-exception: `直列のクリティカルパス` / file:
 
 ## 5. Verification, dependency maintenance, and release
 
+- [/] 2026-09-25 PR #50 HEAD `18f86c9` の追加P1: merge判定後からremote branch削除までに第三者がpushした場合、無条件deleteで未検証のtipを消し得る。確認したremote tipのOIDを`--force-with-lease`へ指定する候補を実装し、独立bare Git remoteで介在push時の削除拒否と最新tip再確認後の削除を検証した。`just release-governance-check` PASS。commit/push、current-HEAD review、P1 thread reply/resolve、3OS/preflightは未完了。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/pull/50#discussion_r4103364052>; verify: `rtk proxy just release-governance-check`。delegation-exception: `直列のクリティカルパス`。
+
 - [/] 2026-09-25 PR #50 review追補: P1 remote cleanup は `git fetch origin <branch>` が `FETCH_HEAD` のみを更新するため、古い `origin/<branch>` でmerge判定し得る。明示 refspecでdefault/release両remote-tracking refを更新する候補を、self-test RED→GREENと`just release-governance-check`で検証。P2 保存済み XLSX filter 値の上限追加は、単独では大きいworkbookを開けるようにせず既存受理条件を変えるため、今回実装しない根拠をreview threadに返信して個別resolve済み。P1候補は未commit/未pushで、current-HEAD review/CIは再実行が必要。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/pull/50#discussion_r4100526437>; verify: `rtk proxy just release-governance-check`。delegation-exception: `直列のクリティカルパス`。
 
 - [/] 2026-09-25 PR #50 HEAD `40a06c1` の3OS CIはmacOS/Ubuntu/preflight PASS、Windowsのみ本文高さ期待43px/実測22pxでFAIL（run `36095674726`）。KUC #52のowner調査で、KDV interactive paragraphがsource行数をKUCへ渡さないことが原因と判明。KDV source rectの本文行数を公開KUC本文baselineへ投影する候補で14px/24px回帰と独立KatanA参照crop/exportはPASS、`just JOBS=2 check`もPASS。現候補は未commit/未push、Windows再CI・current-HEAD review・公開は未完了。閾値、reference、path/git overrideは変更しない。delegation-exception: `直列のクリティカルパス`。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/actions/runs/36095674726>; verify: `rtk proxy just JOBS=2 check`。
