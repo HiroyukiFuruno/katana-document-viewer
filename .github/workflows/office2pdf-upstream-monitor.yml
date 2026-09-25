@@ -35,6 +35,7 @@ jobs:
         name: Compare official registry and upstream release
         run: python3 scripts/release/monitor-office2pdf-upstream.py --output monitor-result.json --github-output "$GITHUB_OUTPUT"
       - name: Upload monitor result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: office2pdf-monitor-result
@@ -46,7 +47,8 @@ jobs:
     if: needs.discover.outputs.status == 'eligible'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
@@ -57,7 +59,8 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
       - name: Install release render dependencies
         run: .github/scripts/install-linux-render-dependencies.sh
-      - name: Prepare exact registry candidate
+      - id: prepare
+        name: Prepare exact registry candidate
         env:
           CANDIDATE: ${{ needs.discover.outputs.candidate_version }}
         run: |
@@ -66,14 +69,16 @@ jobs:
           cargo update -p office2pdf --precise "$CANDIDATE"
           python3 scripts/release/monitor-office2pdf-upstream.py --output monitor-result.json
           test "$(git diff --name-only | tr '\n' ' ')" = "Cargo.lock Cargo.toml "
-      - name: Run unchanged candidate quality gates
+      - id: quality
+        name: Run unchanged candidate quality gates
         run: |
           just JOBS=2 check
           just coverage
           just release-contract-check
           cargo package -p katana-document-viewer --locked --allow-dirty
           cargo publish -p katana-document-viewer --dry-run --locked --allow-dirty
-      - name: Create draft quality-gated dependency PR
+      - id: create_pr
+        name: Create draft quality-gated dependency PR
         env:
           CANDIDATE: ${{ needs.discover.outputs.candidate_version }}
           UPSTREAM_EVIDENCE: ${{ inputs.upstream_evidence }}
@@ -85,6 +90,11 @@ jobs:
           git commit -m "chore: office2pdf ${CANDIDATE} を品質ゲート済みに更新" -m "Refs https://github.com/HiroyukiFuruno/katana-document-viewer/issues/45"
           git push --set-upstream origin "automation/office2pdf-v${CANDIDATE}"
           gh pr create --draft --base master --head "automation/office2pdf-v${CANDIDATE}" --title "chore: office2pdf ${CANDIDATE} を品質ゲート済みに更新" --body "Refs #45\n\nUpstream registry: office2pdf ${CANDIDATE}\nMigration: exact official registry dependency update; no path/git override\nManifest: Cargo.toml exact version updated\nLockfile: Cargo.lock registry source and checksum updated\nVerification: complete candidate quality, Office, fidelity, resource, package, and release-contract gates passed\nUpstream evidence: ${UPSTREAM_EVIDENCE:-not supplied}\n\nKDV publication and KatanA adoption remain required post-merge release steps."
+      - name: Mark failed candidate as rejected
+        if: failure() && steps.checkout.outcome == 'success'
+        env:
+          FAILED_STAGE: ${{ steps.prepare.outcome == 'failure' && 'prepare' || steps.quality.outcome == 'failure' && 'quality-gates' || steps.create_pr.outcome == 'failure' && 'draft-pr' || 'setup' }}
+        run: python3 scripts/release/monitor-office2pdf-upstream.py --reject-stage "$FAILED_STAGE" --output monitor-result.json
       - name: Upload candidate evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4

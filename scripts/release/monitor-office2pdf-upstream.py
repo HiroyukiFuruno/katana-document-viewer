@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import tempfile
 import tomllib
 import urllib.error
 import urllib.request
@@ -112,6 +113,31 @@ def unavailable(current: str, locked: dict[str, Any], error: Exception) -> dict[
     return {"schema_version": 1, "dependency": "office2pdf", "status": "unavailable", "current": {"version": current, "source": locked["source"], "checksum": locked["checksum"]}, "reasons": [str(error)]}
 
 
+def rejected_after_failure(previous: dict[str, Any], stage: str) -> dict[str, Any]:
+    reasons = previous.get("reasons")
+    retained = [reason for reason in reasons if isinstance(reason, str)] if isinstance(reasons, list) else []
+    return {
+        **previous,
+        "schema_version": 1,
+        "dependency": "office2pdf",
+        "status": "rejected",
+        "failed_stage": stage,
+        "reasons": [*retained, f"candidate {stage} failed"],
+    }
+
+
+def rejected_record_from_path(path: Path, stage: str) -> dict[str, Any]:
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(previous, dict):
+            raise ValueError("candidate decision record must be a JSON object")
+    except FileNotFoundError:
+        previous = {}
+    except (json.JSONDecodeError, ValueError) as error:
+        previous = {"reasons": [f"previous decision record unavailable: {error}"]}
+    return rejected_after_failure(previous, stage)
+
+
 def fetch_json(url: str) -> dict[str, Any]:
     request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "kdv-office2pdf-monitor"})
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -148,6 +174,20 @@ def self_test() -> None:
     assert decide("0.7.0", lock, major, {**matching, "tag_name": "v1.0.0"})["status"] == "deferred"
     assert decide("0.7.0", lock, eligible, matching)["status"] == "deferred"
     assert unavailable("0.7.0", lock, OSError("offline"))["status"] == "unavailable"
+    for prior_status in ("current", "prepared", "eligible"):
+        prior = {"status": prior_status, "candidate": {"version": "0.7.1"}, "upstream": {"release_tag": "v0.7.1"}}
+        rejected = rejected_after_failure(prior, "quality-gates")
+        assert rejected["status"] == "rejected"
+        assert rejected["failed_stage"] == "quality-gates"
+        assert rejected["candidate"] == prior["candidate"]
+        assert rejected["upstream"] == prior["upstream"]
+        assert "candidate quality-gates failed" in rejected["reasons"]
+    with tempfile.TemporaryDirectory() as directory:
+        record = Path(directory) / "monitor-result.json"
+        record.write_text(json.dumps({"status": "prepared", "candidate": {"version": "0.7.1"}}), encoding="utf-8")
+        assert rejected_record_from_path(record, "prepare")["candidate"]["version"] == "0.7.1"
+        record.unlink()
+        assert rejected_record_from_path(record, "setup")["status"] == "rejected"
     manifest = '[workspace]\n[workspace.dependencies]\noffice2pdf = { package = "office2pdf", version = "=0.7.0" }\n'
     assert exact_office2pdf(manifest) == "0.7.0"
     assert 'version = "=0.7.1"' in candidate_manifest(manifest, "0.7.1")
@@ -164,13 +204,18 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=False)
     parser.add_argument("--github-output", type=Path, required=False)
     parser.add_argument("--prepare-candidate", type=str, required=False)
+    parser.add_argument("--reject-stage", type=str, required=False)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         self_test()
         print("office2pdf monitor self-test passed")
         return 0
-    if args.prepare_candidate:
+    if args.reject_stage:
+        if args.output is None:
+            parser.error("--reject-stage requires --output")
+        result = rejected_record_from_path(args.output, args.reject_stage)
+    elif args.prepare_candidate:
         try:
             manifest_path = ROOT / "Cargo.toml"
             manifest_path.write_text(candidate_manifest(manifest_path.read_text(encoding="utf-8"), args.prepare_candidate), encoding="utf-8")
@@ -191,7 +236,7 @@ def main() -> int:
     if args.github_output:
         candidate = result.get("candidate", {})
         args.github_output.write_text(f"status={result['status']}\ncandidate_version={candidate.get('version', '')}\n", encoding="utf-8")
-    return 0 if result["status"] in {"current", "eligible", "deferred", "prepared"} else 1
+    return 0 if args.reject_stage or result["status"] in {"current", "eligible", "deferred", "prepared"} else 1
 
 
 if __name__ == "__main__":
