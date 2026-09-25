@@ -2,6 +2,8 @@
 use super::OfficeWorkerProcess;
 #[cfg(not(windows))]
 use super::configure_command_with_debug;
+#[cfg(target_os = "linux")]
+use super::normalize_linux_wait_result;
 #[cfg(not(windows))]
 use super::normalize_wait_result;
 use super::{cpu_seconds, format_argument};
@@ -86,6 +88,22 @@ fn parent_wait_returns_a_completed_worker_status() {
     if let Ok(mut child) = child {
         let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
         assert_eq!(Ok(Some(0)), super::wait_for_worker(&mut child, &config));
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn parent_wait_recovers_when_memory_limit_setup_races_worker_exit() {
+    let child = std::process::Command::new("/usr/bin/true").spawn();
+    assert!(child.is_ok());
+    if let Ok(mut child) = child {
+        let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
+        let result = normalize_linux_wait_result(
+            &mut child,
+            &config,
+            Err(std::io::Error::from(std::io::ErrorKind::NotFound)),
+        );
+        assert_eq!(Ok(Some(0)), result);
     }
 }
 
