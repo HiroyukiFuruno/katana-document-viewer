@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -184,11 +187,30 @@ def local_cleanup(default: str, apply: bool) -> int:
     return failures
 
 
+def remote_branch_exists(branch: str) -> bool:
+    completed = subprocess.run(
+        ["git", "ls-remote", "--exit-code", "--heads", "origin", f"refs/heads/{branch}"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if completed.returncode == 0:
+        return True
+    if completed.returncode == 2:
+        return False
+    raise RuntimeError(f"remote branch lookup failed: {completed.stdout}")
+
+
 def remote_cleanup(default: str, branch: str, apply: bool) -> int:
     if branch == default:
         print(f"retain remote branch {branch}: default branch")
         return 1
-    run(["git", "fetch", "origin", default, branch])
+    run(["git", "fetch", "origin", default])
+    if not remote_branch_exists(branch):
+        print(f"remote branch {branch} already deleted")
+        return 0
+    run(["git", "fetch", "origin", branch])
     if not is_merged(f"origin/{branch}", default):
         print(f"retain remote branch {branch}: not merged into origin/{default}")
         return 1
@@ -224,31 +246,95 @@ def self_test() -> None:
         "worktree has uncommitted changes",
     ]
     _self_test_remote_cleanup()
+    _self_test_remote_branch_lookup()
+    _self_test_failure_diagnostic()
 
 
 def _self_test_remote_cleanup() -> None:
     original_run = run
     original_merged = is_merged
+    original_exists = remote_branch_exists
     commands: list[list[str]] = []
     try:
         globals()["run"] = lambda command, cwd=None: commands.append(command) or ""
+        globals()["remote_branch_exists"] = lambda _branch: False
+        assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
+        assert commands == [["git", "fetch", "origin", "master"]]
+        commands.clear()
+        globals()["remote_branch_exists"] = lambda _branch: True
         globals()["is_merged"] = lambda _branch, _default: False
         assert remote_cleanup("master", "release/v0.5.6", apply=False) == 1
-        assert commands == [["git", "fetch", "origin", "master", "release/v0.5.6"]]
+        assert commands == [
+            ["git", "fetch", "origin", "master"],
+            ["git", "fetch", "origin", "release/v0.5.6"],
+        ]
         commands.clear()
         globals()["is_merged"] = lambda _branch, _default: True
         assert remote_cleanup("master", "release/v0.5.6", apply=False) == 0
-        assert commands == [["git", "fetch", "origin", "master", "release/v0.5.6"]]
+        assert commands == [
+            ["git", "fetch", "origin", "master"],
+            ["git", "fetch", "origin", "release/v0.5.6"],
+        ]
         commands.clear()
         assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
         assert commands == [
-            ["git", "fetch", "origin", "master", "release/v0.5.6"],
+            ["git", "fetch", "origin", "master"],
+            ["git", "fetch", "origin", "release/v0.5.6"],
             ["git", "push", "origin", "--delete", "release/v0.5.6"],
         ]
         assert all("--force" not in command for command in commands)
     finally:
         globals()["run"] = original_run
         globals()["is_merged"] = original_merged
+        globals()["remote_branch_exists"] = original_exists
+
+
+def _self_test_remote_branch_lookup() -> None:
+    original_run = subprocess.run
+    status = 0
+    commands: list[list[str]] = []
+
+    def fake_run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(command, status, stdout="lookup failed")
+
+    try:
+        subprocess.run = fake_run
+        assert remote_branch_exists("release/v0.5.6")
+        status = 2
+        assert not remote_branch_exists("release/v0.5.6")
+        status = 128
+        try:
+            remote_branch_exists("release/v0.5.6")
+        except RuntimeError as error:
+            assert "lookup failed" in str(error)
+        else:
+            raise AssertionError("remote lookup failure was treated as a deleted branch")
+        assert commands == [
+            ["git", "ls-remote", "--exit-code", "--heads", "origin", "refs/heads/release/v0.5.6"]
+        ] * 3
+    finally:
+        subprocess.run = original_run
+
+
+def _self_test_failure_diagnostic() -> None:
+    original_argv = sys.argv
+    original_release = published_release
+    stderr = io.StringIO()
+    try:
+        sys.argv = [
+            "post-release-cleanup.py", "--repo", "owner/repo", "--version", "v0.5.6",
+            "--scope", "remote", "--branch", "release/v0.5.6",
+        ]
+        globals()["published_release"] = lambda _repository, _version: [
+            "GitHub Release v0.5.6 does not exist."
+        ]
+        with contextlib.redirect_stderr(stderr):
+            assert main() == 1
+        assert "GitHub Release v0.5.6 does not exist." in stderr.getvalue()
+    finally:
+        sys.argv = original_argv
+        globals()["published_release"] = original_release
 
 
 def main() -> int:
