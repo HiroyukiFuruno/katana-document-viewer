@@ -13,6 +13,7 @@ use crate::mouse::{
 };
 use crate::preview::PreviewScene;
 use crate::preview_interaction_command_support::build_scene;
+use crate::preview_theme_bridge::KucThemeBridge;
 use crate::settings_action::StorybookSettingsField;
 use katana_document_viewer::{
     DiagramViewportState, HostCommand, ViewerCommand, ViewerInteractionConfig, ViewerMode,
@@ -2420,7 +2421,7 @@ fn pointer_for_first_visible_diagram_body(
     scene: &PreviewScene,
     scroll_y: f32,
 ) -> Result<PointerHit, std::io::Error> {
-    let (_, node_hits) = katana_ui_core_storybook::UiTreeSurfaceHost::new(scene.theme.clone())
+    let (_, node_hits) = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .viewport_interaction_hits(
             scene.tree.root(),
             katana_ui_core_storybook::UiTreeRenderArea {

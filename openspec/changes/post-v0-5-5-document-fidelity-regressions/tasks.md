@@ -31,6 +31,8 @@ delegation-exception: `直列のクリティカルパス` / file:
 
 ## 5. Verification, dependency maintenance, and release
 
+- [/] 2026-09-25 PR #50 HEAD `84a1e57` のfinal CI: macOS PASS、Ubuntu/Windows/preflight FAIL。共通失敗はroot-offset付きdiagram drag回帰の移動先hit欠落（CI run `36086700180`、preflight `36086700287`）。KDVテストの座標取得を本番と同じKUC typography bridgeへ合わせる候補をローカル検証中。ドラッグ座標・移動量は維持し、成功するhitを探索する変更は採用しない。Windows固有の本文高さは期待43px/実測22pxで、KUC Issue #52をCI証跡付きでreopenしowner taskへ引継ぎ済み。PRをDraftへ戻した。KUC公開修正版、final-HEAD review、3OS/preflight、merge、公開、fresh consumer、後処理は未完了。閾値・reference・geometry補償・path/git overrideは変更しない。delegation-exception: `直列のクリティカルパス`。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/actions/runs/36086700180>; verify: `rtk proxy cargo test -p kdv-storybook --locked storybook_window_document_diagram_drag_uses_scroll_aware_kuc_surface_with_root_offset`。
+
 - [x] 2026-09-25 KUC `=0.3.15`候補のローカル全体ゲート: `just JOBS=2 check`、`just JOBS=2 VERSION=v0.5.6 release-check`、OpenSpec strict（release・Issue #51）がPASS。coverage functions `3674/3674`・lines `30127/30127`（100%）、semver `196/196`、data-descriptor DOCX、V8 `152.2.0`、893-file package、publish dry-runを確認した。Draft PR current-HEAD review、three-OS CI、GitHub Release/crates.io公開、fresh public consumerは別DoDとして未完了。delegation-exception: `直列のクリティカルパス`。証跡: file: `evidence/dependency-maintenance.md`; verify: `rtk proxy just JOBS=2 VERSION=v0.5.6 release-check`。
 - [x] 2026-09-25 KUC `=0.3.15`候補の独立KatanA参照95点とexport-surface parity: `just storybook-score-check`がexit 0。sample/diagrams cropとexport PNG、fixture matrix 19件、surface equivalence 27件、fast/diagram-heavy parity両件を閾値・reference・path/git override変更なしで通過。delegation-exception: `直列のクリティカルパス`。証跡: file: `evidence/dependency-maintenance.md`; verify: `rtk proxy just storybook-score-check`。
 
