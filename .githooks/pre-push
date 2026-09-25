@@ -3,6 +3,7 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 delegate="${KDV_PRE_PUSH_DELEGATE:-$(git config --get kdv.pre-push-delegate || true)}"
+python=(rtk proxy python3)
 
 if [[ -n "$delegate" ]]; then
   if [[ ! -x "$delegate" ]]; then
@@ -11,8 +12,8 @@ if [[ -n "$delegate" ]]; then
   fi
   updates="$(cat)"
   printf '%s\n' "$updates" | "$delegate" "$@"
-  printf '%s\n' "$updates" | python3 "$root/scripts/release/verify-issue-governance.py"
+  printf '%s\n' "$updates" | "${python[@]}" "$root/scripts/release/verify-issue-governance.py"
   exit $?
 fi
 
-exec python3 "$root/scripts/release/verify-issue-governance.py"
+exec "${python[@]}" "$root/scripts/release/verify-issue-governance.py"
