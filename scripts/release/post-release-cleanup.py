@@ -138,7 +138,7 @@ def refresh_default(default: str, apply: bool) -> None:
 def local_cleanup(default: str, apply: bool) -> int:
     refresh_default(default, apply)
     if apply:
-        run(["git", "fetch", "origin", default])
+        fetch_remote_tracking(default)
     entries = [entry for entry in worktrees() if not entry.bare]
     current = Path.cwd().resolve()
     branch_worktrees = {entry.branch: entry for entry in entries if entry.branch is not None}
@@ -202,15 +202,22 @@ def remote_branch_exists(branch: str) -> bool:
     raise RuntimeError(f"remote branch lookup failed: {completed.stdout}")
 
 
+def fetch_remote_tracking(branch: str) -> None:
+    run([
+        "git", "fetch", "origin",
+        f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+    ])
+
+
 def remote_cleanup(default: str, branch: str, apply: bool) -> int:
     if branch == default:
         print(f"retain remote branch {branch}: default branch")
         return 1
-    run(["git", "fetch", "origin", default])
+    fetch_remote_tracking(default)
     if not remote_branch_exists(branch):
         print(f"remote branch {branch} already deleted")
         return 0
-    run(["git", "fetch", "origin", branch])
+    fetch_remote_tracking(branch)
     if not is_merged(f"origin/{branch}", default):
         print(f"retain remote branch {branch}: not merged into origin/{default}")
         return 1
@@ -259,27 +266,27 @@ def _self_test_remote_cleanup() -> None:
         globals()["run"] = lambda command, cwd=None: commands.append(command) or ""
         globals()["remote_branch_exists"] = lambda _branch: False
         assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
-        assert commands == [["git", "fetch", "origin", "master"]]
+        assert commands == [["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"]]
         commands.clear()
         globals()["remote_branch_exists"] = lambda _branch: True
         globals()["is_merged"] = lambda _branch, _default: False
         assert remote_cleanup("master", "release/v0.5.6", apply=False) == 1
         assert commands == [
-            ["git", "fetch", "origin", "master"],
-            ["git", "fetch", "origin", "release/v0.5.6"],
+            ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
+            ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
         ]
         commands.clear()
         globals()["is_merged"] = lambda _branch, _default: True
         assert remote_cleanup("master", "release/v0.5.6", apply=False) == 0
         assert commands == [
-            ["git", "fetch", "origin", "master"],
-            ["git", "fetch", "origin", "release/v0.5.6"],
+            ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
+            ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
         ]
         commands.clear()
         assert remote_cleanup("master", "release/v0.5.6", apply=True) == 0
         assert commands == [
-            ["git", "fetch", "origin", "master"],
-            ["git", "fetch", "origin", "release/v0.5.6"],
+            ["git", "fetch", "origin", "refs/heads/master:refs/remotes/origin/master"],
+            ["git", "fetch", "origin", "refs/heads/release/v0.5.6:refs/remotes/origin/release/v0.5.6"],
             ["git", "push", "origin", "--delete", "release/v0.5.6"],
         ]
         assert all("--force" not in command for command in commands)
