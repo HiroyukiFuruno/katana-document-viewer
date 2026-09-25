@@ -3,7 +3,7 @@ use super::OfficeWorkerProcess;
 #[cfg(not(windows))]
 use super::configure_command_with_debug;
 #[cfg(target_os = "linux")]
-use super::normalize_linux_wait_result;
+use super::linux::{linux_parent_wait_error, normalize_linux_wait_result};
 #[cfg(not(windows))]
 use super::normalize_wait_result;
 use super::{cpu_seconds, format_argument};
@@ -105,6 +105,16 @@ fn parent_wait_recovers_when_memory_limit_setup_races_worker_exit() {
         );
         assert_eq!(Ok(Some(0)), result);
     }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn parent_wait_failure_after_limit_race_remains_typed() {
+    let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+    assert!(matches!(
+        linux_parent_wait_error(&config, std::io::Error::other("wait failed")),
+        OfficeWorkerError::WorkerUnavailable { .. }
+    ));
 }
 
 #[cfg(target_os = "macos")]

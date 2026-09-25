@@ -1,9 +1,14 @@
 #[cfg(target_os = "macos")]
 use super::office_worker_monitor::MacOsMemoryMonitor;
+#[cfg(target_os = "linux")]
+#[path = "office_worker_process_linux.rs"]
+mod linux;
 #[cfg(windows)]
 #[path = "office_worker_process_windows.rs"]
 mod windows;
 use super::{OfficeDocumentFormat, OfficeWorkerConfig, OfficeWorkerError};
+#[cfg(target_os = "linux")]
+use linux::wait_for_worker;
 #[cfg(not(windows))]
 use process_control::{ChildExt, Control};
 use std::path::Path;
@@ -76,21 +81,6 @@ fn spawn_worker(
         .map_err(|error| OfficeWorkerError::unavailable(config, error.to_string()))
 }
 
-#[cfg(target_os = "linux")]
-fn wait_for_worker(
-    child: &mut std::process::Child,
-    config: &OfficeWorkerConfig,
-) -> Result<Option<i64>, OfficeWorkerError> {
-    let result = child
-        .controlled()
-        .memory_limit(config.max_memory_bytes)
-        .time_limit(config.timeout)
-        .terminate_for_timeout()
-        .strict_errors()
-        .wait();
-    normalize_linux_wait_result(child, config, result)
-}
-
 #[cfg(all(not(windows), not(target_os = "linux")))]
 fn wait_for_worker(
     child: &mut std::process::Child,
@@ -103,23 +93,6 @@ fn wait_for_worker(
         .strict_errors()
         .wait();
     normalize_wait_result(config, result)
-}
-
-#[cfg(target_os = "linux")]
-fn normalize_linux_wait_result(
-    child: &mut std::process::Child,
-    config: &OfficeWorkerConfig,
-    result: std::io::Result<Option<process_control::ExitStatus>>,
-) -> Result<Option<i64>, OfficeWorkerError> {
-    match result {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            let status = child.wait().map_err(|wait_error| {
-                OfficeWorkerError::unavailable(config, wait_error.to_string())
-            })?;
-            Ok(status.code().map(i64::from))
-        }
-        result => normalize_wait_result(config, result),
-    }
 }
 
 #[cfg(not(windows))]
