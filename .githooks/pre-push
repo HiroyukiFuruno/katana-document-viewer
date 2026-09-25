@@ -3,7 +3,18 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 delegate="${KDV_PRE_PUSH_DELEGATE:-$(git config --get kdv.pre-push-delegate || true)}"
-python=(rtk proxy python3)
+python=()
+for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+  if command -v "$candidate" >/dev/null 2>&1 \
+    && "$candidate" -c 'import tomllib' >/dev/null 2>&1; then
+    python=("$candidate")
+    break
+  fi
+done
+if [[ ${#python[@]} -eq 0 ]]; then
+  printf 'KDV pre-push: Python 3.11+ with tomllib is required for Issue governance.\n' >&2
+  exit 1
+fi
 
 if [[ -n "$delegate" ]]; then
   if [[ ! -x "$delegate" ]]; then
