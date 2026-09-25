@@ -302,8 +302,15 @@ impl<'a> KucNodeFactory<'a> {
             || Self::uses_native_interactive_html_height(node))
             && !self.export_surface
         {
+            let ui_node = ui_node.width(self.viewer_width_for_node(node));
+            if ui_node.kind() == UiNodeKind::Text && matches!(node.kind, ViewerNodeKind::Paragraph)
+            {
+                return ui_node
+                    .height(Self::viewer_height(node))
+                    .stable_node_id(node.node_id.0.clone())
+                    .stable_state_id(node.node_id.0.clone());
+            }
             return ui_node
-                .width(self.viewer_width_for_node(node))
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }

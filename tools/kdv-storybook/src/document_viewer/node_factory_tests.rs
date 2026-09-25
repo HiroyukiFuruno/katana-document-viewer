@@ -66,14 +66,25 @@ fn heading_node_preserves_viewer_inline_code_spans() {
 }
 
 #[test]
-fn interactive_text_without_source_line_count_uses_natural_height_and_viewer_width() {
+fn interactive_text_without_source_line_count_preserves_viewer_height_and_width() {
     let factory = KucNodeFactory::new(&[], 120);
     let node = viewer_node(ViewerNodeKind::Paragraph, "Body");
 
     let ui_node = factory.viewer_node(&node);
 
-    assert_eq!(UiDimension::Auto, ui_node.props().common.height);
+    assert_eq!(UiDimension::Px(32), ui_node.props().common.height);
     assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
+}
+
+#[test]
+fn interactive_text_preserves_non_line_quantized_viewer_height() {
+    let factory = KucNodeFactory::new(&[], 120);
+    let mut node = viewer_node(ViewerNodeKind::Paragraph, "Windows native body");
+    node.rect.height = 42.0;
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
 }
 
 #[test]
