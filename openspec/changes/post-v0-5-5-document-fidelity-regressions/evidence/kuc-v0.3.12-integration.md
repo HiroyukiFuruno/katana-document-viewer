@@ -1,0 +1,13 @@
+# KUC v0.3.12 registry integration (2026-09-23)
+
+Historical diagnostic snapshot. Superseded by the public KUC `=0.3.15`
+adoption and passing gates recorded in `dependency-maintenance.md` on
+2026-09-25; the versions and failures below describe only the 2026-09-23 state.
+
+- Published [GitHub Release](https://github.com/HiroyukiFuruno/katana-ui-core/releases/tag/v0.3.12) and crates.io `katana-ui-core 0.3.12` are available. The registry checksum and KDV `Cargo.lock` agree: `d976c727f10f5b46f9bc1b538ab8b6c4d3f8e007554c4edcc893061f1e742d17`.
+- KDV workspace and public crate manifests now require exact registry `=0.3.12`. The release contract self-test and actual v0.5.6 contract, V8 singleton (`152.2.0`), document-surface boundary, and focused manifest test pass. No path/git override was added.
+- The dependency refresh adopted 22 compatible lockfile updates. `cargo outdated --workspace --depth 1` found no direct update, `--depth 999` reported only alternate/removed platform-specific entries, and `cargo update --dry-run` subsequently reported 0 remaining compatible updates. Format, AST lint, and strict workspace Clippy passed before the 22-package refresh.
+- `just storybook-score-check` stops in the registry consumer suite: 658 passed, 1 failed, 21 ignored. `accordion_click_accepts_kuc_viewport_surface_hit` reproduces alone with `viewport_interaction_hits` returning 0 actions at scroll `5901.5`, root offset `0`, document height `28596`. The [KUC Issue #52 comment](https://github.com/HiroyukiFuruno/katana-ui-core/issues/52#issuecomment-5785806512) carries the reproduction and the 0.3.11→0.3.12 hit-collector diff for KUC ownership review.
+- The three canonical-reference tests pass. The strict direct `sample.md` export-surface diagram parity remains `90/95`, with row loss 190–205 at the Mermaid SVG and 137–140 at the list. This was also `90/95` before the KUC update and remains an open Issue #51 release gate.
+- Windows typography acceptance has not run against the updated branch; the current PR #50 Windows failure belongs to the prior `=0.3.11` HEAD. Do not close KUC Issue #52 or promote PR #50 based on macOS local results.
+- The first full workspace rebuild after the 22-package refresh failed while linking because the local volume had less than 1 GiB free (`errno=28`). The worktree-owned `cargo clean` removed 50.4 GiB of generated artifacts and restored 48 GiB free. The subsequent `cargo check --workspace --all-targets --all-features --locked` passed with the refreshed lockfile, leaving 38 GiB free. Re-run the full test, lint, and release checks after the remaining functional blockers are resolved; the first disk failure is not evidence of a source regression.

@@ -217,7 +217,7 @@ def self_test() -> None:
         "state": "OPEN",
         "body": "\n".join(
             (
-                "Upstream registry: katana-ui-core 0.3.12",
+                "Upstream registry: katana-ui-core 0.3.15",
                 "Migration: no API changes",
                 "Manifest: Cargo.toml",
                 "Lockfile: Cargo.lock",

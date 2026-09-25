@@ -287,3 +287,62 @@ consumer, and KatanA adoption remain separate release DoD items.
   and diagram-heavy parity, and all window/sidebar/hover/diagram/link/footnote/
   slideshow/search smokes pass. No threshold, reference provenance, or
   registry-source guard was weakened.
+
+## 2026-09-24 public KUC 0.3.13 candidate adoption
+
+- KUC PR #70 merged at `ef1d52ee4a8b7d9c9eaf09d6642d64e368c218cd`;
+  GitHub Release `v0.3.13` and crates.io `0.3.13` are public. The KDV workspace
+  and public crate require exact registry `=0.3.13`. The lockfile records
+  crates.io checksum
+  `8661e359c8af3f6f9e2249849dd0b4a94a2e6401d4eb91ded9fb36bf44a33b55`.
+  No path, git, or patch override is used. `just outdated` lists only the
+  unrelated target-specific or removed transitive entries.
+- The published KUC `0.3.12` and `0.3.13` copies of
+  `src/raster_host/ui_tree_canvas_hit.rs` are identical. The focused KDV
+  accordion viewport-hit test still fails with new interaction hits `0` and
+  document-clipped host hits `1` at scroll `5901.5`. The full Storybook run is
+  `658 passed / 1 failed / 21 ignored`, with only that test failing. KUC Issue
+  #52 has the registry-only evidence; `v0.3.13` is not treated as the hit fix.
+  Both ignored-by-default fast and diagram-heavy export-surface parity tests
+  pass against the unchanged independent KatanA references and score threshold.
+- KDV-local release contract and DoD self-tests, document-surface boundary,
+  library `1919 passed / 0 failed / 1 ignored`, strict all-target Clippy,
+  format, AST lint, semver `196/196`, V8 singleton `152.2.0`, and the local
+  KDV/KRR consumer link test pass. Strict release gate, Windows typography,
+  current-HEAD review, CI, publication, and fresh registry consumer remain open.
+- Read-only KDV/KUC boundary audit confirms the failing test calls KUC's raw
+  `viewport_interaction_hits`, while the actual root-offset-zero window path
+  uses cached document hits clipped to the viewport; that explains why the
+  window click/pixel test passes without making the raw-API regression safe to
+  discard. A plausible KUC cause is that incremental collection checks an
+  integer-measured position against `viewport_bottom`, while accordion hit
+  placement advances with the fractional typography line-box height. This is
+  an inference to validate in KUC, not a proved patch. The regression remains
+  enabled; KUC Issue #52 records the minimal repro and source locations.
+
+## 2026-09-25 public KUC 0.3.15 adoption
+
+- KUC `v0.3.15` is available as a GitHub Release and crates.io artifact. KDV's
+  workspace and public crate now require exact registry `=0.3.15`; the lockfile
+  records crates.io checksum
+  `cd5de2df8c926d39516f724a267d14988dd9742754d0bee3ed81753416c8df0a`.
+  No path, git, or patch override was introduced. The release-contract and DoD
+  self-tests and the release-target check pass with this dependency.
+- The previously failing `accordion_click_accepts_kuc_viewport_surface_hit`
+  passes against the public package. The full KDV Storybook suite reports
+  `659 passed / 0 failed / 21 expected ignored` (680 total), including the
+  independent KatanA visual-score cases. `cargo tree -d --locked` succeeds;
+  the V8 singleton/consumer-link verifier confirms one `v8 152.2.0`.
+- These are local candidate results, not final-HEAD or release evidence.
+  `just JOBS=2 check` and `just JOBS=2 VERSION=v0.5.6 release-check` then
+  passed. Strict coverage reports functions `3674/3674` and lines
+  `30127/30127`, both 100%; `cargo package` verified 893 files and
+  `cargo publish --dry-run --locked` passed without uploading. OpenSpec strict
+  validation passed for the release and Issue #51 changes. Current-HEAD PR
+  review, three-OS CI, GitHub Release/crates.io publication, and the fresh
+  public KDV consumer remain open.
+- `just storybook-score-check` also exits `0` on exact public KUC `0.3.15`:
+  independent KatanA sample crop, diagrams crop, and export PNG all satisfy
+  the unchanged 95-point threshold; fixture matrix (19), surface equivalence
+  (27), and both explicitly enabled fast/diagram-heavy export-surface parity
+  tests pass. This remains local candidate evidence until current-HEAD CI.

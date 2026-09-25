@@ -101,6 +101,10 @@ jobs:
       - name: Release verify
         run: |
           xvfb-run -a just storybook-release-acceptance-artifacts
+          mkdir -p "$RUNNER_TEMP/storybook-preview-crop-diagnostics"
+          cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"
+          cargo clean
+          cargo clean --target-dir target/llvm-cov-target
           xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify
 
       - name: Upload Storybook preview-crop diagnostics on failure
@@ -108,7 +112,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: storybook-preview-crop-diagnostics
-          path: target/acceptance/preview-crop-reference
+          path: |
+            target/acceptance/preview-crop-reference
+            ${{ runner.temp }}/storybook-preview-crop-diagnostics
           if-no-files-found: warn
 
       - name: Free release verification build outputs

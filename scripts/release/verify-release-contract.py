@@ -54,7 +54,7 @@ LINUX_SANDBOX_DEPENDENCIES = {
     "seccompiler": "0.5.0",
     "skarn-sandbox": "1.0.1",
 }
-KUC_VERSION = "0.3.11"
+KUC_VERSION = "0.3.15"
 KUC_DECLARED_VERSION = f"={KUC_VERSION}"
 MULTI_FORMAT_SOURCES = (
     "crates/katana-document-viewer/src/multi_format/artifact.rs",
@@ -571,20 +571,26 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
                 f"{label} must refresh static and live Storybook acceptance artifacts "
                 f"before the KDV {required_recipe} recipe."
             )
-        if label == "release preflight":
-            cleanup_commands = (
-                "cargo clean\n",
-                "cargo clean --target-dir target/llvm-cov-target",
+        preserve_position = workflow.find(
+            'cp -a target/acceptance/preview-crop-reference/. '
+            '"$RUNNER_TEMP/storybook-preview-crop-diagnostics/"',
+            artifact_position,
+        )
+        clean_position = workflow.find("cargo clean\n", artifact_position)
+        coverage_clean_position = workflow.find(
+            "cargo clean --target-dir target/llvm-cov-target", artifact_position
+        )
+        if not (
+            artifact_position
+            < preserve_position
+            < clean_position
+            < coverage_clean_position
+            < recipe_position
+        ):
+            errors.append(
+                f"{label} must preserve preview-crop diagnostics, then clear default "
+                f"and coverage build outputs before {required_recipe}."
             )
-            if any(
-                workflow.find(command) < artifact_position
-                or workflow.find(command) > recipe_position
-                for command in cleanup_commands
-            ):
-                errors.append(
-                    "release preflight must clear default and coverage build outputs "
-                    "after preserving diagnostics and before release-check."
-                )
         diagnostic_position = workflow.find(
             "name: Upload Storybook preview-crop diagnostics on failure"
         )
@@ -594,6 +600,7 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
             "uses: actions/upload-artifact@v4",
             "path:",
             "target/acceptance/preview-crop-reference",
+            "${{ runner.temp }}/storybook-preview-crop-diagnostics",
             "if-no-files-found: warn",
         )
         if diagnostic_position <= recipe_position or any(
@@ -811,6 +818,7 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
     release_preflight = "\n".join(
         (
             "xvfb-run -a just storybook-release-acceptance-artifacts",
+            'cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"',
             "cargo clean",
             "cargo clean --target-dir target/llvm-cov-target",
             'xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check',
@@ -818,18 +826,23 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             "if: failure()",
             "uses: actions/upload-artifact@v4",
             "path: target/acceptance/preview-crop-reference",
+            "${{ runner.temp }}/storybook-preview-crop-diagnostics",
             "if-no-files-found: warn",
         )
     )
     release_workflow = "\n".join(
         (
             "xvfb-run -a just storybook-release-acceptance-artifacts",
+            'cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"',
+            "cargo clean",
+            "cargo clean --target-dir target/llvm-cov-target",
             "uses: taiki-e/install-action@cargo-semver-checks",
             'xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-verify',
             "name: Upload Storybook preview-crop diagnostics on failure",
             "if: failure()",
             "uses: actions/upload-artifact@v4",
             "path: target/acceptance/preview-crop-reference",
+            "${{ runner.temp }}/storybook-preview-crop-diagnostics",
             "if-no-files-found: warn",
             "name: Create GitHub Release",
             "name: Clean up merged remote release branch",
@@ -849,6 +862,27 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
         release_preflight,
         release_workflow.replace(
             "uses: taiki-e/install-action@cargo-semver-checks\n", ""
+        ),
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace("cargo clean\n", ""),
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace("cargo clean --target-dir target/llvm-cov-target\n", ""),
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace(
+            'cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"\n',
+            "",
+        ),
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace(
+            "${{ runner.temp }}/storybook-preview-crop-diagnostics\n", ""
         ),
     )
     v8_cache_workflow = "\n".join(
