@@ -10,7 +10,7 @@ use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind, UiTextProps}
 
 impl KucNodeFactory<'_> {
     pub(super) fn table_node(&self, node: &ViewerNode) -> UiNode {
-        let Some(projection) = node.table_projection() else {
+        let Some(projection) = self.table_projections.get(&node.node_id.0) else {
             return self.text_node(node);
         };
         let row_heights = projection.row_heights(self.content_width, self.typography);
@@ -56,7 +56,7 @@ impl KucNodeFactory<'_> {
         .viewport(GridViewport::new(self.content_width, total_height))
         .overscan(projection.rows.len(), projection.column_count)
         .show_grid_lines(true);
-        let grid = match grid.with_cell_spans(table_grid_spans(&projection)) {
+        let grid = match grid.with_cell_spans(table_grid_spans(projection)) {
             Ok(grid) => grid,
             Err(_) => return self.text_node(node),
         };

@@ -161,6 +161,7 @@ mod tests {
             source: source("```mermaid\nA-->B\n```"),
             text: String::new(),
             spans: Vec::new(),
+            table_projection: None,
             reference: Some(ViewerAssetReference {
                 node_id: KmmNodeId("node-diagram".to_string()),
                 artifact_id,
@@ -372,6 +373,7 @@ mod tests {
             source: source("```mermaid\nA-->B\n```"),
             text: String::new(),
             spans: Vec::new(),
+            table_projection: None,
             reference: Some(ViewerAssetReference {
                 node_id: KmmNodeId("node-diagram".to_string()),
                 artifact_id,

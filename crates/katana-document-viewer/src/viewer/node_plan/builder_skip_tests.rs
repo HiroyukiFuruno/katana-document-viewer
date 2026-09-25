@@ -58,6 +58,7 @@ fn planned(
         source: source(text),
         text: text.to_string(),
         spans: Vec::new(),
+        table_projection: None,
         reference,
     }
 }

@@ -3,7 +3,7 @@ use crate::document_viewer::media_control_icons::KucMediaControlIconSet;
 use crate::document_viewer::node_labels::{CODE_FONT_ROLE, KucNodeLabels};
 use katana_document_viewer::{
     Artifact, DiagramViewportState, ViewerHtmlRole, ViewerInteractionConfig, ViewerNode,
-    ViewerNodeKind, ViewerTaskState, ViewerTypographyConfig,
+    ViewerNodeKind, ViewerTableProjection, ViewerTaskState, ViewerTypographyConfig,
 };
 use katana_ui_core::atom::{Divider, Text};
 use katana_ui_core::layout::{Alignment, Row, Stack};
@@ -34,6 +34,7 @@ pub(crate) struct KucNodeFactory<'a> {
     viewer_background: Option<RgbaChannels>,
     fullscreen_viewport_width: Option<u32>,
     fullscreen_viewport_height: Option<u32>,
+    table_projections: BTreeMap<String, ViewerTableProjection>,
 }
 
 impl<'a> KucNodeFactory<'a> {
@@ -61,7 +62,27 @@ impl<'a> KucNodeFactory<'a> {
             viewer_background: None,
             fullscreen_viewport_width: None,
             fullscreen_viewport_height: None,
+            table_projections: BTreeMap::new(),
         }
+    }
+
+    pub(crate) fn table_projections(
+        mut self,
+        projections: BTreeMap<String, ViewerTableProjection>,
+    ) -> Self {
+        self.table_projections = projections;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_table_projection(
+        mut self,
+        node_id: &str,
+        projection: ViewerTableProjection,
+    ) -> Self {
+        self.table_projections
+            .insert(node_id.to_owned(), projection);
+        self
     }
 
     pub(crate) fn interaction(mut self, value: ViewerInteractionConfig) -> Self {

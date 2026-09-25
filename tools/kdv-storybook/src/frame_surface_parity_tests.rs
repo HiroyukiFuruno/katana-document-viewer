@@ -9,7 +9,7 @@ use crate::preview_build_request::{PreviewBuildAssetMode, PreviewBuildRequest};
 use katana_document_viewer::{
     ViewerInteractionConfig, ViewerMode, ViewerSearchState, ViewerTarget, ViewerViewport,
 };
-use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind};
+use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind, UiVisualRole};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -179,12 +179,27 @@ fn katana_sample_export_surface_tree_preserves_explicit_diagram_wrapper_geometry
     let image_top_margin = SurfaceParitySupport::dimension_px(&image.props().common.margin.top);
     let image_height = SurfaceParitySupport::node_height_px(image);
     let wrapper_height = SurfaceParitySupport::node_height_px(diagram);
+    let display_height = i32::try_from(
+        image
+            .props()
+            .image_surface
+            .display_height_milli
+            .div_ceil(1000),
+    )?;
 
-    assert_eq!(EXPORT_MEDIA_VERTICAL_MARGIN_PX, image_top_margin);
+    assert_eq!(UiVisualRole::ExportMediaFrame, image.props().visual_role);
+    assert_eq!(
+        0, image_top_margin,
+        "KUC applies the export image top margin"
+    );
+    assert_eq!(
+        wrapper_height, image_height,
+        "the image clip uses the full wrapper"
+    );
     assert_eq!(
         wrapper_height,
-        image_height + EXPORT_MEDIA_VERTICAL_MARGIN_PX * 2,
-        "the export wrapper must explicitly preserve both diagram margins"
+        display_height + EXPORT_MEDIA_VERTICAL_MARGIN_PX * 2,
+        "the export wrapper reserves both diagram margins without clipping the image"
     );
     Ok(())
 }

@@ -1,6 +1,10 @@
 use super::KucNodeFactory;
 use super::node_factory_tests_support::{has_style_class, viewer_node};
-use katana_document_viewer::{ViewerDiagramKind, ViewerHtmlRole, ViewerNodeKind};
+use katana_document_viewer::{
+    ViewerDiagramKind, ViewerHtmlRole, ViewerNodeKind, ViewerTableAlignment,
+    ViewerTableCellProjection, ViewerTableProjection, ViewerTableRowProjection,
+    ViewerTableVerticalAlignment,
+};
 use katana_ui_core::render_model::{UiDimension, UiNodeKind, UiTone};
 
 #[test]
@@ -29,14 +33,22 @@ fn text_roles_cover_html_nodes() {
 
 #[test]
 fn structured_table_list_and_rule_nodes_use_typed_components() {
-    let factory = KucNodeFactory::new(&[], 120);
+    let table = viewer_node(ViewerNodeKind::Table, "flat source must not create cells");
+    let projection = ViewerTableProjection {
+        rows: vec![ViewerTableRowProjection {
+            cells: vec![ViewerTableCellProjection {
+                text: "A".to_string(),
+                alignment: ViewerTableAlignment::Unspecified,
+                vertical_alignment: ViewerTableVerticalAlignment::Center,
+                row_span: 1,
+                column_span: 1,
+            }],
+        }],
+        column_count: 1,
+    };
+    let factory = KucNodeFactory::new(&[], 120).with_table_projection(&table.node_id.0, projection);
 
-    assert_eq!(
-        UiNodeKind::Row,
-        factory
-            .viewer_node(&viewer_node(ViewerNodeKind::Table, "A | B"))
-            .kind()
-    );
+    assert_eq!(UiNodeKind::Row, factory.viewer_node(&table).kind());
     assert_eq!(
         UiNodeKind::Column,
         factory

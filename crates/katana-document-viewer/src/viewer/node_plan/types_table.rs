@@ -1,6 +1,9 @@
-use super::{ViewerNode, ViewerNodeKind};
+use crate::viewer::types::ViewerInput;
+use katana_markdown_model::{TableAlignment, TableNode, TableRow};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ViewerTableAlignment {
     Left,
     Center,
@@ -8,7 +11,7 @@ pub enum ViewerTableAlignment {
     Unspecified,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ViewerTableVerticalAlignment {
     Top,
     Center,
@@ -16,7 +19,7 @@ pub enum ViewerTableVerticalAlignment {
     Unspecified,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ViewerTableCellProjection {
     pub text: String,
     pub alignment: ViewerTableAlignment,
@@ -25,49 +28,54 @@ pub struct ViewerTableCellProjection {
     pub column_span: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ViewerTableRowProjection {
     pub cells: Vec<ViewerTableCellProjection>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ViewerTableProjection {
     pub rows: Vec<ViewerTableRowProjection>,
     pub column_count: usize,
 }
 
-impl ViewerNode {
+impl ViewerTableProjection {
     #[must_use]
-    pub fn table_projection(&self) -> Option<ViewerTableProjection> {
-        if !matches!(self.kind, ViewerNodeKind::Table) {
-            return None;
-        }
-        let alignments = table_alignments(&self.source.raw.text);
-        let mut projection = ViewerTableProjection::from_text(&self.text)?;
-        for row in &mut projection.rows {
-            for (column, cell) in row.cells.iter_mut().enumerate() {
-                cell.alignment = alignments
-                    .get(column)
-                    .copied()
-                    .unwrap_or(ViewerTableAlignment::Unspecified);
+    pub fn from_input(input: &ViewerInput) -> BTreeMap<String, Self> {
+        fn collect(
+            nodes: &[katana_markdown_model::KmmNode],
+            projections: &mut BTreeMap<String, ViewerTableProjection>,
+        ) {
+            for node in nodes {
+                if let katana_markdown_model::KmmNodeKind::Table(table) = &node.kind {
+                    projections.insert(node.id.0.clone(), ViewerTableProjection::from_kmm(table));
+                }
+                collect(&node.children, projections);
             }
         }
-        Some(projection)
+        let mut projections = BTreeMap::new();
+        collect(&input.snapshot.document.nodes, &mut projections);
+        projections
     }
-}
 
-impl ViewerTableProjection {
-    pub(crate) fn from_text(text: &str) -> Option<Self> {
-        let rows = text
-            .lines()
-            .map(table_cells)
-            .filter(|cells| !cells.is_empty() && !is_separator_row(cells))
-            .map(|cells| ViewerTableRowProjection {
-                cells: cells
-                    .into_iter()
-                    .map(|text| ViewerTableCellProjection {
-                        text,
-                        alignment: ViewerTableAlignment::Unspecified,
+    #[must_use]
+    pub fn from_kmm(table: &TableNode) -> Self {
+        let rows = table
+            .rows
+            .iter()
+            .filter(|row| !is_separator_row(row))
+            .map(|row| ViewerTableRowProjection {
+                cells: row
+                    .cells
+                    .iter()
+                    .enumerate()
+                    .map(|(column, cell)| ViewerTableCellProjection {
+                        text: cell.text.clone(),
+                        alignment: table
+                            .alignments
+                            .get(column)
+                            .map(table_alignment)
+                            .unwrap_or(ViewerTableAlignment::Unspecified),
                         vertical_alignment: ViewerTableVerticalAlignment::Center,
                         row_span: 1,
                         column_span: 1,
@@ -76,45 +84,27 @@ impl ViewerTableProjection {
             })
             .collect::<Vec<_>>();
         let column_count = rows.iter().map(|row| row.cells.len()).max().unwrap_or(0);
-        (!rows.is_empty() && column_count > 0).then_some(Self { rows, column_count })
+        Self { rows, column_count }
     }
 }
 
-fn table_alignments(raw: &str) -> Vec<ViewerTableAlignment> {
-    let separator = raw
-        .lines()
-        .map(table_cells)
-        .find(|cells| is_separator_row(cells));
-    separator
-        .into_iter()
-        .flatten()
-        .map(|cell| {
-            let value = cell.trim();
-            match (value.starts_with(':'), value.ends_with(':')) {
-                (true, true) => ViewerTableAlignment::Center,
-                (false, true) => ViewerTableAlignment::Right,
-                (true, false) => ViewerTableAlignment::Left,
-                (false, false) => ViewerTableAlignment::Unspecified,
-            }
-        })
-        .collect()
+const fn table_alignment(value: &TableAlignment) -> ViewerTableAlignment {
+    match value {
+        TableAlignment::Left => ViewerTableAlignment::Left,
+        TableAlignment::Center => ViewerTableAlignment::Center,
+        TableAlignment::Right => ViewerTableAlignment::Right,
+        TableAlignment::Unspecified => ViewerTableAlignment::Unspecified,
+    }
 }
 
-fn table_cells(line: &str) -> Vec<String> {
-    let mut cells = line.split('|').map(str::trim).collect::<Vec<_>>();
-    if cells.first().is_some_and(|cell| cell.is_empty()) {
-        cells.remove(0);
-    }
-    if cells.last().is_some_and(|cell| cell.is_empty()) {
-        cells.pop();
-    }
-    cells.into_iter().map(ToOwned::to_owned).collect()
-}
-
-fn is_separator_row(cells: &[String]) -> bool {
-    !cells.is_empty()
-        && cells.iter().all(|cell| {
-            !cell.is_empty() && cell.chars().all(|character| matches!(character, '-' | ':'))
+fn is_separator_row(row: &TableRow) -> bool {
+    !row.cells.is_empty()
+        && row.cells.iter().all(|cell| {
+            let value = cell.text.trim();
+            !value.is_empty()
+                && value
+                    .chars()
+                    .all(|character| matches!(character, '-' | ':'))
         })
 }
 

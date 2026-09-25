@@ -62,6 +62,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
             source: previous.source.clone(),
             text: previous.text.clone(),
             spans: previous.spans.clone(),
+            table_projection: None,
             reference: None,
         }
     }

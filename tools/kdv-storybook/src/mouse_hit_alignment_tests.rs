@@ -305,19 +305,19 @@ fn visible_viewport_action_hit(
     predicate: impl Fn(&UiTreeHostActionHit) -> bool,
 ) -> Result<UiTreeHostActionHit, Box<dyn std::error::Error>> {
     let tree_offset = scene.tree.root().props().scroll_area.offset_y as f32;
-    let (hits, _) = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
-        .viewport_interaction_hits(
-            scene.tree.root(),
-            UiTreeRenderArea {
-                x: 0,
-                y: 0,
-                width: crate::layout::preview_content_width(WINDOW_WIDTH),
-                height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
-                scroll_y: (scroll_y - tree_offset).max(0.0),
-            },
-        );
+    let host = KucThemeBridge::document_host(scene.theme.clone(), scene.typography);
+    let area = UiTreeRenderArea {
+        x: 0,
+        y: 0,
+        width: crate::layout::preview_content_width(WINDOW_WIDTH),
+        height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
+        scroll_y: (scroll_y - tree_offset).max(0.0),
+    };
+    let (hits, _) = host.viewport_interaction_hits(scene.tree.root(), area);
+    let hit_count = hits.len();
+    let matching_count = hits.iter().filter(|hit| predicate(hit)).count();
     hits.into_iter()
-        .filter(predicate)
+        .filter(|hit| predicate(hit))
         .find_map(|mut hit| {
             hit.rect.y = hit.rect.y.saturating_add(
                 DocumentPoint::effective_scroll_y(scene, scroll_y)
@@ -326,5 +326,17 @@ fn visible_viewport_action_hit(
             );
             (hit.rect.width > 0 && hit.rect.height > 0).then_some(hit)
         })
-        .ok_or_else(|| std::io::Error::other("missing visible KUC viewport action hit").into())
+        .ok_or_else(|| {
+            let document_clipped_hits = host.viewport_host_action_hits(scene.tree.root(), area);
+            let document_clipped_matching_count = document_clipped_hits
+                .iter()
+                .filter(|hit| predicate(hit))
+                .count();
+            std::io::Error::other(format!(
+                "missing visible KUC viewport action hit: hits={hit_count}, matching={matching_count}, document_clipped_hits={}, document_clipped_matching={document_clipped_matching_count}, scroll_y={scroll_y}, tree_offset={tree_offset}, content_height={}",
+                document_clipped_hits.len(),
+                scene.content_height
+            ))
+            .into()
+        })
 }

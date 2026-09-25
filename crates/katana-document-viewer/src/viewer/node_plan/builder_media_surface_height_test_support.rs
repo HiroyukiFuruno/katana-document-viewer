@@ -53,6 +53,7 @@ pub(super) fn planned_node(kind: ViewerNodeKind, text: &str, node: &KmmNode) -> 
         source: source(""),
         text: text.to_string(),
         spans: Vec::new(),
+        table_projection: None,
         reference: None,
     }
 }

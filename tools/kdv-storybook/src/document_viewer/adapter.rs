@@ -2,7 +2,7 @@ use super::adapter_slideshow;
 use super::adapter_types::{KucViewerAdapter, KucViewerPlan};
 use crate::document_viewer::config::KucViewerConfig;
 use crate::document_viewer::node_factory::KucNodeFactory;
-use katana_document_viewer::{PreviewOutput, ViewerNode, ViewerNodeKind};
+use katana_document_viewer::{PreviewOutput, ViewerNode, ViewerNodeKind, ViewerTableProjection};
 use katana_document_viewer::{ViewerNodePlan, ViewerNodePlanner};
 use katana_ui_core::atom::Text;
 use katana_ui_core::layout::{Column, ScrollArea, ScrollAxis};
@@ -157,6 +157,7 @@ impl KucViewerAdapter {
         media_max_width: u32,
     ) -> KucNodeFactory<'a> {
         KucNodeFactory::new(&output.input.artifacts, content_width)
+            .table_projections(ViewerTableProjection::from_input(&output.input))
             .with_media_max_width(media_max_width)
             .typography(output.input.typography)
             .interaction(config.interaction.clone())

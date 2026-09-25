@@ -13,7 +13,7 @@ use katana_ui_core::render_model::{
 const DIAGRAM_CONTROL_MARGIN_PX: u16 = 8;
 const FULLSCREEN_CLOSE_CONTROL_MARGIN_PX: u16 = 20;
 const KATANA_MIN_CONTROL_CONTAINER_HEIGHT_PX: u16 = 145;
-const EXPORT_MEDIA_VERTICAL_MARGIN_PX: u16 = 18;
+pub(super) const EXPORT_MEDIA_VERTICAL_MARGIN_PX: u16 = 18;
 const DISPLAY_SIZE_MILLI: f32 = 1000.0;
 const CONTENT_SCALE_PERCENT: u64 = 100;
 
@@ -92,15 +92,10 @@ impl<'a> KucNodeFactory<'a> {
         };
         let container_height = Self::media_control_container_height(&media);
         if visual_role == UiVisualRole::ExportMediaFrame {
-            let content_height =
-                container_height.saturating_sub(EXPORT_MEDIA_VERTICAL_MARGIN_PX.saturating_mul(2));
+            // KUC の描画器が上余白を付与し、子ノードの高さでクリップする。
             let media = media
-                .height(UiDimension::px(content_height))
-                .position(UiPosition::Absolute)
-                .margin(UiEdgeInsets {
-                    top: UiDimension::Px(EXPORT_MEDIA_VERTICAL_MARGIN_PX),
-                    ..UiEdgeInsets::default()
-                });
+                .height(UiDimension::px(container_height))
+                .position(UiPosition::Absolute);
             return UiNode::from(Stack::new().child(media))
                 .height(UiDimension::px(container_height))
                 .visual_role(UiVisualRole::ExportMediaFrame);

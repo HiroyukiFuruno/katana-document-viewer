@@ -54,7 +54,7 @@ impl ViewerMediaHeight {
         typography: ViewerTypographyConfig,
         content_width: u32,
     ) -> Option<f32> {
-        matches!(planned.kind, ViewerNodeKind::List | ViewerNodeKind::Table).then(|| {
+        matches!(planned.kind, ViewerNodeKind::List).then(|| {
             Self::block_text_height(&planned.kind, &planned.text, typography, content_width)
         })
     }

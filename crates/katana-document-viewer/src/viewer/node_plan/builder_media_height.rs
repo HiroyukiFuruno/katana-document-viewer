@@ -108,6 +108,9 @@ impl ViewerMediaHeight {
                 Self::svg_height(context.artifacts, context.planned, MATH_MAX_WIDTH)
                     .unwrap_or(MATH_FALLBACK_HEIGHT)
             }
+            ViewerNodeKind::Table => {
+                Self::table_height(context.planned, context.typography, context.content_width)
+            }
             ViewerNodeKind::Image => {
                 Self::image_or_text_height(context.artifacts, context.planned, context.typography)
             }
@@ -145,6 +148,16 @@ impl ViewerMediaHeight {
     ) -> f32 {
         Self::image_height(artifacts, planned).unwrap_or_else(|| {
             ViewerNodeMetrics::block_height(&planned.kind, &planned.text, typography)
+        })
+    }
+
+    fn table_height(
+        planned: &PlannedNode,
+        typography: ViewerTypographyConfig,
+        content_width: u32,
+    ) -> f32 {
+        planned.table_projection.as_ref().map_or(0.0, |projection| {
+            ViewerNodeMetrics::table_block_height(projection, typography, content_width as usize)
         })
     }
 
@@ -204,6 +217,7 @@ mod tests {
             source: source("paragraph"),
             text: "paragraph".to_string(),
             spans: Vec::new(),
+            table_projection: None,
             reference: None,
         };
         let typography = ViewerTypographyConfig {
@@ -277,6 +291,7 @@ mod tests {
             source: source("```mermaid\ngantt\n```"),
             text: String::new(),
             spans: Vec::new(),
+            table_projection: None,
             reference: Some(ViewerAssetReference {
                 node_id: KmmNodeId("node-diagram".to_string()),
                 artifact_id,

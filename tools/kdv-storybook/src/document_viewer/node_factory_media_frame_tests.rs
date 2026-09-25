@@ -194,7 +194,7 @@ fn export_surface_diagram_frame_keeps_export_media_role_when_controls_are_hidden
 }
 
 #[test]
-fn export_surface_diagram_frame_includes_export_vertical_margins_when_controls_are_hidden() {
+fn export_surface_diagram_frame_uses_one_renderer_owned_vertical_margin() {
     let factory = KucNodeFactory::new(&[], DIAGRAM_MEDIA_MAX_WIDTH)
         .export_surface(true)
         .interaction(ViewerInteractionConfig {
@@ -227,12 +227,20 @@ fn export_surface_diagram_frame_includes_export_vertical_margins_when_controls_a
     );
     let image = framed.children().first().kuc_expect("export image child");
     assert_eq!(UiNodeKind::ImageSurface, image.kind());
-    assert_eq!(UiDimension::Px(18), image.props().common.margin.top);
-    assert_eq!(UiDimension::Px(153), image.props().common.height);
+    assert_eq!(
+        UiDimension::Px(0),
+        image.props().common.margin.top,
+        "the KUC ExportMediaFrame renderer owns the 18px image offset; the adapter must not apply it again"
+    );
+    assert_eq!(
+        UiDimension::Px(189),
+        image.props().common.height,
+        "the KUC image clip must include the renderer-owned top and bottom space"
+    );
     assert_eq!(
         189,
         18 + 153 + 18,
-        "wrapper geometry must explicitly account for the image and both margins"
+        "wrapper geometry must reserve the image and both renderer-owned margins"
     );
 }
 

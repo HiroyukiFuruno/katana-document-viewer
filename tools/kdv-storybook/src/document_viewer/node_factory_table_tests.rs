@@ -11,20 +11,17 @@ use katana_ui_core::render_model::{UiDimension, UiNodeKind};
 #[test]
 fn table_node_preserves_rows_cells_alignment_wrapping_and_geometry()
 -> Result<(), Box<dyn std::error::Error>> {
-    let factory = KucNodeFactory::new(&[], 320);
     let mut node = viewer_node(
         ViewerNodeKind::Table,
-        "Left | Center | Right\nA | long long long | C",
+        "flattened text must not rebuild table cells",
     );
-    node.source.raw = RawSnippet::new(
-        "| Left | Center | Right |\n| :--- | :---: | ---: |\n| A | long long long | C |",
-    );
-    node.rect.height = node
-        .table_projection()
-        .ok_or("table projection")?
+    node.source.raw = RawSnippet::new("| mismatched | source |");
+    let projection = table_projection();
+    node.rect.height = projection
         .row_heights(320, Default::default())
         .into_iter()
         .sum::<u32>() as f32;
+    let factory = KucNodeFactory::new(&[], 320).with_table_projection(&node.node_id.0, projection);
 
     let rendered = factory.viewer_node(&node);
 
@@ -68,6 +65,38 @@ fn table_node_preserves_rows_cells_alignment_wrapping_and_geometry()
             .all(|cell| cell.row_span == 1 && cell.column_span == 1)
     );
     Ok(())
+}
+
+fn table_projection() -> ViewerTableProjection {
+    ViewerTableProjection {
+        rows: vec![
+            ViewerTableRowProjection {
+                cells: vec![
+                    table_cell("Left", ViewerTableAlignment::Left),
+                    table_cell("Center", ViewerTableAlignment::Center),
+                    table_cell("Right", ViewerTableAlignment::Right),
+                ],
+            },
+            ViewerTableRowProjection {
+                cells: vec![
+                    table_cell("A", ViewerTableAlignment::Left),
+                    table_cell("long long long", ViewerTableAlignment::Center),
+                    table_cell("C", ViewerTableAlignment::Right),
+                ],
+            },
+        ],
+        column_count: 3,
+    }
+}
+
+fn table_cell(text: &str, alignment: ViewerTableAlignment) -> ViewerTableCellProjection {
+    ViewerTableCellProjection {
+        text: text.to_owned(),
+        alignment,
+        vertical_alignment: ViewerTableVerticalAlignment::Center,
+        row_span: 1,
+        column_span: 1,
+    }
 }
 
 #[test]

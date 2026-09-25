@@ -88,6 +88,7 @@ fn span_text_height_is_none_when_no_spans_and_no_text() {
         source: source(""),
         text: String::new(),
         spans: Vec::new(),
+        table_projection: None,
         reference: None,
     };
 
@@ -111,6 +112,7 @@ fn text_height_falls_back_to_block_height_for_empty_paragraph() {
         source: source(""),
         text: String::new(),
         spans: Vec::new(),
+        table_projection: None,
         reference: None,
     };
     let typography = ViewerTypographyConfig {
@@ -128,6 +130,7 @@ fn span_text_height_uses_plain_span_for_empty_spans_and_non_empty_text() {
         source: source("source"),
         text: "fallback text".to_string(),
         spans: Vec::new(),
+        table_projection: None,
         reference: None,
     };
     let typography = ViewerTypographyConfig {
@@ -147,6 +150,7 @@ fn planned_node(kind: ViewerNodeKind, text: &str, font: usize) -> PlannedNode {
         source: source(text),
         text: text.to_string(),
         spans: vec![ViewerTextSpan::plain("x")],
+        table_projection: None,
         reference: None,
     }
 }

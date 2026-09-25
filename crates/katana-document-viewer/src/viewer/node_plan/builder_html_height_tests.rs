@@ -1,6 +1,6 @@
 use super::{ViewerNodeKind, ViewerNodePlanner};
 use crate::{KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX, ViewerHtmlRole};
-use katana_markdown_model::{HeadingNode, HtmlBlockRole, KmmNodeKind, TableNode};
+use katana_markdown_model::{HeadingNode, HtmlBlockRole, KmmNodeKind, TableAlignment, TableNode};
 
 use super::html_height_test_support::{input_with_font_size, input_with_nodes, node, table_row};
 
@@ -74,6 +74,65 @@ fn planner_uses_rendered_rect_width_for_table_height() {
         132.0, plan.nodes[0].rect.height,
         "table height must be measured against the rendered row width, not the wider host viewport"
     );
+}
+
+#[test]
+fn planner_preserves_typed_table_cells_and_alignment_without_raw_text_parsing()
+-> Result<(), Box<dyn std::error::Error>> {
+    let table = typed_table_fixture();
+    let projection = crate::ViewerTableProjection::from_kmm(&table);
+    let input = input_with_nodes(vec![node(
+        KmmNodeKind::Table(table),
+        "| unrelated flattened source |",
+        Vec::new(),
+    )]);
+
+    let plan = ViewerNodePlanner::create(&input, 0.0);
+
+    assert_eq!(2, projection.rows.len());
+    assert_eq!("Typed header", projection.rows[0].cells[0].text);
+    assert_eq!("Right body", projection.rows[1].cells[1].text);
+    assert_eq!(
+        crate::ViewerTableAlignment::Right,
+        projection.rows[1].cells[1].alignment
+    );
+    assert_eq!(
+        projection
+            .row_heights(plan.nodes[0].rect.width as u32, input.typography)
+            .into_iter()
+            .sum::<u32>() as f32,
+        plan.nodes[0].rect.height
+    );
+    Ok(())
+}
+
+fn typed_table_fixture() -> TableNode {
+    TableNode {
+        alignments: vec![TableAlignment::Left, TableAlignment::Right],
+        rows: vec![
+            table_row(&["Typed header", "Aligned header"]),
+            table_row(&["---", "---:"]),
+            table_row(&["Typed body", "Right body"]),
+        ],
+    }
+}
+
+#[test]
+fn typed_table_projection_map_uses_snapshot_node_id() -> Result<(), &'static str> {
+    let input = input_with_nodes(vec![node(
+        KmmNodeKind::Table(typed_table_fixture()),
+        "| source text is not the typed table |",
+        Vec::new(),
+    )]);
+    let plan = ViewerNodePlanner::create(&input, 0.0);
+    let projections = crate::ViewerTableProjection::from_input(&input);
+    let projection = projections
+        .get(&plan.nodes[0].node_id.0)
+        .ok_or("typed projection by node id")?;
+
+    assert_eq!("Typed header", projection.rows[0].cells[0].text);
+    assert_eq!("Right body", projection.rows[1].cells[1].text);
+    Ok(())
 }
 
 #[test]

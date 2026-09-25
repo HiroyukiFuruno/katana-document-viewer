@@ -1,12 +1,9 @@
 use super::*;
-use crate::{
-    ByteRange, KmmNodeId, LineColumn, LineColumnRange, RawSnippet, SourceSpan, ViewerRect,
-    ViewerTypographyConfig,
-};
+use crate::ViewerTypographyConfig;
 
 #[test]
 fn table_projection_preserves_rows_alignment_and_export_geometry() -> Result<(), &'static str> {
-    let projection = table_node().table_projection().ok_or("table projection")?;
+    let projection = table_projection();
     assert_eq!(2, projection.rows.len());
     assert_eq!(3, projection.column_count);
     assert_alignments(&projection);
@@ -28,30 +25,12 @@ fn table_projection_preserves_rows_alignment_and_export_geometry() -> Result<(),
 }
 
 #[test]
-fn table_projection_rejects_non_tables_and_empty_geometry() -> Result<(), &'static str> {
-    let mut node = table_node();
-    node.kind = ViewerNodeKind::Paragraph;
-    assert!(node.table_projection().is_none());
-
+fn empty_table_projection_has_no_geometry() {
     let projection = ViewerTableProjection {
         rows: Vec::new(),
         column_count: 0,
     };
     assert!(projection.column_widths(640).is_empty());
-    assert!(ViewerTableProjection::from_text("| --- |\n").is_none());
-
-    let mut unaligned = table_node();
-    unaligned.source.raw = RawSnippet::new("| Value |\n| --- |\n| 1 |");
-    assert_eq!(
-        ViewerTableAlignment::Unspecified,
-        unaligned
-            .table_projection()
-            .ok_or("unaligned table projection")?
-            .rows[0]
-            .cells[0]
-            .alignment
-    );
-    Ok(())
 }
 
 fn assert_alignments(projection: &ViewerTableProjection) {
@@ -69,37 +48,34 @@ fn assert_alignments(projection: &ViewerTableProjection) {
     );
 }
 
-fn table_node() -> ViewerNode {
-    ViewerNode {
-        node_id: KmmNodeId("table".to_owned()),
-        kind: ViewerNodeKind::Table,
-        source: table_source(),
-        text: "Left | Center | Right\nA | long long long | C".to_owned(),
-        spans: Vec::new(),
-        html_margin_left_px: 0,
-        rule_line_offset_px: 0,
-        rect: ViewerRect {
-            x: 0.0,
-            y: 0.0,
-            width: 1_168.0,
-            height: 104.0,
-        },
-        artifact_id: None,
+fn table_projection() -> ViewerTableProjection {
+    ViewerTableProjection {
+        rows: vec![
+            ViewerTableRowProjection {
+                cells: vec![
+                    cell("Left", ViewerTableAlignment::Left),
+                    cell("Center", ViewerTableAlignment::Center),
+                    cell("Right", ViewerTableAlignment::Right),
+                ],
+            },
+            ViewerTableRowProjection {
+                cells: vec![
+                    cell("A", ViewerTableAlignment::Left),
+                    cell("long long long", ViewerTableAlignment::Center),
+                    cell("C", ViewerTableAlignment::Right),
+                ],
+            },
+        ],
+        column_count: 3,
     }
 }
 
-fn table_source() -> SourceSpan {
-    SourceSpan {
-        byte_range: ByteRange { start: 0, end: 77 },
-        line_column_range: LineColumnRange {
-            start: LineColumn { line: 1, column: 1 },
-            end: LineColumn {
-                line: 3,
-                column: 27,
-            },
-        },
-        raw: RawSnippet::new(
-            "| Left | Center | Right |\n| :--- | :---: | ---: |\n| A | long long long | C |",
-        ),
+fn cell(text: &str, alignment: ViewerTableAlignment) -> ViewerTableCellProjection {
+    ViewerTableCellProjection {
+        text: text.to_owned(),
+        alignment,
+        vertical_alignment: ViewerTableVerticalAlignment::Center,
+        row_span: 1,
+        column_span: 1,
     }
 }
