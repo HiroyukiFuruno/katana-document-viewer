@@ -31,6 +31,8 @@ delegation-exception: `直列のクリティカルパス` / file:
 
 ## 5. Verification, dependency maintenance, and release
 
+- [/] 2026-09-25 PR #50 HEAD `af00cbd` の追加P1: `core.hooksPath=.githooks`のような相対指定を絶対managed pathと文字列比較すると、managed hook自身をdelegateに設定して再帰実行する。実ファイル同一性で判定し、既存の自己委譲設定を再導入時に除去する候補を追加。独立Git fixtureで相対path・冪等再導入・既存自己委譲からの回復・外部legacy hook保持をRED→GREENで検証し、`just release-governance-check`とBash構文検査はPASS。commit/push、current-HEAD review、P1 thread reply/resolve、3OS/preflightは未完了。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/pull/50#discussion_r4103780432>; verify: `rtk proxy just release-governance-check`。delegation-exception: `直列のクリティカルパス`。
+
 - [/] 2026-09-25 PR #50 HEAD `18f86c9` の追加P1: merge判定後からremote branch削除までに第三者がpushした場合、無条件deleteで未検証のtipを消し得る。確認したremote tipのOIDを`--force-with-lease`へ指定する候補を実装し、独立bare Git remoteで介在push時の削除拒否と最新tip再確認後の削除を検証した。`just release-governance-check` PASS。commit/push、current-HEAD review、P1 thread reply/resolve、3OS/preflightは未完了。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/pull/50#discussion_r4103364052>; verify: `rtk proxy just release-governance-check`。delegation-exception: `直列のクリティカルパス`。
 
 - [/] 2026-09-25 PR #50 review追補: P1 remote cleanup は `git fetch origin <branch>` が `FETCH_HEAD` のみを更新するため、古い `origin/<branch>` でmerge判定し得る。明示 refspecでdefault/release両remote-tracking refを更新する候補を、self-test RED→GREENと`just release-governance-check`で検証。P2 保存済み XLSX filter 値の上限追加は、単独では大きいworkbookを開けるようにせず既存受理条件を変えるため、今回実装しない根拠をreview threadに返信して個別resolve済み。P1候補は未commit/未pushで、current-HEAD review/CIは再実行が必要。証跡: <https://github.com/HiroyukiFuruno/katana-document-viewer/pull/50#discussion_r4100526437>; verify: `rtk proxy just release-governance-check`。delegation-exception: `直列のクリティカルパス`。

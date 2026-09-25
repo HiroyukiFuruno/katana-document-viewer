@@ -298,6 +298,7 @@ def self_test() -> None:
     _self_test_new_branch_range()
     _self_test_delegate_failure()
     _self_test_delegate_replays_updates()
+    _self_test_hook_installer()
 
 
 def _self_test_validate_update(issue: dict[str, object]) -> None:
@@ -460,6 +461,50 @@ def _self_test_delegate_replays_updates() -> None:
         )
         assert completed.returncode != 0
         assert "pre-push input must contain" in completed.stdout
+
+
+def _self_test_hook_installer() -> None:
+    source = Path(__file__).resolve().parents[2]
+    installer = source / "scripts/release/install-governance-hook.sh"
+    with tempfile.TemporaryDirectory(prefix="kdv-hook-install-") as directory:
+        fixture = Path(directory)
+        managed_hook = fixture / ".githooks/pre-push"
+        managed_hook.parent.mkdir()
+        shutil.copy2(source / ".githooks/pre-push", managed_hook)
+        previous = Path.cwd()
+        try:
+            os.chdir(fixture)
+            run(["git", "init", "--initial-branch=master", "--quiet"])
+            run(["git", "config", "core.hooksPath", ".githooks"])
+            for _ in range(2):
+                run(["bash", str(installer)])
+                configured_path = Path(run(["git", "config", "--get", "core.hooksPath"]).strip())
+                assert configured_path.resolve() == managed_hook.parent.resolve()
+                assert subprocess.run(
+                    ["git", "config", "--get", "kdv.pre-push-delegate"],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                ).returncode == 1, "managed hook delegated to itself"
+
+            run(["git", "config", "kdv.pre-push-delegate", str(managed_hook.resolve())])
+            run(["bash", str(installer)])
+            assert subprocess.run(
+                ["git", "config", "--get", "kdv.pre-push-delegate"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ).returncode == 1, "an existing self-delegate was not cleared"
+
+            legacy_hook = fixture / "legacy-hooks/pre-push"
+            legacy_hook.parent.mkdir()
+            shutil.copy2(source / ".githooks/pre-push", legacy_hook)
+            run(["git", "config", "core.hooksPath", "legacy-hooks"])
+            run(["bash", str(installer)])
+            configured_delegate = Path(run(["git", "config", "--get", "kdv.pre-push-delegate"]).strip())
+            assert configured_delegate.resolve() == legacy_hook.resolve()
+        finally:
+            os.chdir(previous)
 
 
 def main() -> int:

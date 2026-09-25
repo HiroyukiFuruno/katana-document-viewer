@@ -3,11 +3,16 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 managed_path="$root/.githooks"
-previous_path="$(git config --get core.hooksPath || true)"
+managed_hook="$managed_path/pre-push"
 existing_hook="$(git rev-parse --path-format=absolute --git-path hooks/pre-push)"
+configured_delegate="$(git config --get kdv.pre-push-delegate || true)"
 delegate=""
 
-if [[ "$previous_path" != "$managed_path" && -x "$existing_hook" ]]; then
+if [[ -n "$configured_delegate" && "$configured_delegate" -ef "$managed_hook" ]]; then
+  git config --unset kdv.pre-push-delegate
+fi
+
+if [[ -x "$existing_hook" && ! "$existing_hook" -ef "$managed_hook" ]]; then
   delegate="$existing_hook"
 fi
 
