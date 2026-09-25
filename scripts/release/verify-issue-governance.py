@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -191,7 +192,7 @@ def validate_update(
     repository: str,
     default: str,
 ) -> list[str]:
-    if local_sha == ZERO_SHA or remote_ref == f"refs/heads/{default}":
+    if local_sha == ZERO_SHA or not remote_ref.startswith("refs/heads/") or remote_ref == f"refs/heads/{default}":
         return []
     files = changed_files(local_sha, remote_sha)
     errors = manifest_override_errors(files, local_sha)
@@ -312,6 +313,14 @@ def _self_test_validate_update(issue: dict[str, object]) -> None:
         globals()["issue_payload"] = lambda _repository, _number: issue
         globals()["manifest_override_errors"] = lambda _files, _sha: []
         assert not validate_update(
+            local_ref="refs/tags/v0.5.6",
+            local_sha="a" * 40,
+            remote_ref="refs/tags/v0.5.6",
+            remote_sha=ZERO_SHA,
+            repository="HiroyukiFuruno/katana-document-viewer",
+            default="master",
+        )
+        assert not validate_update(
             local_ref="refs/heads/release/v0.5.6",
             local_sha="a" * 40,
             remote_ref="refs/heads/release/v0.5.6",
@@ -414,20 +423,40 @@ def _self_test_delegate_failure() -> None:
 def _self_test_delegate_replays_updates() -> None:
     root = Path(__file__).resolve().parents[2]
     with tempfile.TemporaryDirectory() as directory:
-        delegate = Path(directory) / "consume-stdin"
+        fixture = Path(directory)
+        previous = Path.cwd()
+        try:
+            os.chdir(fixture)
+            run(["git", "init", "--initial-branch=master", "--quiet"])
+            run(["git", "config", "user.name", "KDV Self Test"])
+            run(["git", "-c", "user.email=kdv-self-test@example.invalid", "commit", "--allow-empty", "--quiet", "-m", "base"])
+            run(["git", "remote", "add", "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"])
+            base = run(["git", "rev-parse", "HEAD"]).strip()
+            run(["git", "update-ref", "refs/remotes/origin/master", base])
+            run(["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master"])
+        finally:
+            os.chdir(previous)
+        hook = fixture / ".githooks/pre-push"
+        validator = fixture / "scripts/release/verify-issue-governance.py"
+        hook.parent.mkdir(parents=True)
+        validator.parent.mkdir(parents=True)
+        shutil.copyfile(root / ".githooks/pre-push", hook)
+        shutil.copyfile(Path(__file__), validator)
+        hook.chmod(0o700)
+        delegate = fixture / "consume-stdin"
         delegate.write_text("#!/bin/sh\ncat >/dev/null\n", encoding="utf-8")
         delegate.chmod(0o700)
         environment = os.environ.copy()
         environment["KDV_PRE_PUSH_DELEGATE"] = str(delegate)
         completed = subprocess.run(
-            [str(root / ".githooks/pre-push"), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
+            [str(hook), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
             check=False,
             input="invalid update\n",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             env=environment,
-            cwd=root,
+            cwd=fixture,
         )
         assert completed.returncode != 0
         assert "pre-push input must contain" in completed.stdout
