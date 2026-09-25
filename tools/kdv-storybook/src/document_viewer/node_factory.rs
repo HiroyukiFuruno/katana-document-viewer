@@ -291,11 +291,12 @@ impl<'a> KucNodeFactory<'a> {
             && !self.export_surface
             && let Some(height) = self.interactive_paragraph_height(node)
         {
-            return ui_node
-                .width(self.viewer_width_for_node(node))
-                .height(height)
-                .stable_node_id(node.node_id.0.clone())
-                .stable_state_id(node.node_id.0.clone());
+            return Self::interactive_text_row(
+                ui_node,
+                node,
+                self.viewer_width_for_node(node),
+                height,
+            );
         }
         if (ui_node.kind() == UiNodeKind::Text
             || matches!(node.kind, ViewerNodeKind::List)
@@ -419,6 +420,28 @@ impl<'a> KucNodeFactory<'a> {
         wrapper
             .common(common)
             .visual_role(visual_role)
+            .width(width)
+            .height(height)
+            .stable_node_id(node_id.clone())
+            .stable_state_id(node_id)
+    }
+
+    fn interactive_text_row(
+        ui_node: UiNode,
+        node: &ViewerNode,
+        width: UiDimension,
+        height: UiDimension,
+    ) -> UiNode {
+        let node_id = node.node_id.0.clone();
+        let text = ui_node.width(width.clone()).height(height.clone());
+        let wrapper: UiNode = Stack::new().child(text).into();
+        let common = wrapper
+            .props()
+            .common
+            .clone()
+            .semantic_node_id(node_id.clone());
+        wrapper
+            .common(common)
             .width(width)
             .height(height)
             .stable_node_id(node_id.clone())

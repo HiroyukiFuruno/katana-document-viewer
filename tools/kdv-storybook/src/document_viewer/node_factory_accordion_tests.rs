@@ -81,7 +81,19 @@ fn accordion_with_override(raw: &str, open: bool) -> katana_ui_core::render_mode
 
 fn accordion_body_label(ui_node: &katana_ui_core::render_model::UiNode) -> String {
     let body_column = &ui_node.children()[0];
-    body_column.children()[0].props().label.clone()
+    first_label(&body_column.children()[0])
+}
+
+fn first_label(ui_node: &katana_ui_core::render_model::UiNode) -> String {
+    if ui_node.kind() != UiNodeKind::Stack && !ui_node.props().label.is_empty() {
+        return ui_node.props().label.clone();
+    }
+    ui_node
+        .children()
+        .iter()
+        .map(first_label)
+        .find(|label| !label.is_empty())
+        .unwrap_or_default()
 }
 
 fn nested_labels(ui_node: &katana_ui_core::render_model::UiNode) -> Vec<String> {

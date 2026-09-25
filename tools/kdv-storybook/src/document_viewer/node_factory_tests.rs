@@ -97,6 +97,7 @@ fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline() {
 
     let ui_node = factory.viewer_node(&node);
 
+    assert_eq!(UiNodeKind::Stack, ui_node.kind());
     assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
     assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
 }
