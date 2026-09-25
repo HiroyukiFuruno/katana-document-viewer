@@ -9,6 +9,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn worker_returns_initial_and_refresh_frames() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request("<button>Run</button>")?);
 
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
@@ -20,6 +21,7 @@ fn worker_returns_initial_and_refresh_frames() -> TestResult {
 
 #[test]
 fn worker_forwards_resize_and_explicit_navigation() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request("<p>Initial</p>")?);
 
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
@@ -36,6 +38,7 @@ fn worker_forwards_resize_and_explicit_navigation() -> TestResult {
 
 #[test]
 fn worker_forwards_input_and_publishes_runtime_link_navigation() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request(
         "<a href=linked.html style=\"min-height: 80px; padding: 8px\">Next</a>",
     )?);

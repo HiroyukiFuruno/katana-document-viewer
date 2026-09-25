@@ -20,6 +20,7 @@ type RunningWorker = (
 
 #[test]
 fn worker_publishes_initial_frame_and_closes_from_the_mailbox() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let (commands, state, worker) = spawn_worker()?;
 
     assert_frame(state.wait_for_update(UPDATE_TIMEOUT))?;
@@ -29,6 +30,7 @@ fn worker_publishes_initial_frame_and_closes_from_the_mailbox() -> TestResult {
 
 #[test]
 fn worker_closes_when_the_mailbox_reports_a_stopped_owner() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let (commands, state, worker) = spawn_worker()?;
 
     assert_frame(state.wait_for_update(UPDATE_TIMEOUT))?;

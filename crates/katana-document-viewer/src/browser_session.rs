@@ -27,6 +27,19 @@ use std::{
     time::Duration,
 };
 
+#[cfg(test)]
+pub(super) fn runtime_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    static RUNTIME_TEST_GUARD: std::sync::OnceLock<std::sync::Mutex<()>> =
+        std::sync::OnceLock::new();
+    match RUNTIME_TEST_GUARD
+        .get_or_init(|| std::sync::Mutex::new(()))
+        .lock()
+    {
+        Ok(guard) => guard,
+        Err(error) => error.into_inner(),
+    }
+}
+
 /// Non-blocking handle for one KRR-owned persistent browser page.
 #[derive(Debug)]
 pub struct BrowserSessionAdapter {
