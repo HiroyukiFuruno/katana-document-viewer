@@ -66,7 +66,7 @@ fn heading_node_preserves_viewer_inline_code_spans() {
 }
 
 #[test]
-fn interactive_text_uses_natural_height_and_viewer_width() {
+fn interactive_text_without_source_line_count_uses_natural_height_and_viewer_width() {
     let factory = KucNodeFactory::new(&[], 120);
     let node = viewer_node(ViewerNodeKind::Paragraph, "Body");
 
@@ -74,6 +74,33 @@ fn interactive_text_uses_natural_height_and_viewer_width() {
 
     assert_eq!(UiDimension::Auto, ui_node.props().common.height);
     assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
+}
+
+#[test]
+fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline() {
+    let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {
+        preview_font_size: 14,
+    });
+    let mut node = viewer_node(ViewerNodeKind::Paragraph, "Two source lines");
+    node.rect.height = 46.0;
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
+    assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
+}
+
+#[test]
+fn interactive_paragraph_uses_base_typography_source_line_height() {
+    let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {
+        preview_font_size: 24,
+    });
+    let mut node = viewer_node(ViewerNodeKind::Paragraph, "Two source lines");
+    node.rect.height = 92.0;
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiDimension::Px(72), ui_node.props().common.height);
 }
 
 #[test]

@@ -1,6 +1,7 @@
 use crate::document_viewer::asset_index::KucArtifactIndex;
 use crate::document_viewer::media_control_icons::KucMediaControlIconSet;
 use crate::document_viewer::node_labels::{CODE_FONT_ROLE, KucNodeLabels};
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{
     Artifact, DiagramViewportState, ViewerHtmlRole, ViewerInteractionConfig, ViewerNode,
     ViewerNodeKind, ViewerTableProjection, ViewerTaskState, ViewerTypographyConfig,
@@ -285,6 +286,17 @@ impl<'a> KucNodeFactory<'a> {
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }
+        if ui_node.kind() == UiNodeKind::Text
+            && matches!(node.kind, ViewerNodeKind::Paragraph)
+            && !self.export_surface
+            && let Some(height) = self.interactive_paragraph_height(node)
+        {
+            return ui_node
+                .width(self.viewer_width_for_node(node))
+                .height(height)
+                .stable_node_id(node.node_id.0.clone())
+                .stable_state_id(node.node_id.0.clone());
+        }
         if (ui_node.kind() == UiNodeKind::Text
             || matches!(node.kind, ViewerNodeKind::List)
             || Self::uses_native_interactive_html_height(node))
@@ -305,6 +317,20 @@ impl<'a> KucNodeFactory<'a> {
             .height(height)
             .stable_node_id(node.node_id.0.clone())
             .stable_state_id(node.node_id.0.clone())
+    }
+
+    fn interactive_paragraph_height(&self, node: &ViewerNode) -> Option<UiDimension> {
+        let source_line_height = self.source_body_line_height();
+        let source_lines = node.rect.height / source_line_height;
+        let rounded_lines = source_lines.round();
+        if rounded_lines < 1.0 || (source_lines - rounded_lines).abs() > 0.01 {
+            return None;
+        }
+        // KDV の確定行数を KUC の本文 baseline へ渡し、OS の font 幅による再折返し差を除く。
+        let height = rounded_lines * KucThemeBridge::body_line_height(self.typography);
+        Some(UiDimension::Px(
+            height.ceil().min(f32::from(u16::MAX)) as u16
+        ))
     }
 
     fn uses_native_interactive_html_height(node: &ViewerNode) -> bool {

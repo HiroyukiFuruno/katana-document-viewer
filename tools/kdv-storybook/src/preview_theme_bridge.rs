@@ -16,6 +16,10 @@ const KATANA_HEADING_6_PROGRESS: f32 = 0.167;
 pub(crate) struct KucThemeBridge;
 
 impl KucThemeBridge {
+    pub(crate) fn body_line_height(typography: ViewerTypographyConfig) -> f32 {
+        21.0 * f32::from(typography.preview_font_size) / 14.0
+    }
+
     pub(crate) fn document_typography(
         typography: ViewerTypographyConfig,
     ) -> UiTreeDocumentTypography {
@@ -35,7 +39,7 @@ impl KucThemeBridge {
         UiTreeDocumentTypography::new()
             .with_body_baseline(UiTreeTextRoleBaselineTypography::new(
                 font_size,
-                21.0 * scale,
+                Self::body_line_height(typography),
                 12.5 * scale,
             ))
             .with_heading_1_baseline(UiTreeTextRoleBaselineTypography::new(
