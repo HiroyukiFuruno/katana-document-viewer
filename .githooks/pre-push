@@ -9,7 +9,10 @@ if [[ -n "$delegate" ]]; then
     printf 'KDV pre-push: configured delegate is not executable: %s\n' "$delegate" >&2
     exit 1
   fi
-  "$delegate" "$@"
+  updates="$(cat)"
+  printf '%s\n' "$updates" | "$delegate" "$@"
+  printf '%s\n' "$updates" | python3 "$root/scripts/release/verify-issue-governance.py"
+  exit $?
 fi
 
 exec python3 "$root/scripts/release/verify-issue-governance.py"

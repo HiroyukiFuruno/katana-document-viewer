@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -29,7 +30,6 @@ REQUIRED_EVIDENCE = {
     "lockfile acknowledgement": re.compile(r"(?im)^\s*lockfile\s*:\s*\S+"),
     "verification evidence": re.compile(r"(?im)^\s*(?:verification|validation)\s*:\s*\S+"),
 }
-OVERRIDE = re.compile(r"(?m)^\s*[A-Za-z0-9_-]+\s*=\s*\{[^}]*\b(?:path|git)\s*=")
 ZERO_SHA = "0" * 40
 
 
@@ -73,28 +73,65 @@ def default_branch() -> str:
 
 def changed_files(local_sha: str, remote_sha: str) -> set[str]:
     if remote_sha == ZERO_SHA:
-        command = ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", local_sha]
-    else:
-        command = ["git", "diff", "--name-only", f"{remote_sha}..{local_sha}"]
-    return {line for line in run(command).splitlines() if line}
+        commits = run(["git", "rev-list", local_sha, "--not", "--remotes=origin"]).splitlines()
+        return {
+            line
+            for commit in commits
+            for line in run(
+                ["git", "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-m", commit]
+            ).splitlines()
+            if line
+        }
+    return {line for line in run(["git", "diff", "--name-only", f"{remote_sha}..{local_sha}"]).splitlines() if line}
 
 
 def commit_text(local_sha: str, remote_sha: str) -> str:
-    revision = local_sha if remote_sha == ZERO_SHA else f"{remote_sha}..{local_sha}"
-    return run(["git", "log", "--format=%B", revision])
+    if remote_sha == ZERO_SHA:
+        return run(["git", "log", "--format=%B", local_sha, "--not", "--remotes=origin"])
+    return run(["git", "log", "--format=%B", f"{remote_sha}..{local_sha}"])
 
 
 def dependency_change(files: Iterable[str]) -> bool:
     return any(Path(path).name in DEPENDENCY_FILES for path in files)
 
 
-def manifest_override_errors(files: Iterable[str]) -> list[str]:
+def manifest_at_commit(local_sha: str, filename: str) -> str | None:
+    if filename not in run(["git", "ls-tree", "-r", "--name-only", local_sha, "--", filename]).splitlines():
+        return None
+    return run(["git", "show", f"{local_sha}:{filename}"])
+
+
+def has_source_override(value: object) -> bool:
+    if isinstance(value, dict):
+        return "path" in value or "git" in value or any(has_source_override(item) for item in value.values())
+    if isinstance(value, list):
+        return any(has_source_override(item) for item in value)
+    return False
+
+
+def dependency_sections(manifest: dict[str, object]) -> list[object]:
+    names = ("dependencies", "dev-dependencies", "build-dependencies")
+    sections = [manifest.get(name) for name in names]
+    workspace = manifest.get("workspace")
+    if isinstance(workspace, dict):
+        sections.append(workspace.get("dependencies"))
+    targets = manifest.get("target")
+    if isinstance(targets, dict):
+        sections.extend(target.get(name) for target in targets.values() if isinstance(target, dict) for name in names)
+    sections.extend((manifest.get("patch"), manifest.get("replace")))
+    return sections
+
+
+def manifest_override_errors(files: Iterable[str], local_sha: str) -> list[str]:
     errors: list[str] = []
     for filename in files:
         if Path(filename).name != "Cargo.toml":
             continue
-        manifest = Path(filename)
-        if manifest.is_file() and OVERRIDE.search(manifest.read_text(encoding="utf-8")):
+        content = manifest_at_commit(local_sha, filename)
+        if content is None:
+            continue
+        manifest = tomllib.loads(content)
+        if any(has_source_override(section) for section in dependency_sections(manifest)):
             errors.append(f"{filename} declares a path or git dependency override.")
     return errors
 
@@ -157,7 +194,7 @@ def validate_update(
     if local_sha == ZERO_SHA or remote_ref == f"refs/heads/{default}":
         return []
     files = changed_files(local_sha, remote_sha)
-    errors = manifest_override_errors(files)
+    errors = manifest_override_errors(files, local_sha)
     reference_errors, number = issue_reference_errors(commit_text(local_sha, remote_sha), repository)
     errors.extend(reference_errors)
     if number is not None:
@@ -233,17 +270,22 @@ def self_test() -> None:
     )[0]
     assert dependency_change({"Cargo.lock"})
     assert not dependency_change({"README.md"})
-    with tempfile.TemporaryDirectory() as directory:
-        manifest = Path(directory) / "Cargo.toml"
-        manifest.write_text('dependency = { path = "../dependency" }\n', encoding="utf-8")
-        previous = Path.cwd()
-        try:
-            os.chdir(directory)
-            assert manifest_override_errors({"Cargo.toml"}) == [
-                "Cargo.toml declares a path or git dependency override."
-            ]
-        finally:
-            os.chdir(previous)
+    override_manifests = (
+        '[dependencies]\nlocal = { path = "../local" }\n',
+        '[dependencies.local]\npath = "../local"\n',
+        '[target."cfg(windows)".build-dependencies.tool]\ngit = "https://example.invalid/tool"\n',
+        '[workspace.dependencies.local]\npath = "../local"\n',
+        '[patch.crates-io]\nlocal = { path = "../local" }\n',
+        '[replace]\n"local:1.0.0" = { git = "https://example.invalid/local" }\n',
+    )
+    assert all(
+        any(has_source_override(section) for section in dependency_sections(tomllib.loads(content)))
+        for content in override_manifests
+    )
+    assert not any(
+        has_source_override(section)
+        for section in dependency_sections(tomllib.loads('[dependencies]\nregistry = "1.0"\n'))
+    )
     assert parse_push_updates([f"refs/heads/release/v0.5.6 a refs/heads/release/v0.5.6 {ZERO_SHA}\n"])
     try:
         parse_push_updates(["invalid\n"])
@@ -252,7 +294,9 @@ def self_test() -> None:
     else:
         raise AssertionError("malformed pre-push input must be rejected")
     _self_test_validate_update(issue)
+    _self_test_new_branch_range()
     _self_test_delegate_failure()
+    _self_test_delegate_replays_updates()
 
 
 def _self_test_validate_update(issue: dict[str, object]) -> None:
@@ -266,7 +310,7 @@ def _self_test_validate_update(issue: dict[str, object]) -> None:
             "Refs https://github.com/HiroyukiFuruno/katana-document-viewer/issues/43"
         )
         globals()["issue_payload"] = lambda _repository, _number: issue
-        globals()["manifest_override_errors"] = lambda _files: []
+        globals()["manifest_override_errors"] = lambda _files, _sha: []
         assert not validate_update(
             local_ref="refs/heads/release/v0.5.6",
             local_sha="a" * 40,
@@ -289,7 +333,9 @@ def _self_test_validate_update(issue: dict[str, object]) -> None:
             default="master",
         )[0]
         globals()["issue_payload"] = lambda _repository, _number: issue
-        globals()["manifest_override_errors"] = lambda _files: ["Cargo.toml declares a path or git dependency override."]
+        globals()["manifest_override_errors"] = lambda _files, _sha: [
+            "Cargo.toml declares a path or git dependency override."
+        ]
         assert "path or git dependency override" in validate_update(
             local_ref="refs/heads/release/v0.5.6",
             local_sha="a" * 40,
@@ -314,6 +360,39 @@ def _self_test_validate_update(issue: dict[str, object]) -> None:
         globals()["manifest_override_errors"] = original_overrides
 
 
+def _self_test_new_branch_range() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        previous = Path.cwd()
+        try:
+            os.chdir(directory)
+            run(["git", "init", "--initial-branch=master", "--quiet"])
+            run(["git", "config", "user.name", "KDV Self Test"])
+            run(["git", "config", "user.email", "kdv-self-test@example.invalid"])
+            Path("README.md").write_text("base\n", encoding="utf-8")
+            run(["git", "add", "README.md"])
+            run(["git", "commit", "--quiet", "-m", "old unrelated issue"])
+            base = run(["git", "rev-parse", "HEAD"]).strip()
+            run(["git", "update-ref", "refs/remotes/origin/master", base])
+            Path("Cargo.toml").write_text('[dependencies.local]\npath = "../local"\n', encoding="utf-8")
+            Path("Cargo.lock").write_text("lock update\n", encoding="utf-8")
+            run(["git", "add", "Cargo.toml", "Cargo.lock"])
+            run(["git", "commit", "--quiet", "-m", "update dependencies"])
+            Path("README.md").write_text("tip\n", encoding="utf-8")
+            run(["git", "add", "README.md"])
+            run(["git", "commit", "--quiet", "-m", "Refs https://github.com/owner/repo/issues/43"])
+            tip = run(["git", "rev-parse", "HEAD"]).strip()
+            assert changed_files(tip, ZERO_SHA) == {"Cargo.toml", "Cargo.lock", "README.md"}
+            messages = commit_text(tip, ZERO_SHA)
+            assert "update dependencies" in messages and "old unrelated issue" not in messages
+            run(["git", "switch", "--detach", "--quiet", base])
+            assert manifest_override_errors({"Cargo.toml"}, tip) == [
+                "Cargo.toml declares a path or git dependency override."
+            ]
+            assert manifest_override_errors({"Cargo.toml"}, base) == []
+        finally:
+            os.chdir(previous)
+
+
 def _self_test_delegate_failure() -> None:
     root = Path(__file__).resolve().parents[2]
     environment = os.environ.copy()
@@ -330,6 +409,28 @@ def _self_test_delegate_failure() -> None:
     )
     if completed.returncode == 0:
         raise AssertionError("a failing existing pre-push delegate must reject the push")
+
+
+def _self_test_delegate_replays_updates() -> None:
+    root = Path(__file__).resolve().parents[2]
+    with tempfile.TemporaryDirectory() as directory:
+        delegate = Path(directory) / "consume-stdin"
+        delegate.write_text("#!/bin/sh\ncat >/dev/null\n", encoding="utf-8")
+        delegate.chmod(0o700)
+        environment = os.environ.copy()
+        environment["KDV_PRE_PUSH_DELEGATE"] = str(delegate)
+        completed = subprocess.run(
+            [str(root / ".githooks/pre-push"), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
+            check=False,
+            input="invalid update\n",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=environment,
+            cwd=root,
+        )
+        assert completed.returncode != 0
+        assert "pre-push input must contain" in completed.stdout
 
 
 def main() -> int:
