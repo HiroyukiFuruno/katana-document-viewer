@@ -275,6 +275,18 @@ impl<'a> KucNodeFactory<'a> {
     }
 
     fn node_with_viewer_height(&self, ui_node: UiNode, node: &ViewerNode) -> UiNode {
+        if ui_node.kind() == UiNodeKind::Text
+            && matches!(node.kind, ViewerNodeKind::Paragraph)
+            && !self.export_surface
+            && let Some(height) = self.interactive_paragraph_height(node)
+        {
+            return Self::interactive_text_stack(
+                ui_node,
+                node,
+                self.viewer_width_for_node(node),
+                height,
+            );
+        }
         let common = ui_node
             .props()
             .common
@@ -285,18 +297,6 @@ impl<'a> KucNodeFactory<'a> {
             return ui_node
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
-        }
-        if ui_node.kind() == UiNodeKind::Text
-            && matches!(node.kind, ViewerNodeKind::Paragraph)
-            && !self.export_surface
-            && let Some(height) = self.interactive_paragraph_height(node)
-        {
-            return Self::interactive_text_row(
-                ui_node,
-                node,
-                self.viewer_width_for_node(node),
-                height,
-            );
         }
         if (ui_node.kind() == UiNodeKind::Text
             || matches!(node.kind, ViewerNodeKind::List)
@@ -430,15 +430,20 @@ impl<'a> KucNodeFactory<'a> {
             .stable_state_id(node_id)
     }
 
-    fn interactive_text_row(
+    fn interactive_text_stack(
         ui_node: UiNode,
         node: &ViewerNode,
         width: UiDimension,
         height: UiDimension,
     ) -> UiNode {
         let node_id = node.node_id.0.clone();
-        let text = ui_node.width(width.clone()).height(height.clone());
-        let wrapper: UiNode = Row::new().align(Alignment::Center).child(text).into();
+        let text = ui_node
+            .width(width.clone())
+            .height(height.clone())
+            .position(UiPosition::Absolute)
+            .stable_node_id(node_id.clone())
+            .stable_state_id(node_id.clone());
+        let wrapper: UiNode = Stack::new().child(text).into();
         let common = wrapper
             .props()
             .common
