@@ -88,6 +88,36 @@ fn interactive_text_preserves_non_line_quantized_viewer_height() {
 }
 
 #[test]
+fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
+-> Result<(), Box<dyn std::error::Error>> {
+    let factory = KucNodeFactory::new(&[], 120);
+    let mut node = viewer_node(ViewerNodeKind::Paragraph, "Windows native body");
+    node.rect.height = 42.0;
+    node.source.line_column_range.end.line = 3;
+
+    let ui_node = factory.viewer_node(&node);
+    assert_eq!(UiNodeKind::Row, ui_node.kind());
+    let hit =
+        KucThemeBridge::document_host(ThemeSnapshot::light(), ViewerTypographyConfig::default())
+            .document_node_hits(
+                &ui_node,
+                UiTreeRenderArea {
+                    x: 0,
+                    y: 0,
+                    width: 120,
+                    height: 42,
+                    scroll_y: 0.0,
+                },
+            )
+            .into_iter()
+            .find(|hit| hit.node_id.as_str() == node.node_id.0)
+            .ok_or("soft-wrapped paragraph must expose its semantic node hit")?;
+
+    assert_eq!(42, hit.rect.height);
+    Ok(())
+}
+
+#[test]
 fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
 -> Result<(), Box<dyn std::error::Error>> {
     let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {

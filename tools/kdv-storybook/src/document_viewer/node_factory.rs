@@ -332,6 +332,10 @@ impl<'a> KucNodeFactory<'a> {
         let source_lines = node.rect.height / source_line_height;
         let rounded_lines = source_lines.round();
         if rounded_lines < 1.0 || (source_lines - rounded_lines).abs() > 0.01 {
+            if node.source.line_column_range.end.line > node.source.line_column_range.start.line {
+                // soft-wrap 後も KDV が計画した複数行段落は、host hit を計画高へ固定する。
+                return Some(Self::viewer_height(node));
+            }
             return None;
         }
         // KDV の確定行数を KUC の本文 baseline へ渡し、OS の font 幅による再折返し差を除く。
