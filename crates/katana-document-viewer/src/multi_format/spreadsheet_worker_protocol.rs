@@ -55,7 +55,10 @@ pub(super) enum SpreadsheetWorkerResponse {
         sheet_index: usize,
         applied_columns: Vec<usize>,
         visible_row_count: usize,
-        filtered_out_rows: Vec<usize>,
+        #[serde(default)]
+        filtered_out_row_bitmap: Vec<u8>,
+        #[serde(default, rename = "filtered_out_rows", skip_serializing)]
+        legacy_filtered_out_rows: Vec<usize>,
     },
     Failed {
         request_id: Option<u64>,

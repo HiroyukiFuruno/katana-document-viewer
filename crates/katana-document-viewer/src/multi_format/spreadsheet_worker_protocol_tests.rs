@@ -46,7 +46,8 @@ fn filter_responses_return_only_candidates_or_row_visibility() -> TestResult {
             sheet_index: 0,
             applied_columns: vec![2],
             visible_row_count: 4,
-            filtered_out_rows: vec![3, 5],
+            filtered_out_row_bitmap: vec![0b0010_1000],
+            legacy_filtered_out_rows: Vec::new(),
         },
     ];
     for response in responses {

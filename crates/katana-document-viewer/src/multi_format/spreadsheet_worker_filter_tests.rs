@@ -1,6 +1,8 @@
+use super::super::filter_bitmap::filtered_out_row_bitmap;
 use super::truncate_candidate_values;
 use crate::multi_format::spreadsheet_worker_protocol::{
-    MAX_SPREADSHEET_REQUEST_BYTES, SpreadsheetWorkerRequest, SpreadsheetWorkerResponse,
+    MAX_SPREADSHEET_REQUEST_BYTES, MAX_SPREADSHEET_RESPONSE_BYTES, SpreadsheetWorkerRequest,
+    SpreadsheetWorkerResponse,
 };
 
 #[test]
@@ -68,6 +70,24 @@ fn candidate_truncation_drops_a_value_that_cannot_fit_apply_values() {
 
     assert!(accepted.is_empty());
     assert!(truncated);
+}
+
+#[test]
+fn visibility_bitmap_stays_within_the_response_limit_at_the_strict_cell_limit()
+-> Result<(), Box<dyn std::error::Error>> {
+    let filtered_out_row_bitmap = filtered_out_row_bitmap(0..25_000_000);
+    let response = SpreadsheetWorkerResponse::FilterVisibility {
+        request_id: u64::MAX,
+        sheet_index: usize::MAX,
+        applied_columns: vec![usize::MAX],
+        visible_row_count: 0,
+        filtered_out_row_bitmap,
+        legacy_filtered_out_rows: Vec::new(),
+    };
+
+    let encoded = serde_json::to_vec(&response)?;
+    assert!(encoded.len() <= MAX_SPREADSHEET_RESPONSE_BYTES);
+    Ok(())
 }
 
 fn candidate_response_bytes(

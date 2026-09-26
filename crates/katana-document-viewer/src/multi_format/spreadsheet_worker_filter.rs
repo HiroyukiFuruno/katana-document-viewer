@@ -1,4 +1,5 @@
 use super::SpreadsheetWorkerLoop;
+use super::filter_bitmap::filtered_out_row_bitmap;
 use crate::multi_format::spreadsheet_engine::SpreadsheetEngineError;
 use crate::multi_format::spreadsheet_filter_engine::SpreadsheetFilterResult;
 use crate::multi_format::spreadsheet_worker_protocol::{
@@ -167,12 +168,18 @@ fn filter_visibility_response(
     sheet_index: usize,
     result: SpreadsheetFilterResult,
 ) -> SpreadsheetWorkerResponse {
+    let SpreadsheetFilterResult {
+        applied_columns,
+        visible_row_count,
+        filtered_out_rows,
+    } = result;
     SpreadsheetWorkerResponse::FilterVisibility {
         request_id,
         sheet_index,
-        applied_columns: result.applied_columns,
-        visible_row_count: result.visible_row_count,
-        filtered_out_rows: result.filtered_out_rows,
+        applied_columns,
+        visible_row_count,
+        filtered_out_row_bitmap: filtered_out_row_bitmap(filtered_out_rows),
+        legacy_filtered_out_rows: Vec::new(),
     }
 }
 

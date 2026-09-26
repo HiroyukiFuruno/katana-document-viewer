@@ -172,6 +172,8 @@ impl SpreadsheetWorkerLoop {
 
 #[path = "spreadsheet_worker_filter.rs"]
 mod filter;
+#[path = "spreadsheet_worker_filter_bitmap.rs"]
+mod filter_bitmap;
 
 #[cfg(test)]
 #[path = "spreadsheet_worker_entrypoint_tests.rs"]
