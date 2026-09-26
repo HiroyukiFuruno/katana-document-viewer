@@ -9,7 +9,7 @@ mod windows;
 use super::{OfficeDocumentFormat, OfficeWorkerConfig, OfficeWorkerError};
 #[cfg(target_os = "linux")]
 use linux::wait_for_worker;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "linux")))]
 use process_control::{ChildExt, Control};
 use std::path::Path;
 #[cfg(not(windows))]
