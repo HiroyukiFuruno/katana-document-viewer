@@ -4,21 +4,22 @@ use crate::canvas::{Canvas, SurfaceArea};
 use crate::catalog::StorybookFixture;
 use crate::palette::StorybookPalette;
 use crate::preview::PreviewBuilder;
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{ViewerInteractionConfig, ViewerTypographyConfig, ViewerViewport};
 use katana_ui_core::render_model::{UiImageSurfaceRenderPlan, UiNode};
-use katana_ui_core_storybook::UiTreeStorybookHost;
 use std::path::{Path, PathBuf};
 
 const VISUAL_SCORE_THRESHOLD: u8 = 95;
 const SURFACE_WIDTH: usize = 1280;
 const CROP_HEIGHT: usize = 2400;
 const PREVIEW_FONT_SIZE: u16 = 14;
-const COMPACT_BADGE_VERTICAL_MARGIN: usize = 15;
 const KATANA_REFERENCE_CROP_PHYSICAL_WIDTH: usize = 2374;
 const KATANA_REFERENCE_CROP_PHYSICAL_HEIGHT: usize = 4450;
-const STORYBOOK_SCORE_RENDER_SCALE: f32 =
-    KATANA_REFERENCE_CROP_PHYSICAL_WIDTH as f32 / SURFACE_WIDTH as f32;
 const KATANA_REFERENCE_DEVICE_SCALE: f32 = 2.0;
+const LEGACY_SCORE_RENDER_SCALE: f32 =
+    KATANA_REFERENCE_CROP_PHYSICAL_WIDTH as f32 / SURFACE_WIDTH as f32;
+const KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH: usize = 1187;
+const KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT: usize = 2225;
 const KATANA_PREVIEW_CROP_REFERENCE: &str = "assets/reference/katana/preview_crops/sample-top.png";
 const KATANA_SAMPLE_DIAGRAMS_CROP_REFERENCE: &str =
     "assets/reference/katana/preview_crops/sample-diagrams-top.png";
@@ -46,12 +47,68 @@ fn storybook_score_visual_uses_katana_sample_diagrams_crop_reference()
 }
 
 #[test]
+fn storybook_heading_targets_and_hits_share_document_host_geometry()
+-> Result<(), Box<dyn std::error::Error>> {
+    let scene = PreviewCrop::render_score_scene_for_viewport(
+        "katana/sample.md",
+        KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+        KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+        false,
+    )?;
+    let hits = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
+        .document_node_hits(
+            scene.tree.root(),
+            katana_ui_core_storybook::UiTreeRenderArea {
+                x: 0,
+                y: 0,
+                width: KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+                height: KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+                scroll_y: 0.0,
+            },
+        );
+    for text in ["H1 Heading", "H2 Heading", "H3 Heading"] {
+        let target = scene
+            .targets
+            .iter()
+            .find(|target| target.source.raw.text.contains(text))
+            .ok_or_else(|| format!("missing target for {text}"))?;
+        let hit = hits
+            .iter()
+            .find(|hit| {
+                hit.semantic_node_id
+                    .as_ref()
+                    .is_some_and(|node_id| node_id.as_str() == target.node_id.0)
+            })
+            .ok_or_else(|| format!("missing host hit for {text}"))?;
+        assert_eq!(target.rect.x as usize, hit.rect.x, "{text} hit x");
+        assert_eq!(target.rect.y as usize, hit.rect.y, "{text} hit y");
+        assert_eq!(
+            target.rect.width as usize, hit.rect.width,
+            "{text} hit width"
+        );
+        assert_eq!(
+            target.rect.height as usize, hit.rect.height,
+            "{text} hit height"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn storybook_preview_crop_score_uses_scaled_canvas_pixels() -> Result<(), Box<dyn std::error::Error>>
 {
     let scaled = PreviewCrop::render_storybook_top_score_crop_info("katana/sample.md", false)?;
 
     assert_eq!(SURFACE_WIDTH, scaled.crop.width);
     assert_eq!(CROP_HEIGHT, scaled.crop.height);
+    assert_eq!(
+        KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+        scaled.rendered_logical_width
+    );
+    assert_eq!(
+        KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+        scaled.rendered_logical_height
+    );
     assert_eq!(
         KATANA_REFERENCE_CROP_PHYSICAL_WIDTH,
         scaled.crop_physical_width
@@ -75,6 +132,31 @@ fn storybook_preview_crop_score_uses_scaled_canvas_pixels() -> Result<(), Box<dy
             .abs_diff(KATANA_REFERENCE_CROP_PHYSICAL_HEIGHT)
             <= 1,
         "storybook score rendered physical height must match the KatanA crop within rounding: expected={} actual={}",
+        KATANA_REFERENCE_CROP_PHYSICAL_HEIGHT,
+        scaled.rendered_physical_height
+    );
+    Ok(())
+}
+
+#[test]
+fn storybook_sample_diagrams_score_uses_katana_preview_content_rect()
+-> Result<(), Box<dyn std::error::Error>> {
+    let scaled =
+        PreviewCrop::render_storybook_top_score_crop_info("katana/sample_diagrams.md", true)?;
+
+    assert_eq!(
+        KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+        scaled.rendered_logical_width
+    );
+    assert_eq!(
+        KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+        scaled.rendered_logical_height
+    );
+    assert_eq!(
+        KATANA_REFERENCE_CROP_PHYSICAL_WIDTH,
+        scaled.rendered_physical_width
+    );
+    assert_eq!(
         KATANA_REFERENCE_CROP_PHYSICAL_HEIGHT,
         scaled.rendered_physical_height
     );
@@ -129,13 +211,15 @@ fn storybook_sample_top_local_text_metrics_match_katana_reference()
         "storybook first body line is crushed relative to KatanA reference: reference={reference_metrics:?} candidate={candidate_metrics:?}"
     );
     assert!(
-        within_percent(
-            candidate_metrics.body_second_height,
-            reference_metrics.body_second_height,
-            90,
-            115
-        ),
-        "storybook second body line is crushed relative to KatanA reference: reference={reference_metrics:?} candidate={candidate_metrics:?}"
+        candidate_metrics
+            .body_second_min_y
+            .abs_diff(reference_metrics.body_second_min_y)
+            <= 2
+            && candidate_metrics
+                .body_second_max_y
+                .abs_diff(reference_metrics.body_second_max_y)
+                <= 2,
+        "storybook second wrapped body line is vertically misregistered relative to KatanA reference: reference={reference_metrics:?} candidate={candidate_metrics:?}"
     );
     assert!(
         within_percent(
@@ -208,6 +292,8 @@ fn storybook_sample_badge_rows_match_katana_reference_bands()
     let candidate = PreviewCrop::render_storybook_top_score_crop("katana/sample.md", false)?;
     let reference_metrics = LocalBadgeMetrics::collect(&reference)?;
     let candidate_metrics = LocalBadgeMetrics::collect(&candidate)?;
+    assert_eq!(2, reference_metrics.rows.len());
+    assert_eq!(2, candidate_metrics.rows.len());
 
     for (index, (reference_row, candidate_row)) in reference_metrics
         .rows
@@ -233,7 +319,12 @@ fn storybook_sample_badge_targets_align_with_katana_reference_bands()
 -> Result<(), Box<dyn std::error::Error>> {
     let reference = PreviewCrop::load(KATANA_PREVIEW_CROP_REFERENCE)?;
     let reference_metrics = LocalBadgeMetrics::collect(&reference)?;
-    let scene = PreviewCrop::render_score_scene("katana/sample.md", false)?;
+    let scene = PreviewCrop::render_score_scene_for_viewport(
+        "katana/sample.md",
+        KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+        KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+        false,
+    )?;
     let badge_targets = sample_badge_targets(&scene);
 
     assert!(
@@ -248,13 +339,20 @@ fn storybook_sample_badge_targets_align_with_katana_reference_bands()
         .take(2)
         .enumerate()
     {
-        let expected_top = reference_row
-            .min_y
-            .saturating_sub(COMPACT_BADGE_VERTICAL_MARGIN);
-        let actual_top = target.rect.y.round().max(0.0) as usize;
-        if actual_top.abs_diff(expected_top) > 2 {
+        let crop_scale = CROP_HEIGHT as f32 / KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT as f32;
+        let center_inset = (28.0 - 20.0) / 2.0;
+        let expected_top_logical = (reference_row.min_y as f32 / crop_scale - center_inset).floor();
+        let expected_bottom_logical =
+            ((reference_row.max_y + 1) as f32 / crop_scale + center_inset).ceil();
+        let expected_top = (expected_top_logical * crop_scale).floor() as usize;
+        let expected_bottom = (expected_bottom_logical * crop_scale).ceil() as usize;
+        let actual_top = (target.rect.y * crop_scale).floor().max(0.0) as usize;
+        let actual_bottom = ((target.rect.y + target.rect.height) * crop_scale)
+            .ceil()
+            .max(0.0) as usize;
+        if actual_top.abs_diff(expected_top) > 2 || actual_bottom.abs_diff(expected_bottom) > 2 {
             mismatches.push(format!(
-                "index={index} expected_top={expected_top} actual_top={actual_top} reference_row={reference_row:?} target={target:?}"
+                "index={index} expected_top={expected_top} actual_top={actual_top} expected_bottom={expected_bottom} actual_bottom={actual_bottom} reference_row={reference_row:?} target={target:?}"
             ));
         }
     }
@@ -592,6 +690,8 @@ struct PreviewCrop {
 
 struct PreviewCropRender {
     crop: PreviewCrop,
+    rendered_logical_width: usize,
+    rendered_logical_height: usize,
     rendered_physical_width: usize,
     rendered_physical_height: usize,
     crop_physical_width: usize,
@@ -606,7 +706,8 @@ struct LocalTextMetrics {
     body_first_width: usize,
     body_first_height: usize,
     body_first_min_y: usize,
-    body_second_height: usize,
+    body_second_min_y: usize,
+    body_second_max_y: usize,
     link_blue_count: usize,
     link_blue_width: usize,
 }
@@ -641,15 +742,18 @@ fn within_percent(
 
 impl LocalBadgeMetrics {
     fn collect(crop: &PreviewCrop) -> Result<Self, Box<dyn std::error::Error>> {
+        // WHY: 塗りつぶされた badge と、同じ幅の見出し文字を区別する。
         let rows = content_bands_by(crop, is_badge_foreground_pixel)
             .into_iter()
             .filter(|band| {
                 band.min_y >= 700
                     && band.max_y <= 1_450
                     && band.height() >= 18
-                    && (180..=360).contains(&band.width())
+                    && band.width() >= band.height()
+                    && band.width() <= 360
                     && band.min_x >= 400
                     && band.max_x <= 860
+                    && band.pixels * 4 >= band.width() * band.height() * 3
             })
             .collect::<Vec<_>>();
         if rows.len() < 2 {
@@ -701,19 +805,26 @@ impl LocalTextMetrics {
         crop: &PreviewCrop,
         bands: Vec<ContentBand>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        if bands.len() < 3 {
+        let [title, body_first, body_second, ..] = bands.as_slice() else {
             return Err(format!("expected title and wrapped body bands: {bands:?}").into());
+        };
+        if !(title.max_y < body_first.min_y && body_first.max_y < body_second.min_y) {
+            return Err(format!(
+                "expected title and wrapped body bands in vertical order: {bands:?}"
+            )
+            .into());
         }
         let link_blue = link_blue_bounds(crop)
             .ok_or_else(|| format!("expected language link blue pixels: {bands:?}"))?;
         Ok(Self {
-            title_width: bands[0].width(),
-            title_height: bands[0].height(),
-            title_min_y: bands[0].min_y,
-            body_first_width: bands[1].width(),
-            body_first_height: bands[1].height(),
-            body_first_min_y: bands[1].min_y,
-            body_second_height: bands[2].height(),
+            title_width: title.width(),
+            title_height: title.height(),
+            title_min_y: title.min_y,
+            body_first_width: body_first.width(),
+            body_first_height: body_first.height(),
+            body_first_min_y: body_first.min_y,
+            body_second_min_y: body_second.min_y,
+            body_second_max_y: body_second.max_y,
             link_blue_count: link_blue.count,
             link_blue_width: link_blue.width(),
         })
@@ -991,10 +1102,11 @@ impl PreviewCrop {
         path: &str,
         dark: bool,
     ) -> Result<PreviewCropRender, Box<dyn std::error::Error>> {
+        let capture = ScoreCapture::for_fixture(path);
         Self::render_storybook_top_with_canvas_scales(
             path,
-            (STORYBOOK_SCORE_RENDER_SCALE, KATANA_REFERENCE_DEVICE_SCALE),
-            (SURFACE_WIDTH, CROP_HEIGHT),
+            (capture.layout_scale, capture.raster_scale),
+            (capture.logical_width, capture.logical_height),
             (SURFACE_WIDTH, CROP_HEIGHT),
             dark,
         )
@@ -1020,7 +1132,7 @@ impl PreviewCrop {
             background,
         )
         .with_reference_capture_image_surface_extents();
-        UiTreeStorybookHost::new(scene.theme.clone()).render(
+        KucThemeBridge::document_host(scene.theme.clone(), scene.typography).render(
             &mut canvas,
             scene.tree.root(),
             SurfaceArea {
@@ -1041,6 +1153,8 @@ impl PreviewCrop {
         };
         Ok(PreviewCropRender {
             crop,
+            rendered_logical_width: render_width,
+            rendered_logical_height: render_height,
             rendered_physical_width: physical_width,
             rendered_physical_height: physical_height,
             crop_physical_width: physical_width,
@@ -1092,6 +1206,33 @@ impl PreviewCrop {
     fn brightness(&self, x: usize, y: usize) -> u8 {
         let [red, green, blue, _alpha] = self.pixel(x, y);
         ((u16::from(red) + u16::from(green) + u16::from(blue)) / 3) as u8
+    }
+}
+
+#[derive(Clone, Copy)]
+struct ScoreCapture {
+    logical_width: usize,
+    logical_height: usize,
+    layout_scale: f32,
+    raster_scale: f32,
+}
+
+impl ScoreCapture {
+    fn for_fixture(path: &str) -> Self {
+        if matches!(path, "katana/sample.md" | "katana/sample_diagrams.md") {
+            return Self {
+                logical_width: KATANA_PREVIEW_CONTENT_LOGICAL_WIDTH,
+                logical_height: KATANA_PREVIEW_CONTENT_LOGICAL_HEIGHT,
+                layout_scale: KATANA_REFERENCE_DEVICE_SCALE,
+                raster_scale: KATANA_REFERENCE_DEVICE_SCALE,
+            };
+        }
+        Self {
+            logical_width: SURFACE_WIDTH,
+            logical_height: CROP_HEIGHT,
+            layout_scale: LEGACY_SCORE_RENDER_SCALE,
+            raster_scale: KATANA_REFERENCE_DEVICE_SCALE,
+        }
     }
 }
 
@@ -1343,13 +1484,54 @@ fn canvas_to_logical_rgba(canvas: &Canvas, width: usize, height: usize) -> Vec<u
     else {
         return vec![0xff; width * height * 4];
     };
-    image::imageops::resize(
-        &image,
-        width as u32,
-        height as u32,
-        image::imageops::FilterType::Triangle,
-    )
-    .into_raw()
+    box_resize_rgba(&image, width as u32, height as u32)
+}
+
+fn box_resize_rgba(image: &image::RgbaImage, width: u32, height: u32) -> Vec<u8> {
+    // WHY: KatanA canonical crop と同じ Box 縮小を、外部ツールなしで全OSに再現する。
+    let source_width = u64::from(image.width());
+    let source_height = u64::from(image.height());
+    let target_width = u64::from(width);
+    let target_height = u64::from(height);
+    let target_pixel_weight = source_width * source_height;
+    let mut output = Vec::with_capacity(width as usize * height as usize * 4);
+
+    for target_y in 0..target_height {
+        let target_top = target_y * source_height;
+        let target_bottom = (target_y + 1) * source_height;
+        let source_y_start = target_top / target_height;
+        let source_y_end = target_bottom.div_ceil(target_height);
+
+        for target_x in 0..target_width {
+            let target_left = target_x * source_width;
+            let target_right = (target_x + 1) * source_width;
+            let source_x_start = target_left / target_width;
+            let source_x_end = target_right.div_ceil(target_width);
+            let mut channels = [0_u64; 4];
+
+            for source_y in source_y_start..source_y_end {
+                let source_top = source_y * target_height;
+                let source_bottom = (source_y + 1) * target_height;
+                let vertical_weight = source_bottom.min(target_bottom) - source_top.max(target_top);
+                for source_x in source_x_start..source_x_end {
+                    let source_left = source_x * target_width;
+                    let source_right = (source_x + 1) * target_width;
+                    let horizontal_weight =
+                        source_right.min(target_right) - source_left.max(target_left);
+                    let weight = horizontal_weight * vertical_weight;
+                    let pixel = image.get_pixel(source_x as u32, source_y as u32);
+                    for (sum, channel) in channels.iter_mut().zip(pixel.0) {
+                        *sum += u64::from(channel) * weight;
+                    }
+                }
+            }
+
+            output.extend(
+                channels.map(|sum| ((sum + target_pixel_weight / 2) / target_pixel_weight) as u8),
+            );
+        }
+    }
+    output
 }
 
 fn content_bands(crop: &PreviewCrop) -> Vec<ContentBand> {
@@ -1374,9 +1556,6 @@ fn content_bands_by(
             }
         }
         let Some(row) = row.valid() else {
-            if let Some(band) = current.take() {
-                bands.push(band);
-            }
             continue;
         };
         match &mut current {
@@ -1393,6 +1572,29 @@ fn content_bands_by(
         bands.push(band);
     }
     bands
+}
+
+#[test]
+fn content_bands_join_disconnected_glyph_parts_but_keep_separate_lines() {
+    const WIDTH: usize = 4;
+    const HEIGHT: usize = 8;
+    const RGBA_CHANNELS: usize = 4;
+    let mut crop = PreviewCrop {
+        width: WIDTH,
+        height: HEIGHT,
+        rgba: vec![255; WIDTH * HEIGHT * RGBA_CHANNELS],
+    };
+    for y in [0, 2, 5] {
+        for x in 0..WIDTH {
+            let offset = (y * WIDTH + x) * RGBA_CHANNELS;
+            crop.rgba[offset..offset + 3].fill(0);
+        }
+    }
+
+    let bands = content_bands(&crop);
+    assert_eq!(2, bands.len());
+    assert_eq!((0, 2, 8), (bands[0].min_y, bands[0].max_y, bands[0].pixels));
+    assert_eq!((5, 5, 4), (bands[1].min_y, bands[1].max_y, bands[1].pixels));
 }
 
 fn link_blue_bounds(crop: &PreviewCrop) -> Option<BlueBounds> {

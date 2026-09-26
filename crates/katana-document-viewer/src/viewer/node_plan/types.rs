@@ -4,6 +4,10 @@ use crate::viewer::types::ViewerRect;
 use katana_markdown_model::{KmmNodeId, SourceSpan};
 use serde::{Deserialize, Serialize};
 
+pub use self::types_table::{
+    ViewerTableAlignment, ViewerTableCellProjection, ViewerTableProjection,
+    ViewerTableRowProjection, ViewerTableVerticalAlignment,
+};
 pub use self::types_text::{VIEWER_TEXT_COLOR_CHANNELS, ViewerTextSpan, ViewerTextStyle};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -81,5 +85,7 @@ pub enum ViewerHtmlAlignment {
 #[path = "types_tests.rs"]
 mod tests;
 
+#[path = "types_table.rs"]
+mod types_table;
 #[path = "types_text.rs"]
 mod types_text;

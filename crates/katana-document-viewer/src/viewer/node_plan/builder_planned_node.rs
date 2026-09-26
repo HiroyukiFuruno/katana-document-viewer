@@ -1,4 +1,4 @@
-use super::types::{ViewerNode, ViewerNodeKind, ViewerTextSpan};
+use super::types::{ViewerNode, ViewerNodeKind, ViewerTableProjection, ViewerTextSpan};
 use crate::artifact::ArtifactId;
 use crate::viewer::asset::ViewerAssetReference;
 use crate::viewer::types::ViewerRect;
@@ -10,6 +10,7 @@ pub(super) struct PlannedNode {
     pub(super) source: SourceSpan,
     pub(super) text: String,
     pub(super) spans: Vec<ViewerTextSpan>,
+    pub(super) table_projection: Option<ViewerTableProjection>,
     pub(super) reference: Option<ViewerAssetReference>,
 }
 

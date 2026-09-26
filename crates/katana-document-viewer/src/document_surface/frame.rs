@@ -1,4 +1,6 @@
-use super::{DocumentGridSurfaceFrame, DocumentSurfaceError};
+use super::{
+    DocumentGridCellBorders, DocumentGridCoordinate, DocumentGridSurfaceFrame, DocumentSurfaceError,
+};
 use katana_ui_core::render_model::{UiImageSurfaceProps, UiNode, UiNodeKind};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,7 @@ pub enum DocumentSurfaceKind {
 pub struct DocumentSurfaceFrame {
     content: DocumentSurfaceContent,
     navigation: DocumentNavigationMetadata,
+    grid_borders: Vec<(DocumentGridCoordinate, DocumentGridCellBorders)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -35,22 +38,12 @@ enum DocumentSurfaceContent {
 
 impl DocumentSurfaceFrame {
     pub(super) fn from_node(node: UiNode) -> Result<Self, DocumentSurfaceError> {
-        let content = match node.kind() {
-            UiNodeKind::ImageSurface => DocumentSurfaceContent::Page(
-                DocumentPageSurfaceFrame::from(&node.props().image_surface),
-            ),
-            UiNodeKind::Grid => {
-                DocumentSurfaceContent::Grid(DocumentGridSurfaceFrame::from(&node.props().grid))
-            }
-            kind => {
-                return Err(DocumentSurfaceError::UnsupportedNodeKind {
-                    detail: format!("{kind:?}"),
-                });
-            }
-        };
+        let content = surface_content(&node)?;
+        let grid_borders = grid_borders(&node);
         Ok(Self {
             content,
             navigation: DocumentNavigationMetadata::default(),
+            grid_borders,
         })
     }
 
@@ -98,6 +91,16 @@ impl DocumentSurfaceFrame {
         &self.navigation.outline_items
     }
 
+    #[must_use]
+    pub fn grid_cell_borders(
+        &self,
+        coordinate: DocumentGridCoordinate,
+    ) -> Option<&DocumentGridCellBorders> {
+        self.grid_borders
+            .iter()
+            .find_map(|(candidate, borders)| (*candidate == coordinate).then_some(borders))
+    }
+
     pub(crate) fn with_navigation_metadata(
         mut self,
         item_labels: Vec<String>,
@@ -108,6 +111,37 @@ impl DocumentSurfaceFrame {
             outline_items,
         };
         self
+    }
+}
+
+fn grid_borders(node: &UiNode) -> Vec<(DocumentGridCoordinate, DocumentGridCellBorders)> {
+    if node.kind() != UiNodeKind::Grid {
+        return Vec::new();
+    }
+    node.props()
+        .grid
+        .cells
+        .iter()
+        .map(|cell| {
+            (
+                DocumentGridCoordinate::from(cell.coordinate),
+                DocumentGridCellBorders::from(&cell.appearance.borders),
+            )
+        })
+        .collect()
+}
+
+fn surface_content(node: &UiNode) -> Result<DocumentSurfaceContent, DocumentSurfaceError> {
+    match node.kind() {
+        UiNodeKind::ImageSurface => Ok(DocumentSurfaceContent::Page(
+            DocumentPageSurfaceFrame::from(&node.props().image_surface),
+        )),
+        UiNodeKind::Grid => Ok(DocumentSurfaceContent::Grid(
+            DocumentGridSurfaceFrame::from(&node.props().grid),
+        )),
+        kind => Err(DocumentSurfaceError::UnsupportedNodeKind {
+            detail: format!("{kind:?}"),
+        }),
     }
 }
 
@@ -139,42 +173,5 @@ impl From<&UiImageSurfaceProps> for DocumentPageSurfaceFrame {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        DocumentGridSurfaceFrame, DocumentSurfaceContent, DocumentSurfaceFrame,
-        DocumentSurfaceKind, PdfOutlineItem,
-    };
-    use crate::DocumentGridViewport;
-
-    #[test]
-    fn grid_frame_reports_grid_kind_at_runtime() {
-        let frame = DocumentSurfaceFrame {
-            content: DocumentSurfaceContent::Grid(DocumentGridSurfaceFrame {
-                row_count: 0,
-                column_count: 0,
-                total_width: 0,
-                total_height: 0,
-                viewport: DocumentGridViewport::default(),
-                active_cell: None,
-                show_grid_lines: true,
-                cells: Vec::new(),
-            }),
-            navigation: super::DocumentNavigationMetadata::default(),
-        }
-        .with_navigation_metadata(
-            vec!["Sheet 1".to_owned()],
-            vec![PdfOutlineItem {
-                title: "Section".to_owned(),
-                level: 0,
-                page_index: Some(0),
-            }],
-        );
-
-        assert_eq!(
-            DocumentSurfaceKind::Grid,
-            std::hint::black_box(&frame).kind()
-        );
-        assert_eq!(["Sheet 1"], frame.item_labels());
-        assert_eq!("Section", frame.outline_items()[0].title);
-    }
-}
+#[path = "frame_tests.rs"]
+mod tests;

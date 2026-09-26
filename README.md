@@ -47,6 +47,21 @@ source until KMM/KRR provide the needed public contract.
 
 Scaffolding. The crates.io package is `katana-document-viewer`.
 
+## Release governance
+
+Run `just install-governance-hook` once per checkout. It installs the KDV
+Issue-linked pre-push dispatcher and records an executable existing pre-push
+hook as its delegate instead of replacing it. A non-default branch push must
+reference an Open KDV Issue; dependency updates additionally require public
+registry, migration, manifest, lockfile, and verification evidence in that
+Issue.
+
+After a published GitHub Release, run
+`python3 scripts/release/post-release-cleanup.py --repo HiroyukiFuruno/katana-document-viewer --version vX.Y.Z --scope local --apply`
+from a clean checkout. The default mode is audit-only; `--apply` removes only
+independently clean, merged, unused local worktrees and branches. The release
+workflow performs the corresponding safe remote release-branch cleanup.
+
 ## License
 
 MIT

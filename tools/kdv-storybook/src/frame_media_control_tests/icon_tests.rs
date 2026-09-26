@@ -3,7 +3,8 @@ use crate::KucDiagramControlResolver;
 use crate::canvas::Canvas;
 use crate::document_viewer::media_control_icons::KucMediaControlIconSet;
 use crate::layout::preview_content_width;
-use katana_ui_core_storybook::{UiTreeRenderArea, UiTreeSurfaceHost};
+use crate::preview_theme_bridge::KucThemeBridge;
+use katana_ui_core_storybook::UiTreeRenderArea;
 
 const ICON_SCAN_SIZE: usize = 20;
 const MIN_ICON_PIXELS: usize = 14;
@@ -178,7 +179,7 @@ fn normalize_svg(value: &str) -> String {
 }
 
 fn internal_diagram_control_hits(scene: &crate::preview::PreviewScene) -> Vec<InternalControlHit> {
-    UiTreeSurfaceHost::new(scene.theme.clone())
+    KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .document_node_hits(
             scene.tree.root(),
             UiTreeRenderArea {

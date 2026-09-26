@@ -55,7 +55,10 @@ impl KucNodeLabels {
         match kind {
             ViewerNodeKind::Heading { level: 1 } => "heading",
             ViewerNodeKind::Heading { level: 2 } => "heading-2",
-            ViewerNodeKind::Heading { .. } => "heading-3",
+            ViewerNodeKind::Heading { level: 3 } => "heading-3",
+            ViewerNodeKind::Heading { level: 4 } => "heading-4",
+            ViewerNodeKind::Heading { level: 5 } => "heading-5",
+            ViewerNodeKind::Heading { .. } => "heading-6",
             ViewerNodeKind::Code { .. } => "code",
             ViewerNodeKind::Html {
                 role: ViewerHtmlRole::Heading { alignment, .. },
@@ -73,6 +76,7 @@ impl KucNodeLabels {
                 role: ViewerHtmlRole::Accordion,
             } => "html-accordion-preview",
             ViewerNodeKind::Html { .. } => "html-block-preview",
+            ViewerNodeKind::Paragraph => "paragraph",
             ViewerNodeKind::Table => "table",
             ViewerNodeKind::List => "list",
             ViewerNodeKind::Alert { .. } => "alert",
@@ -103,6 +107,8 @@ impl KucNodeLabels {
                 role: ViewerHtmlRole::Accordion,
             } => "html-accordion",
             ViewerNodeKind::Html { .. } => "html-block",
+            // export の既存 wrap 契約は維持し、KatanA preview だけ body 幅補正を避ける。
+            ViewerNodeKind::Paragraph => "body",
             _ => Self::text_role(kind),
         }
     }

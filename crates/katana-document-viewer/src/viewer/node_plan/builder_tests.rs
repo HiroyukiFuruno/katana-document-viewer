@@ -91,11 +91,35 @@ fn planner_collapses_soft_line_breaks_inside_paragraph_spans() {
 }
 
 #[test]
-fn planner_preserves_physical_paragraph_rows_for_export_surface_parity() {
+fn planner_collapses_soft_paragraph_rows_for_export_surface_parity() {
     let input = input_with_nodes(vec![
         node_at_line(
             KmmNodeKind::Paragraph,
             "first line",
+            vec![text_node_at_line("first line", 1)],
+            1,
+        ),
+        node_at_line(
+            KmmNodeKind::Paragraph,
+            "second line",
+            vec![text_node_at_line("second line", 2)],
+            2,
+        ),
+    ]);
+
+    let plan = ViewerNodePlanner::create_export_surface(&input, 0.0);
+
+    assert_eq!(1, plan.nodes.len());
+    assert_node_texts(&plan, &["first line second line"]);
+    assert_node_span_texts(&plan, &["first line second line"]);
+}
+
+#[test]
+fn planner_keeps_markdown_hard_break_rows_for_export_surface_parity() {
+    let input = input_with_nodes(vec![
+        node_at_line(
+            KmmNodeKind::Paragraph,
+            "first line  ",
             vec![text_node_at_line("first line", 1)],
             1,
         ),
@@ -183,7 +207,10 @@ fn planner_treats_aligned_html_text_as_text_height_not_media_height() {
         },
         plan.nodes[0].kind
     );
-    assert_eq!(46.0, plan.nodes[0].rect.height);
+    assert_eq!(
+        f32::from(input.typography.preview_font_size) * 1.5,
+        plan.nodes[0].rect.height
+    );
 }
 
 #[test]

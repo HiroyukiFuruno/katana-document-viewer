@@ -3,8 +3,6 @@ use super::super::types::ViewerTextSpan;
 use crate::viewer::settings_update::ViewerTypographyConfig;
 
 const MIN_LINE_WRAP_WIDTH: u32 = 120;
-const COMPACT_BODY_FONT_SIZE: f32 = 14.0;
-const COMPACT_BODY_RASTER_SCALE: f32 = 1.25;
 
 pub(super) struct SpanLineCounter {
     max_width: u32,
@@ -91,11 +89,7 @@ impl SpanLineCounter {
 }
 
 fn calibrated_document_font_size(typography: ViewerTypographyConfig) -> f32 {
-    let font_size = f32::from(typography.preview_font_size);
-    if font_size <= COMPACT_BODY_FONT_SIZE {
-        return font_size * COMPACT_BODY_RASTER_SCALE;
-    }
-    font_size
+    f32::from(typography.preview_font_size)
 }
 
 #[path = "builder_span_text_width.rs"]
@@ -133,6 +127,26 @@ mod tests {
         )];
 
         let count = SpanLineCounter::count(&spans, 1248, typography(14));
+
+        assert_eq!(1, count);
+    }
+
+    #[test]
+    fn paragraph_measurement_uses_the_public_body_font_size() {
+        let spans = vec![ViewerTextSpan::plain(
+            "This fixture exercises diagram rendering that depends on external tools: Mermaid (mmdc), PlantUML (jar), and DrawIo (pure Rust).",
+        )];
+
+        let count = SpanLineCounter::count(&spans, 1175, typography(14));
+
+        assert_eq!(1, count, "a wide paragraph must use the renderer body size");
+    }
+
+    #[test]
+    fn platform_measurement_keeps_japanese_and_zwj_emoji_on_the_same_line_when_it_fits() {
+        let spans = vec![ViewerTextSpan::plain("日本語 ⭐️ 🧑‍💻 text")];
+
+        let count = SpanLineCounter::count(&spans, 640, typography(20));
 
         assert_eq!(1, count);
     }

@@ -64,5 +64,8 @@ mod code_tests;
 #[path = "node_factory_list_tests.rs"]
 mod list_tests;
 
+#[path = "node_factory_table_tests.rs"]
+mod table_tests;
+
 #[path = "node_factory_emoji_tests.rs"]
 mod emoji_tests;

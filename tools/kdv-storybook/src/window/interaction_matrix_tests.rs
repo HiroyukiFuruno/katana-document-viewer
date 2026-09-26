@@ -13,6 +13,7 @@ use crate::mouse::{
 };
 use crate::preview::PreviewScene;
 use crate::preview_interaction_command_support::build_scene;
+use crate::preview_theme_bridge::KucThemeBridge;
 use crate::settings_action::StorybookSettingsField;
 use katana_document_viewer::{
     DiagramViewportState, HostCommand, ViewerCommand, ViewerInteractionConfig, ViewerMode,
@@ -836,6 +837,18 @@ fn assert_diagram_control_click_and_hover() -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+fn find_node_by_id<'a>(
+    node: &'a UiNode,
+    node_id: &katana_ui_core::render_model::UiNodeId,
+) -> Option<&'a UiNode> {
+    if node.id() == node_id {
+        return Some(node);
+    }
+    node.children()
+        .iter()
+        .find_map(|child| find_node_by_id(child, node_id))
+}
+
 #[test]
 fn storybook_window_internal_diagram_control_hover_draws_kuc_border()
 -> Result<(), Box<dyn std::error::Error>> {
@@ -852,6 +865,19 @@ fn storybook_window_internal_diagram_control_hover_draws_kuc_border()
         WINDOW_WIDTH,
         WINDOW_HEIGHT
     ));
+    let staged_control = storybook
+        .scene
+        .as_ref()
+        .ok_or("diagram scene must remain installed")?
+        .tree
+        .with_hovered_node_id(storybook.hovered_action_node_id.as_ref());
+    let hovered_action_node_id = storybook
+        .hovered_action_node_id
+        .as_ref()
+        .ok_or("resolved internal control id must remain installed")?;
+    let hovered_control = find_node_by_id(staged_control.root(), hovered_action_node_id)
+        .ok_or("resolved internal control must remain in the staged render tree")?;
+    assert!(hovered_control.props().interaction.hovered);
     let hovered = storybook.render_canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let normal_count = color_count(&normal, KUC_DARK_HOVER_BORDER);
@@ -2395,7 +2421,7 @@ fn pointer_for_first_visible_diagram_body(
     scene: &PreviewScene,
     scroll_y: f32,
 ) -> Result<PointerHit, std::io::Error> {
-    let (_, node_hits) = katana_ui_core_storybook::UiTreeSurfaceHost::new(scene.theme.clone())
+    let (_, node_hits) = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .viewport_interaction_hits(
             scene.tree.root(),
             katana_ui_core_storybook::UiTreeRenderArea {

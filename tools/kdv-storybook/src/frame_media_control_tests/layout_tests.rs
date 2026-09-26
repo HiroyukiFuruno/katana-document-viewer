@@ -1,7 +1,8 @@
 use super::support::{DiagramActionHit, FRAME_WIDTH, MediaControlFrameSupport};
 use crate::KucDiagramControlResolver;
 use crate::layout::preview_content_width;
-use katana_ui_core_storybook::{UiTreeHostActionHit, UiTreeRenderArea, UiTreeSurfaceHost};
+use crate::preview_theme_bridge::KucThemeBridge;
+use katana_ui_core_storybook::{UiTreeHostActionHit, UiTreeRenderArea};
 use std::collections::BTreeMap;
 
 const CONTROL_SIZE: usize = 28;
@@ -31,15 +32,24 @@ fn assert_expected_commands(by_command: &BTreeMap<String, UiTreeHostActionHit>) 
 
 fn assert_square_buttons(by_command: &BTreeMap<String, UiTreeHostActionHit>) {
     for (command, hit) in by_command {
-        assert_eq!(CONTROL_SIZE, hit.rect.width, "{command} width");
-        assert_eq!(CONTROL_SIZE, hit.rect.height, "{command} height");
+        assert_fractional_control_extent(command, hit.rect.width, "width");
+        assert_fractional_control_extent(command, hit.rect.height, "height");
     }
+}
+
+fn assert_fractional_control_extent(command: &str, extent: usize, axis: &str) {
+    // KUC rounds a logical 28px button hit outward to pixel bounds. A fractional
+    // origin therefore covers exactly 28 or 29 physical pixels.
+    assert!(
+        (CONTROL_SIZE..=CONTROL_SIZE + 1).contains(&extent),
+        "{command} {axis} must be the outward-rounded 28px KatanA control hit, got {extent}"
+    );
 }
 
 fn assert_internal_grid_matches_katana_controller(
     scene: &crate::preview::PreviewScene,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let hits = UiTreeSurfaceHost::new(scene.theme.clone())
+    let hits = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .document_node_hits(
             scene.tree.root(),
             UiTreeRenderArea {
@@ -78,8 +88,8 @@ fn assert_internal_grid_matches_katana_controller(
     );
 
     for (command, rect) in &hits {
-        assert_eq!(CONTROL_SIZE, rect.width, "{command} width");
-        assert_eq!(CONTROL_SIZE, rect.height, "{command} height");
+        assert_fractional_control_extent(command, rect.width, "width");
+        assert_fractional_control_extent(command, rect.height, "height");
     }
 
     let grid_left = hits["pan-left"].x;

@@ -2,7 +2,7 @@ use super::media_geometry::{
     DIAGRAM_EXPORT_MAX_WIDTH, MATH_MAX_WIDTH, capped_diagram_height, capped_diagram_width,
     display_height_for_width, fullscreen_diagram_width,
 };
-use super::{KucNodeFactory, KucNodeLabels};
+use super::{KucNodeFactory, KucNodeLabels, media_controls::EXPORT_MEDIA_VERTICAL_MARGIN_PX};
 use katana_document_viewer::{
     Artifact, ArtifactId, DiagnosticSeverity, ViewerArtifactSearchResolver,
     ViewerImageSurfaceError, ViewerImageSurfaceFactory, ViewerNode, ViewerNodeKind,
@@ -10,7 +10,7 @@ use katana_document_viewer::{
 use katana_ui_core::atom::{ImageSurface, Spinner};
 use katana_ui_core::layout::{AlignCenter, Row};
 use katana_ui_core::render_model::{
-    UiImageSurfaceFit, UiImageSurfaceTransform, UiNode, UiVisualRole,
+    UiDimension, UiImageSurfaceFit, UiImageSurfaceTransform, UiNode, UiVisualRole,
 };
 
 impl<'a> KucNodeFactory<'a> {
@@ -158,7 +158,7 @@ impl<'a> KucNodeFactory<'a> {
                     image = image.selection_text(text);
                 }
                 let media_node: UiNode = self.image_surface_transform(node, image).into();
-                self.export_surface_media_node(media_node, node)
+                self.export_surface_media_node(media_node)
             }
             Err(error) => {
                 eprintln!(
@@ -181,8 +181,8 @@ impl<'a> KucNodeFactory<'a> {
         ))
     }
 
-    fn export_surface_media_node(&self, media: UiNode, node: &ViewerNode) -> UiNode {
-        if self.export_surface && matches!(node.kind, ViewerNodeKind::Diagram { .. }) {
+    fn export_surface_media_node(&self, media: UiNode) -> UiNode {
+        if self.export_surface {
             return media.visual_role(UiVisualRole::ExportMediaFrame);
         }
         media.visual_role(UiVisualRole::MediaFrame)
@@ -278,7 +278,20 @@ impl<'a> KucNodeFactory<'a> {
                     self.text_with_role(KucNodeLabels::rendering_label(node), "media-pending"),
                 ))
                 .into();
+        if self.export_surface
+            && matches!(node.kind, ViewerNodeKind::Diagram { .. })
+            && !self.media_controls_enabled(node)
+        {
+            return pending
+                .height(UiDimension::px(Self::pending_export_diagram_height(node)))
+                .visual_role(UiVisualRole::ExportMediaFrame);
+        }
         self.media_with_controls(node, pending)
+    }
+
+    fn pending_export_diagram_height(node: &ViewerNode) -> u16 {
+        let content_height = node.rect.height.ceil().clamp(1.0, f32::from(u16::MAX)) as u16;
+        content_height.saturating_add(EXPORT_MEDIA_VERTICAL_MARGIN_PX.saturating_mul(2))
     }
 
     fn media_error_node(&self) -> UiNode {

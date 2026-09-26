@@ -3,6 +3,8 @@ use crate::frame::FrameRenderRequest;
 use crate::layout::{
     SIDEBAR_CONTENT_INSET, sidebar_content_height, sidebar_content_width, sidebar_content_x,
 };
+use crate::preview_theme_bridge::KucThemeBridge;
+use katana_document_viewer::ViewerTypographyConfig;
 use katana_ui_core::render_model::UiNode;
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::UiTreeSurfaceHost;
@@ -14,6 +16,7 @@ thread_local! {
     static LIGHT_RENDERER: RefCell<UiTreeSurfaceHost> =
         RefCell::new(UiTreeSurfaceHost::new(ThemeSnapshot::light()));
     static THEME_RENDERERS: RefCell<Vec<ThemeRendererCache>> = const { RefCell::new(Vec::new()) };
+    static DOCUMENT_RENDERERS: RefCell<Vec<DocumentRendererCache>> = const { RefCell::new(Vec::new()) };
 }
 
 pub(crate) fn render_ui_tree_for_theme_flag(
@@ -50,6 +53,21 @@ pub(crate) fn render_ui_tree_with_theme(
     });
 }
 
+pub(crate) fn render_document_ui_tree_with_theme(
+    canvas: &mut crate::canvas::Canvas,
+    root: &UiNode,
+    area: SurfaceArea,
+    theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+    export_surface: bool,
+) {
+    DOCUMENT_RENDERERS.with(|renderers| {
+        let mut renderers = renderers.borrow_mut();
+        let index = document_renderer_index(&mut renderers, theme, typography, export_surface);
+        renderers[index].renderer.render(canvas, root, area);
+    });
+}
+
 pub(crate) fn sidebar_area(request: &FrameRenderRequest<'_>) -> SurfaceArea {
     SurfaceArea {
         x: sidebar_content_x(),
@@ -74,4 +92,68 @@ fn renderer_index(renderers: &mut Vec<ThemeRendererCache>, theme: &ThemeSnapshot
 struct ThemeRendererCache {
     theme: ThemeSnapshot,
     renderer: UiTreeSurfaceHost,
+}
+
+fn document_renderer_index(
+    renderers: &mut Vec<DocumentRendererCache>,
+    theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+    export_surface: bool,
+) -> usize {
+    if let Some(index) = renderers.iter().position(|cached| {
+        cached.theme.eq(theme)
+            && cached.typography == typography
+            && cached.export_surface == export_surface
+    }) {
+        return index;
+    }
+    renderers.push(DocumentRendererCache {
+        theme: theme.clone(),
+        typography,
+        export_surface,
+        renderer: KucThemeBridge::document_host_for_surface(
+            theme.clone(),
+            typography,
+            export_surface,
+        ),
+    });
+    renderers.len() - 1
+}
+
+struct DocumentRendererCache {
+    theme: ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+    export_surface: bool,
+    renderer: UiTreeSurfaceHost,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DocumentRendererCache, document_renderer_index};
+    use katana_document_viewer::ViewerTypographyConfig;
+    use katana_ui_core::theme::ThemeSnapshot;
+
+    #[test]
+    fn document_renderer_cache_reuses_only_matching_surface_configuration() {
+        let mut renderers = Vec::<DocumentRendererCache>::new();
+        let theme = ThemeSnapshot::dark();
+        let typography = ViewerTypographyConfig::default();
+
+        let first = document_renderer_index(&mut renderers, &theme, typography, false);
+        let repeated = document_renderer_index(&mut renderers, &theme, typography, false);
+        let other_typography = document_renderer_index(
+            &mut renderers,
+            &theme,
+            ViewerTypographyConfig {
+                preview_font_size: typography.preview_font_size + 1,
+            },
+            false,
+        );
+        let export = document_renderer_index(&mut renderers, &theme, typography, true);
+
+        assert_eq!(first, repeated);
+        assert_ne!(first, other_typography);
+        assert_ne!(first, export);
+        assert_eq!(3, renderers.len());
+    }
 }

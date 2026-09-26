@@ -1,18 +1,20 @@
 use crate::document_viewer::asset_index::KucArtifactIndex;
 use crate::document_viewer::media_control_icons::KucMediaControlIconSet;
 use crate::document_viewer::node_labels::{CODE_FONT_ROLE, KucNodeLabels};
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{
     Artifact, DiagramViewportState, ViewerHtmlRole, ViewerInteractionConfig, ViewerNode,
-    ViewerNodeKind, ViewerTaskState, ViewerTypographyConfig,
+    ViewerNodeKind, ViewerTableProjection, ViewerTaskState, ViewerTypographyConfig,
 };
 use katana_ui_core::atom::{Divider, Text};
-use katana_ui_core::layout::Stack;
+use katana_ui_core::layout::{Alignment, Row, Stack};
 use katana_ui_core::render_model::{
     UiBorder, UiDimension, UiEdgeInsets, UiNode, UiNodeKind, UiPosition, UiVisualRole,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
 const KATANA_MEDIA_ROW_IMAGE_TOP_INSET_PX: u16 = 0;
+const KATANA_HTML_TOP_ADJUSTMENT_PX: u16 = 7;
 const RGBA_CHANNEL_COUNT: usize = 4;
 type RgbaChannels = [u8; RGBA_CHANNEL_COUNT];
 
@@ -33,6 +35,7 @@ pub(crate) struct KucNodeFactory<'a> {
     viewer_background: Option<RgbaChannels>,
     fullscreen_viewport_width: Option<u32>,
     fullscreen_viewport_height: Option<u32>,
+    table_projections: BTreeMap<String, ViewerTableProjection>,
 }
 
 impl<'a> KucNodeFactory<'a> {
@@ -60,7 +63,27 @@ impl<'a> KucNodeFactory<'a> {
             viewer_background: None,
             fullscreen_viewport_width: None,
             fullscreen_viewport_height: None,
+            table_projections: BTreeMap::new(),
         }
+    }
+
+    pub(crate) fn table_projections(
+        mut self,
+        projections: BTreeMap<String, ViewerTableProjection>,
+    ) -> Self {
+        self.table_projections = projections;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_table_projection(
+        mut self,
+        node_id: &str,
+        projection: ViewerTableProjection,
+    ) -> Self {
+        self.table_projections
+            .insert(node_id.to_owned(), projection);
+        self
     }
 
     pub(crate) fn interaction(mut self, value: ViewerInteractionConfig) -> Self {
@@ -154,9 +177,14 @@ impl<'a> KucNodeFactory<'a> {
                 divider
                     .width(UiDimension::Px(Self::rule_width(self.content_width)))
                     .common(common)
-                    .border(UiBorder::solid(2, 0, "document.rule.border"))
+                    .border(UiBorder::solid(
+                        if self.export_surface { 2 } else { 1 },
+                        0,
+                        "document.rule.border",
+                    ))
             }
             ViewerNodeKind::Alert { .. } => self.alert_node(node),
+            ViewerNodeKind::Table => self.table_node(node),
             ViewerNodeKind::List => self.list_node(node),
             ViewerNodeKind::BlockQuote => self.blockquote_node(node),
             ViewerNodeKind::FootnoteDefinition { .. } => self.footnote_node(node),
@@ -172,22 +200,67 @@ impl<'a> KucNodeFactory<'a> {
     }
 
     fn text_node(&self, node: &ViewerNode) -> UiNode {
-        let mut text = Text::new(Self::text_label(node))
-            .font_role(self.font_role_for_node(node))
-            .text_role(self.text_role_for_node(node))
-            .wrap(Self::text_wrap_for_node(node))
-            .selectable(self.interaction.selection_enabled);
-        if !node.spans.is_empty() {
+        let recovery_spans = Self::normalizable_html_data_image_source_spans(node);
+        let export_wrapped_spans = self.export_wrapped_paragraph_spans(node);
+        let export_wrapped_label = self.export_wrapped_centered_html_label(node);
+        let mut text = Text::new(
+            export_wrapped_spans
+                .as_ref()
+                .map(|spans| {
+                    spans
+                        .iter()
+                        .map(|span| span.text.as_str())
+                        .collect::<String>()
+                })
+                .or_else(|| export_wrapped_label.clone())
+                .unwrap_or_else(|| Self::text_label(node)),
+        )
+        .font_role(self.font_role_for_node(node))
+        .text_role(self.text_role_for_node(node))
+        .wrap(Self::text_wrap_for_node(node))
+        .selectable(self.interaction.selection_enabled);
+        if let Some(spans) = recovery_spans {
+            text = text.text_spans(spans);
+        } else if let Some(spans) = export_wrapped_spans {
+            text = text.text_spans(spans);
+        } else if export_wrapped_label.is_none()
+            && !node.spans.is_empty()
+            && !Self::is_html_image_source_recovery(node)
+        {
             text = text.text_spans(Self::text_spans(&node.spans));
         }
         let rendered: UiNode = text.into();
         let rendered = self.html_margin_node(rendered, node);
+        let rendered = self.centered_link_row_node(rendered, node);
         if node.spans.iter().any(|span| !span.link_target.is_empty()) {
             return rendered
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }
         rendered
+    }
+
+    fn centered_link_row_node(&self, ui_node: UiNode, node: &ViewerNode) -> UiNode {
+        if self.export_surface
+            || !matches!(
+                node.kind,
+                ViewerNodeKind::Html {
+                    role: ViewerHtmlRole::Centered
+                }
+            )
+            || !node.spans.iter().any(|span| !span.link_target.is_empty())
+        {
+            return ui_node;
+        }
+        UiNode::from(Row::new().align(Alignment::Center).child(ui_node))
+            .height(UiDimension::Px(self.interactive_html_parent_row_height()))
+    }
+
+    fn interactive_html_parent_row_height(&self) -> u16 {
+        (f32::from(self.typography.preview_font_size) * 1.5
+            + f32::from(KATANA_HTML_TOP_ADJUSTMENT_PX))
+        .ceil()
+        .min(f32::from(u16::MAX)) as u16
     }
 
     fn html_margin_node(&self, ui_node: UiNode, node: &ViewerNode) -> UiNode {
@@ -213,6 +286,35 @@ impl<'a> KucNodeFactory<'a> {
                 .stable_node_id(node.node_id.0.clone())
                 .stable_state_id(node.node_id.0.clone());
         }
+        if ui_node.kind() == UiNodeKind::Text
+            && matches!(node.kind, ViewerNodeKind::Paragraph)
+            && !self.export_surface
+            && let Some(height) = self.interactive_paragraph_height(node)
+        {
+            return Self::interactive_text_row(
+                ui_node,
+                node,
+                self.viewer_width_for_node(node),
+                height,
+            );
+        }
+        if (ui_node.kind() == UiNodeKind::Text
+            || matches!(node.kind, ViewerNodeKind::List)
+            || Self::uses_native_interactive_html_height(node))
+            && !self.export_surface
+        {
+            let ui_node = ui_node.width(self.viewer_width_for_node(node));
+            if ui_node.kind() == UiNodeKind::Text && matches!(node.kind, ViewerNodeKind::Paragraph)
+            {
+                return ui_node
+                    .height(Self::viewer_height(node))
+                    .stable_node_id(node.node_id.0.clone())
+                    .stable_state_id(node.node_id.0.clone());
+            }
+            return ui_node
+                .stable_node_id(node.node_id.0.clone())
+                .stable_state_id(node.node_id.0.clone());
+        }
         let width = self.viewer_width_for_node(node);
         let height = self.viewer_height_for_rendered_node(&ui_node, node);
         if Self::uses_media_row_wrapper(&ui_node, node) {
@@ -223,6 +325,38 @@ impl<'a> KucNodeFactory<'a> {
             .height(height)
             .stable_node_id(node.node_id.0.clone())
             .stable_state_id(node.node_id.0.clone())
+    }
+
+    fn interactive_paragraph_height(&self, node: &ViewerNode) -> Option<UiDimension> {
+        let source_line_height = self.source_body_line_height();
+        let source_lines = node.rect.height / source_line_height;
+        let rounded_lines = source_lines.round();
+        if rounded_lines < 1.0 || (source_lines - rounded_lines).abs() > 0.01 {
+            if node.source.line_column_range.end.line > node.source.line_column_range.start.line {
+                // soft-wrap 後も KDV が計画した複数行段落は、host hit を計画高へ固定する。
+                return Some(Self::viewer_height(node));
+            }
+            return None;
+        }
+        // KDV の確定行数を KUC の本文 baseline へ渡し、OS の font 幅による再折返し差を除く。
+        let height = rounded_lines * KucThemeBridge::body_line_height(self.typography);
+        Some(UiDimension::Px(
+            height.ceil().min(f32::from(u16::MAX)) as u16
+        ))
+    }
+
+    fn uses_native_interactive_html_height(node: &ViewerNode) -> bool {
+        matches!(
+            node.kind,
+            ViewerNodeKind::Html {
+                role: ViewerHtmlRole::BadgeRow
+            }
+        ) || (matches!(
+            node.kind,
+            ViewerNodeKind::Html {
+                role: ViewerHtmlRole::Centered
+            }
+        ) && node.spans.iter().any(|span| !span.link_target.is_empty()))
     }
 
     fn uses_media_row_wrapper(ui_node: &UiNode, node: &ViewerNode) -> bool {
@@ -248,7 +382,25 @@ impl<'a> KucNodeFactory<'a> {
         {
             return ui_node.props().common.height.clone();
         }
-        Self::viewer_height(node)
+        let viewer_height = Self::viewer_height(node);
+        if self.export_surface
+            && ui_node.kind() == UiNodeKind::Text
+            && matches!(node.kind, ViewerNodeKind::Paragraph)
+            && let UiDimension::Px(viewer_height_px) = viewer_height
+        {
+            let wrapped_height = self.body_line_height_px().saturating_mul(
+                u16::try_from(ui_node.props().label.lines().count().max(1)).unwrap_or(u16::MAX),
+            );
+            return UiDimension::Px(viewer_height_px.max(wrapped_height));
+        }
+        if matches!(node.kind, ViewerNodeKind::Diagram { .. })
+            && matches!(ui_node.props().visual_role, UiVisualRole::MediaFrame)
+            && let (UiDimension::Px(viewer), UiDimension::Px(media)) =
+                (&viewer_height, &ui_node.props().common.height)
+        {
+            return UiDimension::Px((*viewer).max(*media));
+        }
+        viewer_height
     }
 
     fn media_row_wrapper(
@@ -272,6 +424,28 @@ impl<'a> KucNodeFactory<'a> {
         wrapper
             .common(common)
             .visual_role(visual_role)
+            .width(width)
+            .height(height)
+            .stable_node_id(node_id.clone())
+            .stable_state_id(node_id)
+    }
+
+    fn interactive_text_row(
+        ui_node: UiNode,
+        node: &ViewerNode,
+        width: UiDimension,
+        height: UiDimension,
+    ) -> UiNode {
+        let node_id = node.node_id.0.clone();
+        let text = ui_node.width(width.clone()).height(height.clone());
+        let wrapper: UiNode = Row::new().child(text).into();
+        let common = wrapper
+            .props()
+            .common
+            .clone()
+            .semantic_node_id(node_id.clone());
+        wrapper
+            .common(common)
             .width(width)
             .height(height)
             .stable_node_id(node_id.clone())
@@ -336,6 +510,8 @@ mod media_image_controls;
 mod media_impl;
 #[path = "node_factory_metrics.rs"]
 mod metrics;
+#[path = "node_factory_table.rs"]
+mod table;
 #[path = "node_factory_task_state.rs"]
 mod task_state;
 #[path = "node_factory_text.rs"]

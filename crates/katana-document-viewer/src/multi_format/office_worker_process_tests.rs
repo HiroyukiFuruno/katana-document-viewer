@@ -1,9 +1,15 @@
 #[cfg(target_os = "macos")]
 use super::OfficeWorkerProcess;
 #[cfg(not(windows))]
+use super::configure_command_with_debug;
+#[cfg(target_os = "linux")]
+use super::linux::{linux_parent_wait_result, normalize_linux_wait_result, wait_for_worker};
+#[cfg(not(windows))]
 use super::normalize_wait_result;
 use super::{cpu_seconds, format_argument};
-use crate::multi_format::{OfficeDocumentFormat, OfficeWorkerConfig, OfficeWorkerError};
+use crate::multi_format::{
+    OfficeDocumentFormat, OfficeWorkerConfig, OfficeWorkerError, debug_trace::DebugTrace,
+};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -31,6 +37,51 @@ fn normalized_wait_failures_remain_typed() {
 
 #[cfg(not(windows))]
 #[test]
+fn debug_environment_is_propagated_only_when_enabled() {
+    for debug_enabled in [false, true] {
+        let mut command = std::process::Command::new("worker");
+        let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+        configure_command_with_debug(
+            &mut command,
+            std::path::Path::new("workspace"),
+            OfficeDocumentFormat::Docx,
+            &config,
+            debug_enabled,
+        );
+        let has_debug = command
+            .get_envs()
+            .any(|(name, value)| name == "DEBUG" && value == Some(std::ffi::OsStr::new("true")));
+        assert_eq!(debug_enabled, has_debug);
+    }
+}
+
+#[cfg(not(windows))]
+#[test]
+fn debug_worker_environment_carries_the_office_session_correlation() {
+    let _trace_session = DebugTrace::session((42, 0x0123_4567_89ab_cdef));
+    let mut command = std::process::Command::new("worker");
+    let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+    configure_command_with_debug(
+        &mut command,
+        std::path::Path::new("workspace"),
+        OfficeDocumentFormat::Docx,
+        &config,
+        true,
+    );
+    let environment: Vec<_> = command
+        .get_envs()
+        .filter_map(|(name, value)| value.map(|value| (name, value)))
+        .collect();
+    assert!(environment.iter().any(|(name, value)| {
+        *name == std::ffi::OsStr::new("KDV_TRACE_SESSION") && *value != std::ffi::OsStr::new("0")
+    }));
+    assert!(environment.iter().any(|(name, value)| {
+        *name == std::ffi::OsStr::new("KDV_TRACE_SOURCE") && value.len() == 16
+    }));
+}
+
+#[cfg(not(windows))]
+#[test]
 fn parent_wait_returns_a_completed_worker_status() {
     let child = std::process::Command::new("/usr/bin/true").spawn();
     assert!(child.is_ok());
@@ -38,6 +89,43 @@ fn parent_wait_returns_a_completed_worker_status() {
         let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
         assert_eq!(Ok(Some(0)), super::wait_for_worker(&mut child, &config));
     }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn linux_wait_for_worker_returns_a_completed_worker_status() {
+    let child = std::process::Command::new("/usr/bin/true").spawn();
+    assert!(child.is_ok());
+    if let Ok(mut child) = child {
+        let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
+        assert_eq!(Ok(Some(0)), wait_for_worker(&mut child, &config));
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn parent_wait_recovers_when_memory_limit_setup_races_worker_exit() {
+    let child = std::process::Command::new("/usr/bin/true").spawn();
+    assert!(child.is_ok());
+    if let Ok(mut child) = child {
+        let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
+        let result = normalize_linux_wait_result(
+            &mut child,
+            &config,
+            Err(std::io::Error::from(std::io::ErrorKind::NotFound)),
+        );
+        assert_eq!(Ok(Some(0)), result);
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn parent_wait_failure_after_limit_race_remains_typed() {
+    let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+    assert!(matches!(
+        linux_parent_wait_result(&config, Err(std::io::Error::other("wait failed"))),
+        Err(OfficeWorkerError::WorkerUnavailable { .. })
+    ));
 }
 
 #[cfg(target_os = "macos")]

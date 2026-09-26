@@ -49,7 +49,7 @@ impl ViewerNodeMetrics {
             ViewerNodeKind::Code { .. } => Self::code_block_height(text, typography),
             ViewerNodeKind::Math => Self::code_block_height(text, typography),
             ViewerNodeKind::Diagram { .. } => DIAGRAM_BLOCK_HEIGHT,
-            ViewerNodeKind::Table => Self::table_block_height(text, typography, content_width),
+            ViewerNodeKind::Table => Self::wrapped_body_height(text, typography, content_width),
             ViewerNodeKind::Image => MEDIA_BLOCK_HEIGHT,
             ViewerNodeKind::Html { role } => {
                 Self::html_block_height(*role, text, typography, content_width)
@@ -199,10 +199,6 @@ impl ViewerNodeMetrics {
             (font_size - COMPACT_BODY_FONT_SIZE) / (BASE_BODY_FONT_SIZE - COMPACT_BODY_FONT_SIZE);
         compact_height + (default_height - compact_height) * t
     }
-
-    fn code_scale(typography: ViewerTypographyConfig) -> f32 {
-        ViewerCodeBlockMetrics::code_scale(typography)
-    }
 }
 
 #[path = "metrics_table.rs"]
@@ -315,8 +311,39 @@ mod tests {
     #[test]
     fn table_height_considers_content_width() {
         let typography = ViewerNodeMetrics::default_typography();
-        let narrow = ViewerNodeMetrics::table_block_height("a,b,c,d", typography, 10);
-        let wide = ViewerNodeMetrics::table_block_height("a,b,c,d", typography, 1000);
+        let projection = crate::ViewerTableProjection {
+            rows: vec![crate::ViewerTableRowProjection {
+                cells: vec![crate::ViewerTableCellProjection {
+                    text: "a,b,c,d".to_string(),
+                    alignment: crate::ViewerTableAlignment::Unspecified,
+                    vertical_alignment: crate::ViewerTableVerticalAlignment::Center,
+                    row_span: 1,
+                    column_span: 1,
+                }],
+            }],
+            column_count: 1,
+        };
+        let narrow = ViewerNodeMetrics::table_block_height(&projection, typography, 10);
+        let wide = ViewerNodeMetrics::table_block_height(&projection, typography, 1000);
         assert!(narrow >= wide);
+    }
+
+    #[test]
+    fn table_without_typed_projection_uses_wrapped_body_height() {
+        let typography = ViewerNodeMetrics::default_typography();
+        let text = "a,b,c,d";
+        let table = ViewerNodeMetrics::block_height_with_width(
+            &ViewerNodeKind::Table,
+            text,
+            typography,
+            10,
+        );
+        let body = ViewerNodeMetrics::block_height_with_width(
+            &ViewerNodeKind::Paragraph,
+            text,
+            typography,
+            10,
+        );
+        assert_eq!(table, body);
     }
 }

@@ -1,7 +1,7 @@
 use super::super::classifier::ViewerNodeClassifier;
 use super::super::planned_node::PlannedNode;
 use super::super::search_highlight::ViewerSearchHighlighter;
-use super::super::types::{ViewerNodeKind, ViewerTextSpan};
+use super::super::types::{ViewerNodeKind, ViewerTableProjection, ViewerTextSpan};
 use super::context::ViewerNodeContext;
 use super::{ParagraphLayout, ViewerNodePlanBuilder};
 use katana_markdown_model::{KmmNode, KmmNodeKind};
@@ -18,6 +18,7 @@ impl<'a> ViewerNodePlanBuilder<'a> {
             source: node.source.clone(),
             text: self.node_text(node, &kind),
             spans: self.highlighted_spans(node, &kind),
+            table_projection: Self::table_projection(node, &kind),
             reference: self.asset_reference(node, &kind),
             kind,
         };
@@ -25,6 +26,15 @@ impl<'a> ViewerNodePlanBuilder<'a> {
             return None;
         }
         Some(planned)
+    }
+
+    fn table_projection(node: &KmmNode, kind: &ViewerNodeKind) -> Option<ViewerTableProjection> {
+        match (&node.kind, kind) {
+            (KmmNodeKind::Table(table), ViewerNodeKind::Table) => {
+                Some(ViewerTableProjection::from_kmm(table))
+            }
+            _ => None,
+        }
     }
 
     fn highlighted_spans(&self, node: &KmmNode, kind: &ViewerNodeKind) -> Vec<ViewerTextSpan> {

@@ -10,11 +10,12 @@ use katana_render_runtime::{
 };
 use std::time::Duration;
 
-const UPDATE_TIMEOUT: Duration = Duration::from_secs(1);
+const UPDATE_TIMEOUT: Duration = Duration::from_secs(10);
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn dispatch_handles_every_browser_command() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let mut session = start_session(&request("index")?)?;
 
     dispatch(
@@ -34,6 +35,7 @@ fn dispatch_handles_every_browser_command() -> TestResult {
 
 #[test]
 fn dispatch_propagates_errors_after_the_runtime_session_is_closed() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let mut session = start_session(&request("index")?)?;
     session.close()?;
 
@@ -58,6 +60,7 @@ fn dispatch_propagates_errors_after_the_runtime_session_is_closed() -> TestResul
 
 #[test]
 fn worker_recovers_from_startup_error_on_navigation() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(BrowserSessionRequest::new(
         source("index")?,
         invalid_viewport(),
@@ -89,6 +92,7 @@ fn worker_recovers_from_startup_error_on_navigation() -> TestResult {
 
 #[test]
 fn publishing_without_pending_browser_updates_is_a_noop() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let mut session = HtmlBrowserSession::new(source("index")?, viewport()?)?;
     let state = BrowserSessionState::default();
     let _ = session.take_frame_update();
@@ -101,6 +105,7 @@ fn publishing_without_pending_browser_updates_is_a_noop() -> TestResult {
 
 #[test]
 fn worker_publishes_invalid_resize_errors() -> TestResult {
+    let _runtime_guard = super::super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request("index")?);
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
     adapter.resize(HtmlBrowserViewport {

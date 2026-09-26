@@ -27,6 +27,27 @@ use std::{
     time::Duration,
 };
 
+#[cfg(test)]
+pub(super) fn runtime_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    static RUNTIME_TEST_GUARD: std::sync::OnceLock<std::sync::Mutex<()>> =
+        std::sync::OnceLock::new();
+    recover_runtime_test_guard(
+        RUNTIME_TEST_GUARD
+            .get_or_init(|| std::sync::Mutex::new(()))
+            .lock(),
+    )
+}
+
+#[cfg(test)]
+fn recover_runtime_test_guard<T>(
+    result: std::sync::LockResult<std::sync::MutexGuard<'_, T>>,
+) -> std::sync::MutexGuard<'_, T> {
+    match result {
+        Ok(guard) => guard,
+        Err(error) => error.into_inner(),
+    }
+}
+
 /// Non-blocking handle for one KRR-owned persistent browser page.
 #[derive(Debug)]
 pub struct BrowserSessionAdapter {

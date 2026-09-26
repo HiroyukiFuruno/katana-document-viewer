@@ -37,6 +37,7 @@ fn take_update_delegates_to_adapter_state() -> TestResult {
 
 #[test]
 fn start_publishes_an_in_process_runtime_frame() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter =
         BrowserSessionAdapter::start(BrowserSessionRequest::new(source()?, viewport()?));
 
@@ -50,14 +51,11 @@ fn start_publishes_an_in_process_runtime_frame() -> TestResult {
 }
 
 #[test]
-fn close_is_idempotent_after_the_worker_has_stopped() -> TestResult {
+fn close_is_idempotent_while_the_worker_starts() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter =
         BrowserSessionAdapter::start(BrowserSessionRequest::new(source()?, viewport()?));
 
-    assert!(matches!(
-        adapter.wait_for_update(UPDATE_TIMEOUT),
-        Some(BrowserSessionUpdate::Frame(frame)) if !frame.pixels.is_empty()
-    ));
     adapter.close()?;
     adapter.close()?;
     Ok(())

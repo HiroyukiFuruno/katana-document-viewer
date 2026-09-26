@@ -33,21 +33,26 @@ fn direct_sample_viewer_node_heights_match_export_surface_nodes()
 }
 
 #[test]
-fn katana_sample_viewer_plan_height_matches_export_surface_stack()
+fn katana_sample_viewer_plan_height_uses_softbreak_semantic_stack()
 -> Result<(), Box<dyn std::error::Error>> {
     let case = SurfaceHeightCase::load()?;
 
-    assert_eq!(
+    assert_ne!(
         case.expected_content_height() as f32,
         case.plan.content_height,
-        "{}",
+        "the PDF-oriented physical source-row stack must not define viewer softbreak layout"
+    );
+    assert_eq!(
+        10_540.0,
+        case.plan.content_height,
+        "soft Markdown rows must not reserve physical source-line height in the viewer plan\n{}",
         case.plan_height_failure_message()
     );
     Ok(())
 }
 
 #[test]
-fn katana_sample_consecutive_table_y_matches_export_surface_block()
+fn katana_sample_softbreak_stack_keeps_table_anchor_stable()
 -> Result<(), Box<dyn std::error::Error>> {
     let case = SurfaceHeightCase::load()?;
     let plan_y = case
@@ -58,14 +63,18 @@ fn katana_sample_consecutive_table_y_matches_export_surface_block()
         .ok_or("table after list must reach export surface")?;
 
     assert_eq!(
-        surface_y, plan_y,
-        "viewer plan y must stay aligned to export surface block y"
+        9_660, plan_y,
+        "soft Markdown rows must not add phantom source-line height before the table"
+    );
+    assert!(
+        plan_y < surface_y,
+        "export block rows are not viewer layout rows"
     );
     Ok(())
 }
 
 #[test]
-fn katana_sample_decorated_blockquote_y_matches_export_surface_block()
+fn katana_sample_softbreak_stack_keeps_blockquote_anchor_stable()
 -> Result<(), Box<dyn std::error::Error>> {
     let case = SurfaceHeightCase::load()?;
     let plan_y = case
@@ -76,15 +85,19 @@ fn katana_sample_decorated_blockquote_y_matches_export_surface_block()
         .ok_or("decorated blockquote must reach export surface")?;
 
     assert_eq!(
-        surface_y, plan_y,
-        "decorated blockquote y must stay aligned to export surface block y"
+        5_074, plan_y,
+        "soft Markdown rows must not add phantom source-line height before the blockquote"
+    );
+    assert!(
+        plan_y < surface_y,
+        "export block rows are not viewer layout rows"
     );
     Ok(())
 }
 
 #[test]
-fn katana_sample_note_block_y_matches_export_surface_block()
--> Result<(), Box<dyn std::error::Error>> {
+fn katana_sample_softbreak_stack_keeps_note_anchor_stable() -> Result<(), Box<dyn std::error::Error>>
+{
     let case = SurfaceHeightCase::load()?;
     let plan_y = case
         .plan_y_for_source("> **Note**")
@@ -94,8 +107,12 @@ fn katana_sample_note_block_y_matches_export_surface_block()
         .ok_or("legacy note blockquote must reach export surface")?;
 
     assert_eq!(
-        surface_y, plan_y,
-        "legacy note blockquote y must stay aligned to export surface block y"
+        5_300, plan_y,
+        "soft Markdown rows must not add phantom source-line height before the note"
+    );
+    assert!(
+        plan_y < surface_y,
+        "export block rows are not viewer layout rows"
     );
     Ok(())
 }

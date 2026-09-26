@@ -36,6 +36,18 @@ pub(super) enum ViewerHeightMode {
 pub(super) struct ViewerMediaHeight;
 
 impl ViewerMediaHeight {
+    pub(super) fn html_data_image_height(
+        planned: &PlannedNode,
+        viewport_width: f32,
+        height_mode: ViewerHeightMode,
+    ) -> Option<f32> {
+        data_image::HtmlDataImageHeight::height(
+            planned,
+            Self::content_width(viewport_width, height_mode),
+            height_mode,
+        )
+    }
+
     pub(super) fn block_height(
         graph: Option<&BuildGraph>,
         artifacts: &[Artifact],
@@ -62,9 +74,11 @@ impl ViewerMediaHeight {
     }
 
     fn precomputed_height(context: MediaHeightContext<'_>) -> Option<f32> {
-        if let Some(height) =
-            data_image::HtmlDataImageHeight::height(context.planned, context.content_width)
-        {
+        if let Some(height) = data_image::HtmlDataImageHeight::height(
+            context.planned,
+            context.content_width,
+            context.height_mode,
+        ) {
             return Some(height);
         }
         if context.height_mode == ViewerHeightMode::ExportSurface
@@ -93,6 +107,9 @@ impl ViewerMediaHeight {
             ViewerNodeKind::Math => {
                 Self::svg_height(context.artifacts, context.planned, MATH_MAX_WIDTH)
                     .unwrap_or(MATH_FALLBACK_HEIGHT)
+            }
+            ViewerNodeKind::Table => {
+                Self::table_height(context.planned, context.typography, context.content_width)
             }
             ViewerNodeKind::Image => {
                 Self::image_or_text_height(context.artifacts, context.planned, context.typography)
@@ -134,6 +151,16 @@ impl ViewerMediaHeight {
         })
     }
 
+    fn table_height(
+        planned: &PlannedNode,
+        typography: ViewerTypographyConfig,
+        content_width: u32,
+    ) -> f32 {
+        planned.table_projection.as_ref().map_or(0.0, |projection| {
+            ViewerNodeMetrics::table_block_height(projection, typography, content_width as usize)
+        })
+    }
+
     fn accordion_or_default_height(
         planned: &PlannedNode,
         typography: ViewerTypographyConfig,
@@ -163,7 +190,7 @@ impl ViewerMediaHeight {
 
 #[cfg(test)]
 mod tests {
-    use super::{MEDIA_VERTICAL_MARGIN, ViewerHeightMode, ViewerMediaHeight, ViewerNodeMetrics};
+    use super::{ViewerHeightMode, ViewerMediaHeight, ViewerNodeMetrics};
     use crate::artifact::{ArtifactBytes, ArtifactDiagnostics, ArtifactFactory, ArtifactFormat};
     use crate::viewer::asset::ViewerAssetReference;
     use crate::viewer::node_plan::planned_node::PlannedNode;
@@ -190,6 +217,7 @@ mod tests {
             source: source("paragraph"),
             text: "paragraph".to_string(),
             spans: Vec::new(),
+            table_projection: None,
             reference: None,
         };
         let typography = ViewerTypographyConfig {
@@ -245,8 +273,7 @@ mod tests {
 
         let expected = 244.0
             * ViewerMediaHeight::content_width(1280.0, ViewerHeightMode::InteractivePreview) as f32
-            / 1520.0
-            + MEDIA_VERTICAL_MARGIN;
+            / 1520.0;
 
         assert!(
             (expected - height).abs() <= 0.01,
@@ -264,6 +291,7 @@ mod tests {
             source: source("```mermaid\ngantt\n```"),
             text: String::new(),
             spans: Vec::new(),
+            table_projection: None,
             reference: Some(ViewerAssetReference {
                 node_id: KmmNodeId("node-diagram".to_string()),
                 artifact_id,

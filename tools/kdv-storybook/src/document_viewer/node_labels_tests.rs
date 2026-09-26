@@ -76,6 +76,11 @@ fn text_roles_cover_html_and_blockquote_cases() {
         "blockquote",
         KucNodeLabels::text_role(&ViewerNodeKind::BlockQuote)
     );
+    assert_eq!(
+        "paragraph",
+        KucNodeLabels::text_role(&ViewerNodeKind::Paragraph),
+        "interactive paragraphs must use KatanA's unadjusted compact wrap role"
+    );
 }
 
 #[test]
@@ -92,10 +97,22 @@ fn heading_text_roles_keep_level_specific_metrics() {
         "heading-3",
         KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 3 })
     );
+    assert_eq!(
+        "heading-4",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 4 })
+    );
+    assert_eq!(
+        "heading-5",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 5 })
+    );
+    assert_eq!(
+        "heading-6",
+        KucNodeLabels::text_role(&ViewerNodeKind::Heading { level: 6 })
+    );
 }
 
 #[test]
-fn export_surface_html_heading_uses_body_alignment_role() {
+fn export_surface_html_centered_h1_uses_body_alignment_role() {
     assert_eq!(
         "html-centered",
         KucNodeLabels::export_surface_text_role(&ViewerNodeKind::Html {
@@ -112,6 +129,11 @@ fn export_surface_body_uses_export_font_role() {
     assert_eq!(
         "document-export-body",
         KucNodeLabels::export_surface_font_role(&ViewerNodeKind::Paragraph)
+    );
+    assert_eq!(
+        "body",
+        KucNodeLabels::export_surface_text_role(&ViewerNodeKind::Paragraph),
+        "the preview-only paragraph role must not alter the export contract"
     );
 }
 

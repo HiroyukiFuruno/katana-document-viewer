@@ -3,8 +3,8 @@ use crate::KucViewerPlan;
 use crate::preview_build_request::PreviewBuildRequest;
 use crate::preview_build_support::{KucConfigState, PreviewBuildSupport};
 use crate::preview_scene::{
-    PreviewScene, scroll_redraw_sensitive_rects, viewer_internal_anchor_lookup,
-    viewer_target_lookup, viewer_targets,
+    PreviewScene, scroll_redraw_diagram_boundary_rects, scroll_redraw_sensitive_rects,
+    viewer_internal_anchor_lookup, viewer_target_lookup, viewer_targets,
 };
 use crate::preview_search_targets::StorybookSearchTargets;
 use crate::preview_theme_bridge::KucThemeBridge;
@@ -73,6 +73,8 @@ impl PreviewBuilder {
             &node_plan,
             &tree,
             &theme,
+            request.typography,
+            request.export_surface,
             config.viewport.width,
             content_height,
         );
@@ -85,6 +87,8 @@ impl PreviewBuilder {
         let target_lookup = viewer_target_lookup(&targets);
         let internal_anchor_lookup = viewer_internal_anchor_lookup(&node_plan, &targets);
         let scroll_redraw_sensitive_rects = scroll_redraw_sensitive_rects(&node_plan);
+        let scroll_redraw_diagram_boundary_rects =
+            scroll_redraw_diagram_boundary_rects(&node_plan, &targets);
         let search_targets = StorybookSearchTargets::collect(
             &node_plan,
             &output.input.artifacts,
@@ -100,6 +104,7 @@ impl PreviewBuilder {
             node_count: node_plan.nodes.len(),
             mode: output.state.mode,
             typography: request.typography,
+            export_surface: request.export_surface,
             asset_request_count,
             asset_request_key,
             loaded_asset_count: asset_report.loaded_artifact_count,
@@ -107,6 +112,7 @@ impl PreviewBuilder {
             surface: output.surface.clone(),
             content_height,
             scroll_redraw_sensitive_rects,
+            scroll_redraw_diagram_boundary_rects,
             slideshow_current_page: output.state.slideshow.current_page_index,
             slideshow_max_page: output.state.slideshow.max_page_index,
             diagram_viewports: request.diagram_viewports.clone(),
@@ -135,7 +141,9 @@ impl PreviewBuilder {
         else {
             return content_height;
         };
-        content_height.max(last_target_y + config.viewport.height)
+        // KUC host の矩形をスクロール契約とし、adapter の事前 geometry が持つ
+        // 二重の末尾余白を残すと最終 target の下で bottom scroll が止まるため。
+        last_target_y + config.viewport.height
     }
 
     fn document_id(source: &MarkdownSource, request: &PreviewBuildRequest<'_>) -> String {

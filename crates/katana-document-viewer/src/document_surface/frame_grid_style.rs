@@ -1,3 +1,8 @@
+#[path = "frame_grid_borders.rs"]
+mod borders;
+
+pub use borders::{DocumentGridBorderSide, DocumentGridCellBorders};
+
 use katana_ui_core::render_model::{
     UiGridCellAppearance, UiGridDataBar, UiGridHorizontalAlignment, UiGridIcon, UiGridRating,
     UiGridVerticalAlignment,

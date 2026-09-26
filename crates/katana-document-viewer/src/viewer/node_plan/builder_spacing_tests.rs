@@ -1,6 +1,7 @@
 use super::ViewerNodePlanner;
-use super::test_support::{input_with_nodes, node, text_node};
+use super::test_support::{input_with_nodes, long_list, node, text_node};
 use crate::ViewerNodeKind;
+use crate::viewer::node_plan::metrics::ViewerNodeMetrics;
 use katana_markdown_model::{CodeBlockRole, DiagramKind, HeadingNode, HtmlBlockRole, KmmNodeKind};
 
 #[test]
@@ -13,10 +14,36 @@ fn planner_uses_preview_gap_between_top_level_nodes() {
     let plan = ViewerNodePlanner::create(&input, 0.0);
 
     assert_eq!(2, plan.nodes.len());
-    assert_eq!(plan.nodes[0].rect.height + 20.0, plan.nodes[1].rect.y);
+    let body_row_height = f32::from(input.typography.preview_font_size) * 1.5;
+    assert_eq!(body_row_height, plan.nodes[0].rect.y);
     assert_eq!(
-        plan.nodes[0].rect.height + 20.0 + plan.nodes[1].rect.height,
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + body_row_height,
+        plan.nodes[1].rect.y
+    );
+    assert_eq!(
+        plan.nodes[1].rect.y + plan.nodes[1].rect.height,
         plan.content_height
+    );
+}
+
+#[test]
+fn planner_uses_canonical_body_row_at_heading_list_boundaries() {
+    let mut input = input_with_nodes(vec![
+        heading_node(),
+        node(KmmNodeKind::List(long_list()), "- item", Vec::new()),
+        heading_node(),
+    ]);
+    input.typography.preview_font_size = 14;
+
+    let plan = ViewerNodePlanner::create(&input, 0.0);
+
+    assert_eq!(
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 21.0,
+        plan.nodes[1].rect.y
+    );
+    assert_eq!(
+        plan.nodes[1].rect.y + plan.nodes[1].rect.height + 21.0,
+        plan.nodes[2].rect.y
     );
 }
 
@@ -47,23 +74,85 @@ fn planner_uses_katana_context_gaps_around_html_rule_and_heading() {
     assert_eq!(4, plan.nodes.len());
     assert_eq!(0.0, plan.nodes[0].rect.y);
     assert_eq!(
-        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 16.0,
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 14.0,
         plan.nodes[1].rect.y,
-        "paragraph to centered HTML must follow KatanA compact newline spacing"
+        "paragraph to centered HTML must use the body-row minus HTML top adjustment"
     );
     assert_eq!(
-        plan.nodes[1].rect.y + plan.nodes[1].rect.height + 14.0,
+        plan.nodes[1].rect.y + plan.nodes[1].rect.height + 21.0,
         plan.nodes[2].rect.y,
-        "centered HTML to rule must not use the generic block gap"
+        "centered HTML row to rule must use the canonical body row"
     );
     assert_eq!(
-        9, plan.nodes[2].rule_line_offset_px,
-        "only the centered language selector rule needs KatanA's lowered rule line"
+        0, plan.nodes[2].rule_line_offset_px,
+        "interactive centered-language rules must use the native centered separator"
     );
     assert_eq!(
-        plan.nodes[2].rect.y + plan.nodes[2].rect.height + 14.0,
+        plan.nodes[2].rect.y + plan.nodes[2].rect.height + 21.0,
         plan.nodes[3].rect.y,
-        "rule to heading must follow the current KatanA reference crop spacing"
+        "rule to heading must use the canonical body row"
+    );
+}
+
+#[test]
+fn export_surface_preserves_centered_html_rule_line_offset() {
+    let input = input_with_nodes(vec![
+        node(
+            KmmNodeKind::HtmlBlock(HtmlBlockRole::Centered),
+            r#"<p align="center"><a href="sample_diagrams.ja.md">日本語</a></p>"#,
+            Vec::new(),
+        ),
+        node(KmmNodeKind::ThematicBreak, "---", Vec::new()),
+    ]);
+
+    let plan = ViewerNodePlanner::create_export_surface(&input, 0.0);
+
+    assert_eq!(
+        9, plan.nodes[1].rule_line_offset_px,
+        "export surface must preserve its existing centered HTML rule placement"
+    );
+}
+
+fn assert_html_to_paragraph_gap(
+    role: HtmlBlockRole,
+    html: &str,
+    expected_html_height: f32,
+    expected_gap: f32,
+) {
+    let mut input = input_with_nodes(vec![
+        node(KmmNodeKind::HtmlBlock(role), html, Vec::new()),
+        node(KmmNodeKind::Paragraph, "body", vec![text_node("body")]),
+    ]);
+    input.typography.preview_font_size = 14;
+
+    let plan = ViewerNodePlanner::create(&input, 0.0);
+
+    assert_eq!(expected_html_height, plan.nodes[0].rect.height);
+    assert_eq!(
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + expected_gap,
+        plan.nodes[1].rect.y
+    );
+}
+
+#[test]
+fn planner_derives_html_to_paragraph_gap_from_html_anchor_advance() {
+    assert_html_to_paragraph_gap(
+        HtmlBlockRole::Centered,
+        r#"<p align="center">Centered description</p>"#,
+        21.0,
+        28.0,
+    );
+    assert_html_to_paragraph_gap(
+        HtmlBlockRole::Centered,
+        r#"<p align="center"><a href="sample_diagrams.ja.md">日本語</a></p>"#,
+        28.0,
+        21.0,
+    );
+    assert_html_to_paragraph_gap(
+        HtmlBlockRole::Generic,
+        r#"<h1 align="center">KatanA Desktop</h1>"#,
+        31.5,
+        21.0,
     );
 }
 
@@ -115,9 +204,9 @@ fn planner_uses_katana_context_gap_between_centered_html_and_html_heading() {
 
     assert_eq!(2, plan.nodes.len());
     assert_eq!(
-        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 17.0,
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 21.0,
         plan.nodes[1].rect.y,
-        "centered HTML image block to HTML heading must follow KatanA HTML block margin"
+        "centered HTML line to HTML heading must reserve one canonical body row"
     );
 }
 
@@ -145,7 +234,7 @@ fn planner_uses_katana_html_badge_top_adjustment_after_heading() {
 
     assert_eq!(2, plan.nodes.len());
     assert_eq!(
-        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 13.0,
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 14.0,
         plan.nodes[1].rect.y,
         "Markdown heading to HTML badge row must include KatanA's -7px HTML block top adjustment"
     );
@@ -191,7 +280,10 @@ fn planner_uses_katana_codeblock_gap_before_diagram_sections() {
     let plan = ViewerNodePlanner::create(&input, 0.0);
 
     assert_eq!(2, plan.nodes.len());
-    assert_eq!(plan.nodes[0].rect.height + 6.0, plan.nodes[1].rect.y);
+    assert_eq!(
+        plan.nodes[0].rect.y + plan.nodes[0].rect.height + 6.0,
+        plan.nodes[1].rect.y
+    );
 }
 
 #[test]
@@ -203,12 +295,13 @@ fn planner_measures_plain_paragraph_text_without_child_spans() {
         vec![text_node(text)],
     )]);
     input.typography.preview_font_size = 14;
-    input.viewport.width = 1280.0;
+    input.viewport.width = 400.0;
 
     let plan = ViewerNodePlanner::create(&input, 0.0);
 
     assert_eq!(1, plan.nodes.len());
-    assert_eq!(46.0, plan.nodes[0].rect.height);
+    let line_height = ViewerNodeMetrics::body_line_height(input.typography);
+    assert!(plan.nodes[0].rect.height >= line_height * 2.0);
 }
 
 #[test]

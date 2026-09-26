@@ -1,9 +1,150 @@
-use katana_document_viewer::{KdvThemeMode, KdvThemeSnapshot};
+use katana_document_viewer::{KdvThemeMode, KdvThemeSnapshot, ViewerTypographyConfig};
+use katana_ui_core::raster_host::{UiTreeDocumentTypography, UiTreeTextRoleBaselineTypography};
+use katana_ui_core::text_raster::{PlatformTextFaceSelection, PlatformTextRasterConfig};
 use katana_ui_core::theme::{ColorToken, Rgba, ThemeId, ThemeSnapshot};
+use katana_ui_core_storybook::UiTreeSurfaceHost;
+#[cfg(target_os = "windows")]
+use std::path::PathBuf;
+
+const KATANA_HEADING_1_SIZE_RATIO: f32 = 1.5;
+const KATANA_HEADING_2_PROGRESS: f32 = 0.835;
+const KATANA_HEADING_3_PROGRESS: f32 = 0.668;
+const KATANA_HEADING_4_PROGRESS: f32 = 0.501;
+const KATANA_HEADING_5_PROGRESS: f32 = 0.334;
+const KATANA_HEADING_6_PROGRESS: f32 = 0.167;
 
 pub(crate) struct KucThemeBridge;
 
 impl KucThemeBridge {
+    pub(crate) fn body_line_height(typography: ViewerTypographyConfig) -> f32 {
+        21.0 * f32::from(typography.preview_font_size) / 14.0
+    }
+
+    pub(crate) fn document_typography(
+        typography: ViewerTypographyConfig,
+    ) -> UiTreeDocumentTypography {
+        let font_size = f32::from(typography.preview_font_size);
+        let heading_1_font_size = font_size * KATANA_HEADING_1_SIZE_RATIO;
+        let heading_2_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_2_PROGRESS;
+        let heading_3_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_3_PROGRESS;
+        let heading_4_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_4_PROGRESS;
+        let heading_5_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_5_PROGRESS;
+        let heading_6_font_size =
+            font_size + (heading_1_font_size - font_size) * KATANA_HEADING_6_PROGRESS;
+        let scale = font_size / 14.0;
+        UiTreeDocumentTypography::new()
+            .with_body_baseline(UiTreeTextRoleBaselineTypography::new(
+                font_size,
+                Self::body_line_height(typography),
+                12.5 * scale,
+            ))
+            .with_heading_1_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_1_font_size,
+                31.5 * scale,
+                18.5 * scale,
+            ))
+            .with_heading_2_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_2_font_size,
+                30.0 * scale,
+                17.5 * scale,
+            ))
+            .with_heading_3_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_3_font_size,
+                28.0 * scale,
+                16.5 * scale,
+            ))
+            .with_heading_4_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_4_font_size,
+                26.5 * scale,
+                15.5 * scale,
+            ))
+            .with_heading_5_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_5_font_size,
+                24.5 * scale,
+                14.5 * scale,
+            ))
+            .with_heading_6_baseline(UiTreeTextRoleBaselineTypography::new(
+                heading_6_font_size,
+                23.0 * scale,
+                13.5 * scale,
+            ))
+    }
+
+    pub(crate) fn document_host(
+        theme: ThemeSnapshot,
+        typography: ViewerTypographyConfig,
+    ) -> UiTreeSurfaceHost {
+        Self::document_host_for_surface(theme, typography, false)
+    }
+
+    pub(crate) fn document_host_for_surface(
+        theme: ThemeSnapshot,
+        typography: ViewerTypographyConfig,
+        export_surface: bool,
+    ) -> UiTreeSurfaceHost {
+        // export role は KUC 自身が KDV export と同じ compact metrics を持つ。
+        // interactive 用 baseline override を重ねると独立 export reference とずれるため分離する。
+        let document_typography = if export_surface {
+            UiTreeDocumentTypography::new()
+        } else {
+            Self::document_typography(typography)
+        };
+        UiTreeSurfaceHost::with_text_raster_config_and_document_typography(
+            theme,
+            Self::katana_text_raster_config(),
+            Self::katana_text_face_selection(),
+            document_typography,
+        )
+    }
+
+    fn katana_text_face_selection() -> PlatformTextFaceSelection {
+        // KatanA はOSごとの候補列から最初に解決できる本文fontをprimaryにする。
+        // WindowsだけSystemへ委譲するとYu Gothic候補を使わず、本文の行高がKatanAと乖離する。
+        PlatformTextFaceSelection::FirstCandidate
+    }
+
+    fn katana_text_raster_config() -> PlatformTextRasterConfig {
+        let default = PlatformTextRasterConfig::default();
+
+        // KUCの既定候補はmacOS/Linuxのcanonical artifactと一致する。WindowsだけはSegoe UIを
+        // 選ぶため、KatanAのYu Gothic/Meiryo優先順へ明示的に合わせる。
+        #[cfg(target_os = "windows")]
+        {
+            return PlatformTextRasterConfig {
+                proportional_candidates: Self::katana_windows_proportional_font_candidates(),
+                monospace_candidates: Self::katana_windows_monospace_font_candidates(),
+                ..default
+            };
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        default
+    }
+
+    #[cfg(target_os = "windows")]
+    fn katana_windows_proportional_font_candidates() -> Vec<PathBuf> {
+        Self::font_paths(&[
+            "C:/Windows/Fonts/YuGothR.ttc",
+            "C:/Windows/Fonts/yugothic.ttf",
+            "C:/Windows/Fonts/meiryo.ttc",
+            "C:/Windows/Fonts/segoeui.ttf",
+        ])
+    }
+
+    #[cfg(target_os = "windows")]
+    fn katana_windows_monospace_font_candidates() -> Vec<PathBuf> {
+        Self::font_paths(&["C:/Windows/Fonts/consola.ttf", "C:/Windows/Fonts/cour.ttf"])
+    }
+
+    #[cfg(target_os = "windows")]
+    fn font_paths(paths: &[&str]) -> Vec<PathBuf> {
+        paths.iter().map(PathBuf::from).collect()
+    }
+
     pub(crate) fn from_kdv(theme: &KdvThemeSnapshot) -> Result<ThemeSnapshot, String> {
         let mut snapshot = match theme.mode {
             KdvThemeMode::Light => ThemeSnapshot::light(),
@@ -13,6 +154,12 @@ impl KucThemeBridge {
         for token in Self::color_tokens(theme) {
             Self::set_color(&mut snapshot, token.0, token.1)?;
         }
+        let highlight_background = Self::highlight_background(theme)?;
+        Self::set_color(
+            &mut snapshot,
+            "text-highlight-background",
+            &highlight_background,
+        )?;
         Ok(snapshot)
     }
 
@@ -40,6 +187,7 @@ impl KucThemeBridge {
             ("link", Self::hyperlink_color(theme)),
             ("muted", &theme.quote_text),
             ("border", &theme.table_border),
+            ("document-rule-border", &theme.table_border),
             ("selection", &theme.task_active_background),
             ("table-row-background", &theme.background),
             ("table-header-background", &theme.table_header_background),
@@ -64,6 +212,23 @@ impl KucThemeBridge {
 
     fn footnote_background(theme: &KdvThemeSnapshot) -> &str {
         &theme.alert_background
+    }
+
+    fn highlight_background(theme: &KdvThemeSnapshot) -> Result<String, String> {
+        const MARK_YELLOW: [u8; 3] = [255, 255, 0];
+        const MARK_ALPHA: u16 = 60;
+        const OPAQUE: u16 = 255;
+        let background = Self::parse_hex_color("background", &theme.background)?;
+        let blend = |foreground: u8, background: u8| {
+            ((u16::from(foreground) * MARK_ALPHA + u16::from(background) * (OPAQUE - MARK_ALPHA))
+                / OPAQUE) as u8
+        };
+        Ok(format!(
+            "#{:02x}{:02x}{:02x}",
+            blend(MARK_YELLOW[0], background[0]),
+            blend(MARK_YELLOW[1], background[1]),
+            blend(MARK_YELLOW[2], background[2]),
+        ))
     }
 
     fn inline_code_background(theme: &KdvThemeSnapshot) -> &str {
@@ -116,6 +281,9 @@ impl KucThemeBridge {
 mod tests {
     use super::KucThemeBridge;
     use katana_document_viewer::KdvThemeSnapshot;
+    use katana_ui_core::text_raster::PlatformTextFaceSelection;
+    #[cfg(not(target_os = "windows"))]
+    use katana_ui_core::text_raster::PlatformTextRasterConfig;
 
     #[test]
     fn bridge_passes_kdv_table_theme_tokens_to_kuc() -> Result<(), Box<dyn std::error::Error>> {
@@ -130,6 +298,14 @@ mod tests {
             snapshot.color("table-even-row-background")
         );
         assert_eq!(Some([220, 220, 220, 255]), snapshot.color("border"));
+        assert_eq!(
+            Some([220, 220, 220, 255]),
+            snapshot.color("document-rule-border")
+        );
+        assert_eq!(
+            Some([255, 255, 195, 255]),
+            snapshot.color("text-highlight-background")
+        );
         assert_eq!(Some([0, 155, 255, 255]), snapshot.color("link"));
         assert_eq!(Some([36, 36, 36, 255]), snapshot.color("preview-text"));
         assert_eq!(
@@ -148,6 +324,21 @@ mod tests {
         assert_eq!(
             Some([243, 243, 243, 255]),
             snapshot.color("footnote-background")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn bridge_blends_mark_background_over_custom_kdv_background()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut theme = KdvThemeSnapshot::katana_light();
+        theme.background = "#112233".to_string();
+
+        let snapshot = KucThemeBridge::from_kdv(&theme)?;
+
+        assert_eq!(
+            Some([73, 86, 39, 255]),
+            snapshot.color("text-highlight-background")
         );
         Ok(())
     }
@@ -182,5 +373,29 @@ mod tests {
             snapshot.color("inline-code-background")
         );
         Ok(())
+    }
+
+    #[test]
+    fn bridge_uses_katana_windows_font_priority_without_overriding_canonical_profiles() {
+        let config = KucThemeBridge::katana_text_raster_config();
+
+        #[cfg(target_os = "windows")]
+        assert_eq!(
+            Some("C:/Windows/Fonts/YuGothR.ttc"),
+            config
+                .proportional_candidates
+                .first()
+                .and_then(|path| path.to_str())
+        );
+        #[cfg(not(target_os = "windows"))]
+        assert_eq!(PlatformTextRasterConfig::default(), config);
+    }
+
+    #[test]
+    fn bridge_preserves_katana_platform_font_resolution_contract() {
+        assert_eq!(
+            PlatformTextFaceSelection::FirstCandidate,
+            KucThemeBridge::katana_text_face_selection()
+        );
     }
 }

@@ -26,7 +26,7 @@ env:
 
 jobs:
   preflight:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -42,18 +42,21 @@ jobs:
         with:
           shared-key: release-preflight-ubuntu-stable-all-features
 
+      - name: Refresh V8 link artifact after cache restore
+        run: cargo clean -p v8
+
       - name: Install just
         uses: taiki-e/install-action@just
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Install cargo-semver-checks
+        uses: taiki-e/install-action@cargo-semver-checks
+
       - name: Install diagram test dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y graphviz imagemagick xvfb xclip
-          sudo mkdir -p /opt/local/bin
-          sudo ln -sf /usr/bin/dot /opt/local/bin/dot
+          .github/scripts/install-linux-render-dependencies.sh
           if ! command -v magick >/dev/null 2>&1; then
             printf '%s\n' \
               '#!/usr/bin/env bash' \
@@ -88,4 +91,18 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
         run: |
           xvfb-run -a just storybook-release-acceptance-artifacts
+          mkdir -p "$RUNNER_TEMP/storybook-preview-crop-diagnostics"
+          cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"
+          cargo clean
+          cargo clean --target-dir target/llvm-cov-target
           xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check
+
+      - name: Upload Storybook preview-crop diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-preview-crop-diagnostics
+          path: |
+            target/acceptance/preview-crop-reference
+            ${{ runner.temp }}/storybook-preview-crop-diagnostics
+          if-no-files-found: warn
