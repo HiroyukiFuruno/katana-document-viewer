@@ -22,12 +22,19 @@ pub(super) fn normalize_linux_wait_result(
 ) -> Result<Option<i64>, OfficeWorkerError> {
     match result {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            let status = child
-                .wait()
-                .map_err(|wait_error| linux_parent_wait_error(config, wait_error))?;
-            Ok(status.code().map(i64::from))
+            linux_parent_wait_result(config, child.wait())
         }
         result => normalize_wait_result(config, result),
+    }
+}
+
+pub(super) fn linux_parent_wait_result(
+    config: &OfficeWorkerConfig,
+    result: std::io::Result<std::process::ExitStatus>,
+) -> Result<Option<i64>, OfficeWorkerError> {
+    match result {
+        Ok(status) => Ok(status.code().map(i64::from)),
+        Err(error) => Err(linux_parent_wait_error(config, error)),
     }
 }
 
