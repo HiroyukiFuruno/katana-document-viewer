@@ -5,7 +5,9 @@ use katana_document_viewer::{
     ViewerInteractionConfig, ViewerNodeKind, ViewerTextSpan, ViewerTextStyle,
     ViewerTypographyConfig,
 };
-use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind, UiTextWrapMode, UiVisualRole};
+use katana_ui_core::render_model::{
+    UiAlignItems, UiDimension, UiNode, UiNodeKind, UiTextWrapMode, UiVisualRole,
+};
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::UiTreeRenderArea;
 
@@ -97,7 +99,8 @@ fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
 
     let ui_node = factory.viewer_node(&node);
     assert_eq!(UiNodeKind::Row, ui_node.kind());
-    let hit =
+    assert_eq!(UiAlignItems::Center, ui_node.props().common.align_items);
+    let hits =
         KucThemeBridge::document_host(ThemeSnapshot::light(), ViewerTypographyConfig::default())
             .document_node_hits(
                 &ui_node,
@@ -110,9 +113,11 @@ fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
                 },
             )
             .into_iter()
-            .find(|hit| hit.node_id.as_str() == node.node_id.0)
-            .ok_or("soft-wrapped paragraph must expose its semantic node hit")?;
+            .filter(|hit| hit.node_id.as_str() == node.node_id.0)
+            .collect::<Vec<_>>();
 
+    assert_eq!(1, hits.len());
+    let hit = &hits[0];
     assert_eq!(42, hit.rect.height);
     Ok(())
 }

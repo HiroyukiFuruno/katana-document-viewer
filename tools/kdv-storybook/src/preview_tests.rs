@@ -386,6 +386,7 @@ fn sample_top_description_target_uses_rendered_line_height()
 
     let expected_bottom = (NATIVE_DESCRIPTION_TOP + NATIVE_DESCRIPTION_HEIGHT).ceil();
     let expected_top = NATIVE_DESCRIPTION_TOP.floor();
+    assert!(target.source.line_column_range.end.line > target.source.line_column_range.start.line);
     assert_eq!(expected_top, target.rect.y);
     assert_eq!(expected_bottom - expected_top, target.rect.height);
     Ok(())
