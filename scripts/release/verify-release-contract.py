@@ -622,11 +622,11 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         release_created < 0
         or cleanup < 0
         or publish < 0
-        or not release_created < cleanup < publish
+        or not release_created < publish < cleanup
         or any(token not in release for token in cleanup_required)
     ):
         errors.append(
-            "release workflow must run safe remote branch cleanup after the GitHub Release and before publishing."
+            "release workflow must publish crates.io after the GitHub Release and before remote branch cleanup."
         )
     return errors
 
@@ -845,9 +845,9 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             "${{ runner.temp }}/storybook-preview-crop-diagnostics",
             "if-no-files-found: warn",
             "name: Create GitHub Release",
+            "name: Publish crates.io",
             "name: Clean up merged remote release branch",
             "post-release-cleanup.py --scope remote --branch \"${RELEASE_BRANCH}\" --apply",
-            "name: Publish crates.io",
         )
     )
     assert not release_workflow_errors(release_preflight, release_workflow)
