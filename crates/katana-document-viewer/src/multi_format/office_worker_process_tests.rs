@@ -3,7 +3,7 @@ use super::OfficeWorkerProcess;
 #[cfg(not(windows))]
 use super::configure_command_with_debug;
 #[cfg(target_os = "linux")]
-use super::linux::{linux_parent_wait_error, normalize_linux_wait_result};
+use super::linux::{linux_parent_wait_error, normalize_linux_wait_result, wait_for_worker};
 #[cfg(not(windows))]
 use super::normalize_wait_result;
 use super::{cpu_seconds, format_argument};
@@ -88,6 +88,17 @@ fn parent_wait_returns_a_completed_worker_status() {
     if let Ok(mut child) = child {
         let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
         assert_eq!(Ok(Some(0)), super::wait_for_worker(&mut child, &config));
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn linux_wait_for_worker_returns_a_completed_worker_status() {
+    let child = std::process::Command::new("/usr/bin/true").spawn();
+    assert!(child.is_ok());
+    if let Ok(mut child) = child {
+        let config = OfficeWorkerConfig::new(PathBuf::from("/usr/bin/true"));
+        assert_eq!(Ok(Some(0)), wait_for_worker(&mut child, &config));
     }
 }
 
