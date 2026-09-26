@@ -41,7 +41,13 @@ fn external_worker_config() -> TestResult<(tempfile::TempDir, OfficeWorkerConfig
     } else {
         "kdv-office-worker"
     });
-    std::fs::copy(env!("CARGO_BIN_EXE_kdv-office-worker"), &executable)?;
+    let staged_executable = nested.join(if cfg!(windows) {
+        "kdv-office-worker.staged.exe"
+    } else {
+        "kdv-office-worker.staged"
+    });
+    std::fs::copy(env!("CARGO_BIN_EXE_kdv-office-worker"), &staged_executable)?;
+    std::fs::rename(&staged_executable, &executable)?;
     Ok((directory, OfficeWorkerConfig::new(executable)))
 }
 
