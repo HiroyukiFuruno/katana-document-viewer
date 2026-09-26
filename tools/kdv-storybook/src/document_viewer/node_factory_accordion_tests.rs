@@ -85,7 +85,9 @@ fn accordion_body_label(ui_node: &katana_ui_core::render_model::UiNode) -> Strin
 }
 
 fn first_label(ui_node: &katana_ui_core::render_model::UiNode) -> String {
-    if ui_node.kind() != UiNodeKind::Stack && !ui_node.props().label.is_empty() {
+    if !matches!(ui_node.kind(), UiNodeKind::Stack | UiNodeKind::Row)
+        && !ui_node.props().label.is_empty()
+    {
         return ui_node.props().label.clone();
     }
     ui_node

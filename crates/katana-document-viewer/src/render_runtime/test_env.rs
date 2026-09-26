@@ -52,10 +52,13 @@ mod tests {
 
     #[test]
     fn with_mathjax_env_restores_before_resuming_panic() {
+        let guard = RUNTIME_ENV_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let previous = std::env::var_os("MATHJAX_JS");
 
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            RenderRuntimeTestEnv::with_mathjax_env(Some("/tmp/current-mathjax.js"), || {
+            RenderRuntimeTestEnv::with_mathjax_env_locked(Some("/tmp/current-mathjax.js"), || {
                 assert_eq!(
                     Some(std::ffi::OsString::from("/tmp/current-mathjax.js")),
                     std::env::var_os("MATHJAX_JS")
@@ -66,6 +69,7 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(previous, std::env::var_os("MATHJAX_JS"));
+        drop(guard);
     }
 
     #[test]

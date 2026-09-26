@@ -88,7 +88,8 @@ fn interactive_text_preserves_non_line_quantized_viewer_height() {
 }
 
 #[test]
-fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline() {
+fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
+-> Result<(), Box<dyn std::error::Error>> {
     let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {
         preview_font_size: 14,
     });
@@ -97,9 +98,30 @@ fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline() {
 
     let ui_node = factory.viewer_node(&node);
 
-    assert_eq!(UiNodeKind::Stack, ui_node.kind());
+    assert_eq!(UiNodeKind::Row, ui_node.kind());
     assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
     assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
+    let hit = KucThemeBridge::document_host(
+        ThemeSnapshot::light(),
+        ViewerTypographyConfig {
+            preview_font_size: 14,
+        },
+    )
+    .document_node_hits(
+        &ui_node,
+        UiTreeRenderArea {
+            x: 0,
+            y: 0,
+            width: 120,
+            height: 42,
+            scroll_y: 0.0,
+        },
+    )
+    .into_iter()
+    .find(|hit| hit.node_id.as_str() == node.node_id.0)
+    .ok_or("interactive paragraph row must expose its semantic node hit")?;
+    assert_eq!(42, hit.rect.height);
+    Ok::<(), Box<dyn std::error::Error>>(())
 }
 
 #[test]

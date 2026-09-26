@@ -433,11 +433,8 @@ impl<'a> KucNodeFactory<'a> {
         height: UiDimension,
     ) -> UiNode {
         let node_id = node.node_id.0.clone();
-        let text = ui_node
-            .width(width.clone())
-            .height(height.clone())
-            .position(UiPosition::Absolute);
-        let wrapper: UiNode = Stack::new().child(text).into();
+        let text = ui_node.width(width.clone()).height(height.clone());
+        let wrapper: UiNode = Row::new().child(text).into();
         let common = wrapper
             .props()
             .common
