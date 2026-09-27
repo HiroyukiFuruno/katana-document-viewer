@@ -5,9 +5,7 @@ use katana_document_viewer::{
     ViewerInteractionConfig, ViewerNodeKind, ViewerTextSpan, ViewerTextStyle,
     ViewerTypographyConfig,
 };
-use katana_ui_core::render_model::{
-    UiDimension, UiNode, UiNodeKind, UiPosition, UiTextWrapMode, UiVisualRole,
-};
+use katana_ui_core::render_model::{UiDimension, UiNode, UiNodeKind, UiTextWrapMode, UiVisualRole};
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::UiTreeRenderArea;
 
@@ -98,12 +96,10 @@ fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
     node.source.line_column_range.end.line = 3;
 
     let ui_node = factory.viewer_node(&node);
-    assert_eq!(UiNodeKind::Stack, ui_node.kind());
+    assert_eq!(UiNodeKind::Text, ui_node.kind());
     assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
-    let text = &ui_node.children()[0];
-    assert_eq!(UiPosition::Absolute, text.props().common.position);
-    assert_eq!(node.node_id.0, text.id().as_str());
-    assert_eq!(node.node_id.0, text.props().common.semantic_node_id);
+    assert_eq!(node.node_id.0, ui_node.id().as_str());
+    assert_eq!(node.node_id.0, ui_node.props().common.semantic_node_id);
     let hits =
         KucThemeBridge::document_host(ThemeSnapshot::light(), ViewerTypographyConfig::default())
             .document_node_hits(
@@ -137,7 +133,7 @@ fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
 
     let ui_node = factory.viewer_node(&node);
 
-    assert_eq!(UiNodeKind::Stack, ui_node.kind());
+    assert_eq!(UiNodeKind::Text, ui_node.kind());
     assert_eq!(UiDimension::Px(42), ui_node.props().common.height);
     assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
     let hit = KucThemeBridge::document_host(

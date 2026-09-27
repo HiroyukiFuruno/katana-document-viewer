@@ -280,7 +280,7 @@ impl<'a> KucNodeFactory<'a> {
             && !self.export_surface
             && let Some(height) = self.interactive_paragraph_height(node)
         {
-            return Self::interactive_text_stack(
+            return Self::interactive_text_with_viewer_height(
                 ui_node,
                 node,
                 self.viewer_width_for_node(node),
@@ -430,7 +430,7 @@ impl<'a> KucNodeFactory<'a> {
             .stable_state_id(node_id)
     }
 
-    fn interactive_text_stack(
+    fn interactive_text_with_viewer_height(
         ui_node: UiNode,
         node: &ViewerNode,
         width: UiDimension,
@@ -442,21 +442,8 @@ impl<'a> KucNodeFactory<'a> {
             .common
             .clone()
             .semantic_node_id(node_id.clone());
-        let text = ui_node
+        ui_node
             .common(text_common)
-            .width(width.clone())
-            .height(height.clone())
-            .position(UiPosition::Absolute)
-            .stable_node_id(node_id.clone())
-            .stable_state_id(node_id.clone());
-        let wrapper: UiNode = Stack::new().child(text).into();
-        let common = wrapper
-            .props()
-            .common
-            .clone()
-            .semantic_node_id(node_id.clone());
-        wrapper
-            .common(common)
             .width(width)
             .height(height)
             .stable_node_id(node_id.clone())
