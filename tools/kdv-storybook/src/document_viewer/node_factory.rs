@@ -437,7 +437,13 @@ impl<'a> KucNodeFactory<'a> {
         height: UiDimension,
     ) -> UiNode {
         let node_id = node.node_id.0.clone();
+        let text_common = ui_node
+            .props()
+            .common
+            .clone()
+            .semantic_node_id(node_id.clone());
         let text = ui_node
+            .common(text_common)
             .width(width.clone())
             .height(height.clone())
             .position(UiPosition::Absolute)

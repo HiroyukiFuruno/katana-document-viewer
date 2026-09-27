@@ -103,7 +103,7 @@ fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
     let text = &ui_node.children()[0];
     assert_eq!(UiPosition::Absolute, text.props().common.position);
     assert_eq!(node.node_id.0, text.id().as_str());
-    assert!(text.props().common.semantic_node_id.is_empty());
+    assert_eq!(node.node_id.0, text.props().common.semantic_node_id);
     let hits =
         KucThemeBridge::document_host(ThemeSnapshot::light(), ViewerTypographyConfig::default())
             .document_node_hits(
