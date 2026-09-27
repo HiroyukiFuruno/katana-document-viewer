@@ -383,10 +383,19 @@ fn sample_top_description_target_uses_rendered_line_height()
                 .starts_with("This document is a comprehensive sample")
         })
         .ok_or("sample top description target missing")?;
+    let rendered = node_with_id(scene.tree.root(), target.node_id.0.as_str())
+        .ok_or("sample top description rendered node missing")?;
 
     let expected_bottom = (NATIVE_DESCRIPTION_TOP + NATIVE_DESCRIPTION_HEIGHT).ceil();
     let expected_top = NATIVE_DESCRIPTION_TOP.floor();
     assert!(target.source.line_column_range.end.line > target.source.line_column_range.start.line);
+    assert_eq!(
+        UiDimension::Px(NATIVE_DESCRIPTION_HEIGHT as u16),
+        rendered.props().common.height,
+        "KDV must pass the native planned height into the KUC Text node: target={target:?}, kind={:?}, semantic_node_id={}",
+        rendered.kind(),
+        rendered.props().common.semantic_node_id,
+    );
     assert_eq!(expected_top, target.rect.y);
     assert_eq!(expected_bottom - expected_top, target.rect.height);
     Ok(())
@@ -394,6 +403,15 @@ fn sample_top_description_target_uses_rendered_line_height()
 
 fn fixture_path(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../{path}"))
+}
+
+fn node_with_id<'a>(node: &'a UiNode, node_id: &str) -> Option<&'a UiNode> {
+    if node.id().as_str() == node_id {
+        return Some(node);
+    }
+    node.children()
+        .iter()
+        .find_map(|child| node_with_id(child, node_id))
 }
 
 fn style_count(node: &UiNode, style: &str) -> usize {
