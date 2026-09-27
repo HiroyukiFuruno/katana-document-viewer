@@ -123,14 +123,13 @@ fn interactive_soft_wrapped_text_keeps_kdv_planned_semantic_hit_height()
 }
 
 #[test]
-fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
+fn interactive_paragraph_uses_planned_line_count_with_kuc_body_baseline()
 -> Result<(), Box<dyn std::error::Error>> {
     let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {
         preview_font_size: 14,
     });
     let mut node = viewer_node(ViewerNodeKind::Paragraph, "Two source lines");
-    node.rect.height = 23.0;
-    node.source.line_column_range.end.line = 3;
+    node.rect.height = 46.0;
 
     let ui_node = factory.viewer_node(&node);
 
@@ -158,6 +157,20 @@ fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
     .ok_or("interactive paragraph row must expose its semantic node hit")?;
     assert_eq!(42, hit.rect.height);
     Ok::<(), Box<dyn std::error::Error>>(())
+}
+
+#[test]
+fn interactive_soft_merged_source_uses_planned_height_not_source_row_count() {
+    let factory = KucNodeFactory::new(&[], 120).typography(ViewerTypographyConfig {
+        preview_font_size: 14,
+    });
+    let mut node = viewer_node(ViewerNodeKind::Paragraph, "Soft-merged source rows");
+    node.rect.height = 23.0;
+    node.source.line_column_range.end.line = 3;
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiDimension::Px(21), ui_node.props().common.height);
 }
 
 #[test]

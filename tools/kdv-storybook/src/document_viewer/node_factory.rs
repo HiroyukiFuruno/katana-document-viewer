@@ -328,20 +328,6 @@ impl<'a> KucNodeFactory<'a> {
     }
 
     fn interactive_paragraph_height(&self, node: &ViewerNode) -> Option<UiDimension> {
-        let source_line_count = node
-            .source
-            .line_column_range
-            .end
-            .line
-            .saturating_sub(node.source.line_column_range.start.line);
-        if source_line_count > 1 {
-            // KDV が確定したソース行数を KUC の本文 baseline へ渡し、OS ごとの再折返し差を除く。
-            let height =
-                source_line_count as f32 * KucThemeBridge::body_line_height(self.typography);
-            return Some(UiDimension::Px(
-                height.ceil().min(f32::from(u16::MAX)) as u16
-            ));
-        }
         let source_line_height = self.source_body_line_height();
         let source_lines = node.rect.height / source_line_height;
         let rounded_lines = source_lines.round();

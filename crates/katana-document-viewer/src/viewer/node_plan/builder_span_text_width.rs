@@ -9,6 +9,8 @@ const APPLE_COLOR_EMOJI_FONT_FAMILY: &str = "Apple Color Emoji";
 const MACOS_PROPORTIONAL_FONT_FAMILY: &str = "ヒラギノ角ゴシック";
 #[cfg(target_os = "macos")]
 const MACOS_MONOSPACE_FONT_FAMILY: &str = "Menlo";
+#[cfg(target_os = "windows")]
+const WINDOWS_PROPORTIONAL_FONT_FAMILY: &str = "Yu Gothic";
 
 const TEXT_BUFFER_WIDTH: f32 = 4096.0;
 const TEXT_SUPERSAMPLE_SCALE: f32 = 2.0;
@@ -153,6 +155,12 @@ fn os_proportional_font_family() -> Family<'static> {
 }
 
 #[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+fn os_proportional_font_family() -> Family<'static> {
+    Family::Name(WINDOWS_PROPORTIONAL_FONT_FAMILY)
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
 fn os_proportional_font_family() -> Family<'static> {
     Family::SansSerif
 }
