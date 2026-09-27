@@ -612,7 +612,9 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
     release_created = release.find("name: Create GitHub Release")
     cleanup = release.find("name: Clean up merged remote release branch")
     publish = release.find("name: Publish crates.io")
+    cleanup_block = release[cleanup:] if cleanup >= 0 else ""
     cleanup_required = (
+        "GH_TOKEN: ${{ github.token }}",
         "post-release-cleanup.py",
         '--scope remote',
         '--branch "${RELEASE_BRANCH}"',
@@ -623,10 +625,10 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         or cleanup < 0
         or publish < 0
         or not release_created < publish < cleanup
-        or any(token not in release for token in cleanup_required)
+        or any(token not in cleanup_block for token in cleanup_required)
     ):
         errors.append(
-            "release workflow must publish crates.io after the GitHub Release and before remote branch cleanup."
+            "release workflow must authenticate and publish crates.io after the GitHub Release before remote branch cleanup."
         )
     return errors
 
@@ -847,6 +849,7 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             "name: Create GitHub Release",
             "name: Publish crates.io",
             "name: Clean up merged remote release branch",
+            "GH_TOKEN: ${{ github.token }}",
             "post-release-cleanup.py --scope remote --branch \"${RELEASE_BRANCH}\" --apply",
         )
     )
@@ -863,6 +866,10 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
         release_workflow.replace(
             "uses: taiki-e/install-action@cargo-semver-checks\n", ""
         ),
+    )
+    assert release_workflow_errors(
+        release_preflight,
+        release_workflow.replace("GH_TOKEN: ${{ github.token }}\n", "", 1),
     )
     assert release_workflow_errors(
         release_preflight,

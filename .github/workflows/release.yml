@@ -150,6 +150,7 @@ jobs:
       - name: Clean up merged remote release branch
         if: github.event_name == 'pull_request'
         env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.version }}
           RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: >
