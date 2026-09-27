@@ -129,7 +129,8 @@ fn interactive_paragraph_uses_source_line_count_with_kuc_body_baseline()
         preview_font_size: 14,
     });
     let mut node = viewer_node(ViewerNodeKind::Paragraph, "Two source lines");
-    node.rect.height = 46.0;
+    node.rect.height = 23.0;
+    node.source.line_column_range.end.line = 3;
 
     let ui_node = factory.viewer_node(&node);
 
