@@ -3,6 +3,7 @@ use super::super::planned_node::PlannedNode;
 use super::super::types::{ViewerHtmlRole, ViewerNodeKind, ViewerTextSpan};
 use super::ViewerMediaHeight;
 use super::span_line_counter::SpanLineCounter;
+use crate::html_sanitizer::HtmlFragmentNormalizer;
 use crate::viewer::settings_update::ViewerTypographyConfig;
 
 #[cfg(test)]
@@ -53,7 +54,7 @@ impl ViewerMediaHeight {
         typography: ViewerTypographyConfig,
         content_width: u32,
     ) -> Option<f32> {
-        matches!(planned.kind, ViewerNodeKind::List | ViewerNodeKind::Table).then(|| {
+        matches!(planned.kind, ViewerNodeKind::List).then(|| {
             Self::block_text_height(&planned.kind, &planned.text, typography, content_width)
         })
     }
@@ -86,8 +87,9 @@ impl ViewerMediaHeight {
 
     fn uses_no_wrap_html_text_height(planned: &PlannedNode) -> bool {
         matches!(planned.kind, ViewerNodeKind::Html { .. })
-            && planned.source.raw.text.contains("data:image/svg+xml")
-            && planned.source.raw.text.contains("xmlns=%22<http")
+            && HtmlFragmentNormalizer::has_malformed_image_source_attribute(
+                &planned.source.raw.text,
+            )
     }
 
     fn span_text_height(

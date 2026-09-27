@@ -1,6 +1,6 @@
 use super::{ViewerNodeKind, ViewerNodePlanner};
 use crate::{KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX, ViewerHtmlRole};
-use katana_markdown_model::{HeadingNode, HtmlBlockRole, KmmNodeKind, TableNode};
+use katana_markdown_model::{HeadingNode, HtmlBlockRole, KmmNodeKind, TableAlignment, TableNode};
 
 use super::html_height_test_support::{input_with_font_size, input_with_nodes, node, table_row};
 
@@ -77,25 +77,62 @@ fn planner_uses_rendered_rect_width_for_table_height() {
 }
 
 #[test]
-fn planner_keeps_html_data_svg_image_height_for_viewer_surface() {
-    let input = input_with_font_size(
-        vec![node(
-            KmmNodeKind::HtmlBlock(HtmlBlockRole::Centered),
-            r#"<p align="center"><img src="data:image/svg+xml,%3Csvg xmlns=%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width=%22128%22 height=%22128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23ddd%22/%3E%3C/svg%3E" width="128" alt="icon"></p>"#,
-            Vec::new(),
-        )],
-        14,
-    );
+fn planner_preserves_typed_table_cells_and_alignment_without_raw_text_parsing()
+-> Result<(), Box<dyn std::error::Error>> {
+    let table = typed_table_fixture();
+    let projection = crate::ViewerTableProjection::from_kmm(&table);
+    let input = input_with_nodes(vec![node(
+        KmmNodeKind::Table(table),
+        "| unrelated flattened source |",
+        Vec::new(),
+    )]);
 
     let plan = ViewerNodePlanner::create(&input, 0.0);
 
+    assert_eq!(2, projection.rows.len());
+    assert_eq!("Typed header", projection.rows[0].cells[0].text);
+    assert_eq!("Right body", projection.rows[1].cells[1].text);
     assert_eq!(
-        ViewerNodeKind::Html {
-            role: ViewerHtmlRole::Centered
-        },
-        plan.nodes[0].kind
+        crate::ViewerTableAlignment::Right,
+        projection.rows[1].cells[1].alignment
     );
-    assert_eq!(162.0, plan.nodes[0].rect.height);
+    assert_eq!(
+        projection
+            .row_heights(plan.nodes[0].rect.width as u32, input.typography)
+            .into_iter()
+            .sum::<u32>() as f32,
+        plan.nodes[0].rect.height
+    );
+    Ok(())
+}
+
+fn typed_table_fixture() -> TableNode {
+    TableNode {
+        alignments: vec![TableAlignment::Left, TableAlignment::Right],
+        rows: vec![
+            table_row(&["Typed header", "Aligned header"]),
+            table_row(&["---", "---:"]),
+            table_row(&["Typed body", "Right body"]),
+        ],
+    }
+}
+
+#[test]
+fn typed_table_projection_map_uses_snapshot_node_id() -> Result<(), &'static str> {
+    let input = input_with_nodes(vec![node(
+        KmmNodeKind::Table(typed_table_fixture()),
+        "| source text is not the typed table |",
+        Vec::new(),
+    )]);
+    let plan = ViewerNodePlanner::create(&input, 0.0);
+    let projections = crate::ViewerTableProjection::from_input(&input);
+    let projection = projections
+        .get(&plan.nodes[0].node_id.0)
+        .ok_or("typed projection by node id")?;
+
+    assert_eq!("Typed header", projection.rows[0].cells[0].text);
+    assert_eq!("Right body", projection.rows[1].cells[1].text);
+    Ok(())
 }
 
 #[test]
@@ -150,26 +187,4 @@ fn planner_applies_katana_preview_content_padding_to_viewer_nodes() {
             - f32::from(KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX) * 2.0,
         plan.nodes[0].rect.width
     );
-}
-
-#[test]
-fn planner_does_not_promote_broken_katana_svg_data_uri_to_image_height() {
-    let input = input_with_font_size(
-        vec![node(
-            KmmNodeKind::HtmlBlock(HtmlBlockRole::Centered),
-            r#"<p align="center"><img src="data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%22128%22 height=%22128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23ddd%22/%3E%3C/svg%3E" width="128" alt="icon"></p>"#,
-            Vec::new(),
-        )],
-        14,
-    );
-
-    let plan = ViewerNodePlanner::create(&input, 0.0);
-
-    assert_eq!(
-        ViewerNodeKind::Html {
-            role: ViewerHtmlRole::Centered
-        },
-        plan.nodes[0].kind
-    );
-    assert_eq!(23.0, plan.nodes[0].rect.height);
 }

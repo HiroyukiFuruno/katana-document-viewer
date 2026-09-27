@@ -243,7 +243,7 @@ mkdir -p "$review_dir"
 mkdir -p "$comparison_dir"
 
 "$MAGICK_BIN" target/kdv-storybook-window-hover-smoke.png -crop 740x180+500+45 +repage "$crop_dir/title-body.png"
-"$MAGICK_BIN" target/kdv-storybook-window-hover-smoke.png -crop 640x100+590+235 +repage "$crop_dir/language-link.png"
+"$MAGICK_BIN" target/kdv-storybook-window-hover-smoke.png -crop 640x100+590+170 +repage "$crop_dir/language-link.png"
 "$MAGICK_BIN" target/kdv-storybook-window-hover-smoke.png -crop 720x390+500+275 +repage "$crop_dir/html-margin-center.png"
 "$MAGICK_BIN" target/kdv-storybook-window-html-margin-smoke.png -crop 740x260+500+75 +repage "$crop_dir/direct-html-margin-left.png"
 "$MAGICK_BIN" target/kdv-storybook-window-hover-smoke-hover.png -crop 740x180+500+45 +repage "$crop_dir/hover-highlight.png"
@@ -266,7 +266,6 @@ require_min_unique_colors "$crop_dir/html-margin-center.png" 80
 require_min_unique_colors "$crop_dir/direct-html-margin-left.png" 150
 require_min_unique_colors "$crop_dir/hover-highlight.png" 300
 require_min_unique_colors "$crop_dir/wide-title-link-html.png" 300
-require_min_unique_colors "$crop_dir/diagram-control-icons.png" 30
 require_min_unique_colors "$crop_dir/table-section.png" 300
 
 require_min_bright_pixels "$crop_dir/title-body.png" 2500
@@ -280,6 +279,7 @@ require_min_bright_pixels "$crop_dir/table-section.png" 5000
 
 require_min_blue_pixels "$crop_dir/language-link.png" 100
 require_min_blue_pixels "$crop_dir/wide-title-link-html.png" 100
+require_min_blue_pixels "$crop_dir/diagram-control-icons.png" 100
 require_min_changed_pixels "$crop_dir/title-body.png" "$crop_dir/hover-highlight.png" 250
 require_min_edge_pixels "$crop_dir/diagram-control-icons.png" 300
 require_min_edge_pixels "$crop_dir/table-section.png" 10000

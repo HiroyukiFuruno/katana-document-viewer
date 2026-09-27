@@ -262,7 +262,13 @@ impl StorybookFrameRenderer {
         }
         let palette = StorybookPalette::new(request.dark);
         let (band_y, band_height, band_scroll_y) = if delta > 0 {
-            let band_y = content_height.saturating_sub(absolute_delta + SCROLL_REDRAW_OVERSCAN);
+            let default_band_y =
+                content_height.saturating_sub(absolute_delta + SCROLL_REDRAW_OVERSCAN);
+            let band_y = scene.scroll_redraw_band_y_for_downward_scroll(
+                request.scroll_y,
+                content_height,
+                default_band_y,
+            );
             (
                 band_y,
                 content_height.saturating_sub(band_y),
@@ -558,7 +564,7 @@ impl StorybookFrameRenderer {
         let render_root = staged_tree
             .as_ref()
             .map_or_else(|| scene.tree.root(), |tree| tree.root());
-        render_ui_tree_with_theme(
+        crate::frame_ui_surface::render_document_ui_tree_with_theme(
             canvas,
             render_root,
             SurfaceArea {
@@ -569,6 +575,8 @@ impl StorybookFrameRenderer {
                 scroll_y: Self::render_scroll_delta(scene, area.scroll_y),
             },
             &scene.theme,
+            scene.typography,
+            scene.export_surface,
         );
     }
 

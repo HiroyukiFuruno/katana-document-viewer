@@ -4,9 +4,24 @@ const BASE_BODY_FONT_SIZE: f32 = 24.0;
 const COMPACT_BODY_FONT_SIZE: f32 = 14.0;
 const BASE_BODY_LINE_HEIGHT: usize = 34;
 const COMPACT_BODY_LINE_HEIGHT: usize = 23;
+const VIEWER_BODY_LINE_HEIGHT: f32 = 46.0;
 const QUOTED_CODE_VERTICAL_EXTRA_PX: usize = 20;
 
 impl KucNodeFactory<'_> {
+    pub(super) fn source_body_line_height(&self) -> f32 {
+        let font_size = f32::from(self.typography.preview_font_size);
+        if font_size <= COMPACT_BODY_FONT_SIZE {
+            return COMPACT_BODY_LINE_HEIGHT as f32;
+        }
+        if font_size >= BASE_BODY_FONT_SIZE {
+            return VIEWER_BODY_LINE_HEIGHT * font_size / BASE_BODY_FONT_SIZE;
+        }
+        let progress =
+            (font_size - COMPACT_BODY_FONT_SIZE) / (BASE_BODY_FONT_SIZE - COMPACT_BODY_FONT_SIZE);
+        COMPACT_BODY_LINE_HEIGHT as f32
+            + (VIEWER_BODY_LINE_HEIGHT - COMPACT_BODY_LINE_HEIGHT as f32) * progress
+    }
+
     pub(super) fn body_line_height_px(&self) -> u16 {
         let font_size = f32::from(self.typography.preview_font_size);
         if font_size <= COMPACT_BODY_FONT_SIZE {

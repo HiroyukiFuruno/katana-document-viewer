@@ -1,3 +1,4 @@
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{
     ArtifactId, DiagramViewportState, PreviewSurfaceImage, ViewerMode, ViewerRect, ViewerTarget,
     ViewerTypographyConfig,
@@ -6,19 +7,10 @@ use katana_document_viewer::{ViewerNodeKind, ViewerNodePlan, ViewerSearchTarget}
 use katana_ui_core::render_model::UiTree;
 use katana_ui_core::theme::ThemeSnapshot;
 use katana_ui_core_storybook::{
-    UiTreeHitRect, UiTreeHostActionHit, UiTreeNodeHit, UiTreeRenderArea, UiTreeSurfaceHost,
+    UiTreeHitRect, UiTreeHostActionHit, UiTreeNodeHit, UiTreeRenderArea,
 };
-use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
-
-thread_local! {
-    static DARK_TARGET_HOST: RefCell<UiTreeSurfaceHost> =
-        RefCell::new(UiTreeSurfaceHost::new(ThemeSnapshot::dark()));
-    static LIGHT_TARGET_HOST: RefCell<UiTreeSurfaceHost> =
-        RefCell::new(UiTreeSurfaceHost::new(ThemeSnapshot::light()));
-    static THEME_TARGET_HOSTS: RefCell<Vec<ThemeTargetHostCache>> = const { RefCell::new(Vec::new()) };
-}
 
 #[derive(Debug, Clone)]
 pub struct PreviewScene {
@@ -29,6 +21,7 @@ pub struct PreviewScene {
     pub node_count: usize,
     pub mode: ViewerMode,
     pub typography: ViewerTypographyConfig,
+    pub export_surface: bool,
     pub asset_request_count: usize,
     pub asset_request_key: String,
     pub loaded_asset_count: usize,
@@ -37,6 +30,7 @@ pub struct PreviewScene {
     pub surface: Option<PreviewSurfaceImage>,
     pub content_height: f32,
     pub scroll_redraw_sensitive_rects: Vec<ViewerRect>,
+    pub scroll_redraw_diagram_boundary_rects: Vec<ViewerRect>,
     pub slideshow_current_page: usize,
     pub slideshow_max_page: usize,
     pub diagram_viewports: BTreeMap<String, DiagramViewportState>,
@@ -69,6 +63,20 @@ impl PreviewScene {
         self.scroll_redraw_sensitive_rects
             .iter()
             .any(|rect| rect.y < bottom && rect.y + rect.height > top)
+    }
+
+    pub(crate) fn scroll_redraw_band_y_for_downward_scroll(
+        &self,
+        current_scroll_y: f32,
+        viewport_height: usize,
+        default_band_y: usize,
+    ) -> usize {
+        scroll_redraw_band_y_for_diagram_boundaries(
+            &self.scroll_redraw_diagram_boundary_rects,
+            current_scroll_y,
+            viewport_height,
+            default_band_y,
+        )
     }
 }
 
@@ -151,10 +159,12 @@ pub fn viewer_targets(
     plan: &ViewerNodePlan,
     tree: &UiTree,
     theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+    export_surface: bool,
     width: f32,
     height: f32,
 ) -> Vec<ViewerTarget> {
-    let rendered_hits = rendered_node_hits(tree, theme, width, height);
+    let rendered_hits = rendered_node_hits(tree, theme, typography, export_surface, width, height);
     let rendered_rects = rendered_node_rects(&rendered_hits);
     let semantic_rects = rendered_semantic_rects(&rendered_hits);
     let mut targets = plan
@@ -195,57 +205,69 @@ pub fn scroll_redraw_sensitive_rects(plan: &ViewerNodePlan) -> Vec<ViewerRect> {
         .collect()
 }
 
+pub(crate) fn scroll_redraw_diagram_boundary_rects(
+    plan: &ViewerNodePlan,
+    targets: &[ViewerTarget],
+) -> Vec<ViewerRect> {
+    plan.nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, node)| matches!(node.kind, ViewerNodeKind::Diagram { .. }))
+        .filter_map(|(index, _)| {
+            let diagram = targets.get(index)?.rect;
+            let boundary = targets[..index]
+                .iter()
+                .rev()
+                .find(|target| target.rect.height > 0.0 && target.rect.y <= diagram.y)
+                .map_or(diagram, |target| target.rect);
+            Some(ViewerRect {
+                x: diagram.x,
+                y: boundary.y,
+                width: diagram.width,
+                height: (diagram.y + diagram.height - boundary.y).max(diagram.height),
+            })
+        })
+        .collect()
+}
+
+fn scroll_redraw_band_y_for_diagram_boundaries(
+    boundaries: &[ViewerRect],
+    current_scroll_y: f32,
+    viewport_height: usize,
+    default_band_y: usize,
+) -> usize {
+    let current_scroll_y = current_scroll_y.round().max(0.0);
+    let band_top = current_scroll_y + default_band_y as f32;
+    let band_bottom = current_scroll_y + viewport_height as f32;
+    boundaries
+        .iter()
+        .filter(|rect| rect.y < band_bottom && rect.y + rect.height > band_top)
+        .filter_map(|rect| {
+            let local_y = rect.y - current_scroll_y;
+            (local_y >= 0.0 && local_y.is_finite()).then_some(local_y.floor() as usize)
+        })
+        .fold(default_band_y, usize::min)
+}
+
 fn rendered_node_hits(
     tree: &UiTree,
     theme: &ThemeSnapshot,
+    typography: ViewerTypographyConfig,
+    export_surface: bool,
     width: f32,
     height: f32,
 ) -> Vec<UiTreeNodeHit> {
-    document_node_hits_with_cached_host(
-        tree.root(),
-        UiTreeRenderArea {
-            x: 0,
-            y: 0,
-            width: width.ceil().max(1.0) as usize,
-            height: height.ceil().max(1.0) as usize,
-            scroll_y: 0.0,
-        },
-        theme,
-    )
-}
-
-fn document_node_hits_with_cached_host(
-    root: &katana_ui_core::render_model::UiNode,
-    area: UiTreeRenderArea,
-    theme: &ThemeSnapshot,
-) -> Vec<UiTreeNodeHit> {
-    if theme.eq(&ThemeSnapshot::dark()) {
-        return DARK_TARGET_HOST.with(|host| host.borrow().document_node_hits(root, area));
-    }
-    if theme.eq(&ThemeSnapshot::light()) {
-        return LIGHT_TARGET_HOST.with(|host| host.borrow().document_node_hits(root, area));
-    }
-    THEME_TARGET_HOSTS.with(|hosts| {
-        let mut hosts = hosts.borrow_mut();
-        let index = target_host_index(&mut hosts, theme);
-        hosts[index].host.document_node_hits(root, area)
-    })
-}
-
-fn target_host_index(hosts: &mut Vec<ThemeTargetHostCache>, theme: &ThemeSnapshot) -> usize {
-    if let Some(index) = hosts.iter().position(|cached| cached.theme.eq(theme)) {
-        return index;
-    }
-    hosts.push(ThemeTargetHostCache {
-        theme: theme.clone(),
-        host: UiTreeSurfaceHost::new(theme.clone()),
-    });
-    hosts.len() - 1
-}
-
-struct ThemeTargetHostCache {
-    theme: ThemeSnapshot,
-    host: UiTreeSurfaceHost,
+    KucThemeBridge::document_host_for_surface(theme.clone(), typography, export_surface)
+        .document_node_hits(
+            tree.root(),
+            UiTreeRenderArea {
+                x: 0,
+                y: 0,
+                width: width.ceil().max(1.0) as usize,
+                height: height.ceil().max(1.0) as usize,
+                scroll_y: 0.0,
+            },
+        )
 }
 
 fn rendered_node_rects(hits: &[UiTreeNodeHit]) -> BTreeMap<String, ViewerRect> {
@@ -349,4 +371,48 @@ pub fn viewer_internal_anchor_lookup(
         }
     }
     lookup
+}
+
+#[cfg(test)]
+mod tests {
+    use super::scroll_redraw_band_y_for_diagram_boundaries;
+    use katana_document_viewer::ViewerRect;
+
+    #[test]
+    fn diagram_boundary_extends_redraw_band_at_boundary_offsets() {
+        let current_scroll_y = 8_343.0;
+        let viewport_height = 600;
+        let default_band_y = 520;
+        for offset in [-1.0, 0.0, 1.0] {
+            let boundary = ViewerRect {
+                x: 0.0,
+                y: current_scroll_y + default_band_y as f32 - 58.0 + offset,
+                width: 240.0,
+                height: 178.0,
+            };
+            assert_eq!(
+                (default_band_y as f32 - 58.0 + offset).floor() as usize,
+                scroll_redraw_band_y_for_diagram_boundaries(
+                    &[boundary],
+                    current_scroll_y,
+                    viewport_height,
+                    default_band_y,
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn diagram_boundary_outside_redraw_band_keeps_default_start() {
+        let boundary = ViewerRect {
+            x: 0.0,
+            y: 8_343.0 + 640.0,
+            width: 240.0,
+            height: 120.0,
+        };
+        assert_eq!(
+            520,
+            scroll_redraw_band_y_for_diagram_boundaries(&[boundary], 8_343.0, 600, 520)
+        );
+    }
 }

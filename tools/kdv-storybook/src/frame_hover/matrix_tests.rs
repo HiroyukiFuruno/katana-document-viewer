@@ -3,15 +3,15 @@ use crate::canvas::Canvas;
 use crate::catalog::StorybookFixture;
 use crate::layout::{HEADER_HEIGHT, SIDEBAR_WIDTH, preview_content_width};
 use crate::preview::{PreviewBuilder, PreviewScene};
+use crate::preview_theme_bridge::KucThemeBridge;
 use crate::sidebar_settings_state::StorybookSettingsState;
 use katana_document_viewer::{ViewerInteractionConfig, ViewerViewport};
 use katana_ui_core::render_model::UiNode;
-use katana_ui_core_storybook::{UiTreeNodeHit, UiTreeRenderArea, UiTreeSurfaceHost};
+use katana_ui_core_storybook::{UiTreeNodeHit, UiTreeRenderArea};
 use std::{collections::BTreeSet, io, path::PathBuf};
 
 const FRAME_WIDTH: usize = 1280;
 const FRAME_HEIGHT: usize = 720;
-const PREVIEW_WIDTH: f32 = 900.0;
 const PREVIEW_HEIGHT: f32 = 600.0;
 
 #[test]
@@ -217,7 +217,7 @@ fn build_scene(path: &str) -> Result<PreviewScene, Box<dyn std::error::Error>> {
     PreviewBuilder::default().build(
         &fixture(path),
         ViewerViewport {
-            width: PREVIEW_WIDTH,
+            width: preview_content_width(FRAME_WIDTH) as f32,
             height: PREVIEW_HEIGHT,
         },
         true,
@@ -280,16 +280,17 @@ struct HoverHitIndex {
 impl HoverHitIndex {
     fn new(scene: &PreviewScene) -> Self {
         Self {
-            document_hits: UiTreeSurfaceHost::new(scene.theme.clone()).document_node_hits(
-                scene.tree.root(),
-                UiTreeRenderArea {
-                    x: 0,
-                    y: 0,
-                    width: preview_content_width(FRAME_WIDTH),
-                    height: scene.content_height.ceil().max(1.0) as usize,
-                    scroll_y: 0.0,
-                },
-            ),
+            document_hits: KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
+                .document_node_hits(
+                    scene.tree.root(),
+                    UiTreeRenderArea {
+                        x: 0,
+                        y: 0,
+                        width: preview_content_width(FRAME_WIDTH),
+                        height: scene.content_height.ceil().max(1.0) as usize,
+                        scroll_y: 0.0,
+                    },
+                ),
         }
     }
 
@@ -339,7 +340,7 @@ fn viewport_node_hit_containing(
     scroll_y: f32,
 ) -> Option<UiTreeNodeHit> {
     let scroll_offset = scroll_y.round().max(0.0) as usize;
-    let hits = UiTreeSurfaceHost::new(scene.theme.clone())
+    let hits = KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
         .viewport_node_hits(
             scene.tree.root(),
             UiTreeRenderArea {

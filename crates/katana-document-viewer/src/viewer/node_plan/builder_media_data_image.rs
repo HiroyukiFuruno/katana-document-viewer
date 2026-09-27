@@ -1,6 +1,6 @@
 use super::super::planned_node::PlannedNode;
 use super::super::types::ViewerNodeKind;
-use super::{MEDIA_VERTICAL_MARGIN, ViewerMediaHeight};
+use super::{MEDIA_VERTICAL_MARGIN, ViewerHeightMode, ViewerMediaHeight};
 use crate::ViewerImageSurfaceFactory;
 use crate::html_sanitizer::HtmlFragmentNormalizer;
 
@@ -11,19 +11,44 @@ const SVG_DATA_PREFIXES: [&str; 3] = [
 ];
 const PERCENT_ESCAPE_LEN: usize = 3;
 const HEX_RADIX: u32 = 16;
+const EXPORT_IMAGE_VERTICAL_MARGIN: f32 = 36.0;
 
 pub(super) struct HtmlDataImageHeight;
 
 impl HtmlDataImageHeight {
-    pub(super) fn height(planned: &PlannedNode, content_width: u32) -> Option<f32> {
+    pub(super) fn height(
+        planned: &PlannedNode,
+        content_width: u32,
+        height_mode: ViewerHeightMode,
+    ) -> Option<f32> {
         if !matches!(planned.kind, ViewerNodeKind::Html { .. }) {
             return None;
         }
-        if Self::is_broken_katana_svg_data_uri(&planned.source.raw.text) {
+        let fragment = Self::normalized_fragment(planned, height_mode)?;
+        Self::surface_height(&fragment, content_width, height_mode)
+    }
+
+    fn normalized_fragment(planned: &PlannedNode, height_mode: ViewerHeightMode) -> Option<String> {
+        if height_mode == ViewerHeightMode::InteractivePreview
+            && HtmlFragmentNormalizer::has_malformed_image_source_attribute(
+                &planned.source.raw.text,
+            )
+        {
             return None;
         }
         let fragment = HtmlFragmentNormalizer::normalize(&planned.source.raw.text);
-        let image_tag = Self::first_image_tag(&fragment)?;
+        if HtmlFragmentNormalizer::has_malformed_image_source_attribute(&fragment) {
+            return None;
+        }
+        Some(fragment)
+    }
+
+    fn surface_height(
+        fragment: &str,
+        content_width: u32,
+        height_mode: ViewerHeightMode,
+    ) -> Option<f32> {
+        let image_tag = Self::first_image_tag(fragment)?;
         let src = Self::quoted_attribute_value(image_tag, "src")?;
         let svg = Self::svg_payload(&src)?;
         let requested_width = Self::quoted_attribute_value(image_tag, "width")
@@ -31,12 +56,16 @@ impl HtmlDataImageHeight {
         let max_width = requested_width.unwrap_or(content_width);
         let surface =
             ViewerImageSurfaceFactory::from_svg_str("html-data-image", &svg, max_width).ok()?;
+        let vertical_margin = match height_mode {
+            ViewerHeightMode::InteractivePreview => MEDIA_VERTICAL_MARGIN,
+            ViewerHeightMode::ExportSurface => EXPORT_IMAGE_VERTICAL_MARGIN,
+        };
         Some(
             ViewerMediaHeight::scaled_height_to_max_width(
                 surface.logical_width(),
                 surface.logical_height(),
                 max_width,
-            ) + MEDIA_VERTICAL_MARGIN,
+            ) + vertical_margin,
         )
     }
 
@@ -80,9 +109,5 @@ impl HtmlDataImageHeight {
             }
         }
         String::from_utf8(bytes).ok()
-    }
-
-    fn is_broken_katana_svg_data_uri(raw: &str) -> bool {
-        raw.contains("data:image/svg+xml") && raw.contains("xmlns=%22<http")
     }
 }

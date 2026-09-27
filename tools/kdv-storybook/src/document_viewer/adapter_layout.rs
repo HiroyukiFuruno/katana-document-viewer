@@ -1,10 +1,6 @@
 use super::adapter_types::KucViewerAdapter;
 use super::config::KucViewerConfig;
-use katana_document_viewer::{
-    KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX,
-    KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX, KDV_VIEWER_SURFACE_PADDING_PX, PreviewOutput,
-    ViewerNodePlan,
-};
+use katana_document_viewer::{KDV_VIEWER_SURFACE_PADDING_PX, PreviewOutput, ViewerNodePlan};
 use katana_ui_core::atom::Spacer;
 use katana_ui_core::layout::Column;
 use katana_ui_core::render_model::{UiDimension, UiEdgeInsets, UiNode};
@@ -13,16 +9,9 @@ const MIN_VISIBLE_PLAN_GAP_PX: f32 = 0.5;
 const EXPORT_SURFACE_PADDING_TOP: u16 = KDV_VIEWER_SURFACE_PADDING_PX;
 const EXPORT_SURFACE_PADDING_HORIZONTAL: u16 = KDV_VIEWER_SURFACE_PADDING_PX;
 const EXPORT_SURFACE_PADDING_BOTTOM: u16 = KDV_VIEWER_SURFACE_PADDING_PX;
-const KATANA_DARK_PREVIEW_TOP_PADDING_ADJUSTMENT_PX: u16 = 12;
-const KATANA_LIGHT_PREVIEW_TOP_PADDING_ADJUSTMENT_PX: u16 = 2;
-const PREVIEW_SURFACE_PADDING_HORIZONTAL: u16 =
-    KDV_INTERACTIVE_PREVIEW_SURFACE_HORIZONTAL_PADDING_PX;
+const PREVIEW_SURFACE_PADDING_HORIZONTAL: u16 = 0;
 const PREVIEW_SURFACE_PADDING_RIGHT: u16 = 0;
-const PREVIEW_SURFACE_PADDING_BOTTOM: u16 = KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX;
-const RGB_LUMINANCE_RED_WEIGHT: u32 = 299;
-const RGB_LUMINANCE_GREEN_WEIGHT: u32 = 587;
-const RGB_LUMINANCE_BLUE_WEIGHT: u32 = 114;
-const RGB_LUMINANCE_WEIGHT_TOTAL: u32 = 1000;
+const PREVIEW_SURFACE_PADDING_BOTTOM: u16 = 0;
 
 impl KucViewerAdapter {
     pub(super) fn append_gap_from_plan(column: Column, gap: f32) -> Column {
@@ -140,26 +129,7 @@ impl KucViewerAdapter {
         if config.export_surface {
             return EXPORT_SURFACE_PADDING_TOP;
         }
-        KDV_INTERACTIVE_PREVIEW_SURFACE_PADDING_PX + Self::preview_top_adjustment(config)
-    }
-
-    fn preview_top_adjustment(config: &KucViewerConfig) -> u16 {
-        if Self::uses_dark_background(config) {
-            return KATANA_DARK_PREVIEW_TOP_PADDING_ADJUSTMENT_PX;
-        }
-        KATANA_LIGHT_PREVIEW_TOP_PADDING_ADJUSTMENT_PX
-    }
-
-    fn uses_dark_background(config: &KucViewerConfig) -> bool {
-        const DARK_LUMINANCE_THRESHOLD: u32 = 128;
-        let Some([red, green, blue, _]) = config.theme.color("background") else {
-            return false;
-        };
-        let luminance = (u32::from(red) * RGB_LUMINANCE_RED_WEIGHT
-            + u32::from(green) * RGB_LUMINANCE_GREEN_WEIGHT
-            + u32::from(blue) * RGB_LUMINANCE_BLUE_WEIGHT)
-            / RGB_LUMINANCE_WEIGHT_TOTAL;
-        luminance < DARK_LUMINANCE_THRESHOLD
+        0
     }
 
     fn padding_bottom(config: &KucViewerConfig) -> u16 {

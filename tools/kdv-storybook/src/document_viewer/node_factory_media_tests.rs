@@ -2,7 +2,7 @@ use super::KucNodeFactory;
 use katana_document_viewer::{
     Artifact, ArtifactBytes, ArtifactDiagnostic, ArtifactDiagnostics, ArtifactFactory,
     ArtifactFormat, ArtifactId, DiagnosticSeverity, DocumentId, SourceRevision, ViewerDiagramKind,
-    ViewerImageSurface, ViewerNode, ViewerNodeKind, ViewerRect,
+    ViewerImageSurface, ViewerInteractionConfig, ViewerNode, ViewerNodeKind, ViewerRect,
 };
 use katana_markdown_model::{
     ByteRange, KmmNodeId, LineColumn, LineColumnRange, RawSnippet, SourceSpan,
@@ -77,6 +77,35 @@ fn invalid_image_surface_is_reported_as_media_error_node() {
     assert_eq!("media-error", ui_node.props().text.role);
     assert_eq!("media-error", ui_node.props().label);
     assert_ne!("alt", ui_node.props().label);
+}
+
+#[test]
+fn pending_export_diagram_reserves_the_planned_block_height() {
+    let factory = KucNodeFactory::new(&[], 860)
+        .export_surface(true)
+        .interaction(ViewerInteractionConfig {
+            hover_highlight_enabled: false,
+            selection_enabled: false,
+            image_controls_enabled: false,
+            diagram_controls_enabled: false,
+            code_controls_enabled: false,
+        });
+    let mut node = viewer_node(
+        ViewerNodeKind::Diagram {
+            kind: ViewerDiagramKind::Mermaid,
+        },
+        "graph LR; pending --> loaded",
+        None,
+    );
+    node.rect.height = 65.0;
+
+    let rendered = factory.viewer_node(&node);
+
+    assert_eq!(
+        katana_ui_core::render_model::UiDimension::Px(101),
+        rendered.props().common.height,
+        "an unloaded export diagram must reserve its evaluated block height before the image is available"
+    );
 }
 
 fn svg_artifact(artifact_id: ArtifactId, diagnostics: ArtifactDiagnostics) -> Artifact {

@@ -1,6 +1,8 @@
 use super::KucNodeFactory;
 use super::node_factory_tests_support::viewer_node;
-use katana_document_viewer::{ViewerHtmlAlignment, ViewerHtmlRole, ViewerNodeKind};
+use katana_document_viewer::{
+    ViewerHtmlAlignment, ViewerHtmlRole, ViewerNodeKind, ViewerTextSpan, ViewerTextStyle,
+};
 use katana_ui_core::render_model::UiDimension;
 
 #[test]
@@ -69,6 +71,59 @@ fn export_surface_html_centered_h1_uses_body_alignment_role() {
 
     assert_eq!("document-export-body", ui_node.props().font_role);
     assert_eq!("html-centered", ui_node.props().text.role);
+}
+
+#[test]
+fn export_surface_wraps_long_centered_html_at_kdv_export_boundary() {
+    let factory = KucNodeFactory::new(&[], 1168).export_surface(true);
+    let text = "a".repeat(59);
+    let node = viewer_node(
+        ViewerNodeKind::Html {
+            role: ViewerHtmlRole::Centered,
+        },
+        &text,
+    );
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(format!("{}\na", "a".repeat(58)), ui_node.props().label);
+    assert!(ui_node.props().text.spans.is_empty());
+}
+
+#[test]
+fn export_surface_wraps_rich_paragraph_without_losing_style() {
+    let mut node = viewer_node(
+        ViewerNodeKind::Paragraph,
+        "A long paragraph with a styled segment that crosses the fixed export wrapping boundary and keeps the trailing text visible.",
+    );
+    node.spans = vec![
+        ViewerTextSpan::plain("A long paragraph with a styled segment that crosses the "),
+        ViewerTextSpan::styled(
+            "fixed export wrapping boundary and keeps the trailing text visible.",
+            ViewerTextStyle::default().bold(),
+        ),
+    ];
+
+    let ui_node = KucNodeFactory::new(&[], 1168)
+        .export_surface(true)
+        .viewer_node(&node);
+
+    assert!(ui_node.props().label.contains('\n'));
+    assert!(
+        ui_node
+            .props()
+            .text
+            .spans
+            .iter()
+            .any(|span| span.style.bold)
+    );
+    assert_eq!(
+        node.spans
+            .iter()
+            .map(|span| span.text.as_str())
+            .collect::<String>(),
+        ui_node.props().label.replace('\n', "")
+    );
 }
 
 #[test]

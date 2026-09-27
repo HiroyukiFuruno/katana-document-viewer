@@ -146,14 +146,15 @@ fn list_node_treats_ordered_task_markers_as_task_checkboxes() {
 }
 
 #[test]
-fn list_node_uses_kuc_row_height_for_task_checkbox() {
+fn interactive_list_uses_natural_height_and_kuc_row_height_for_task_checkbox() {
     let factory = KucNodeFactory::new(&[], 120);
     let mut node = viewer_node("[x] done\n[/] doing");
     node.rect.height = 72.0;
 
     let ui_node = factory.viewer_node(&node);
 
-    assert_eq!(UiDimension::Px(72), ui_node.props().common.height);
+    assert_eq!(UiDimension::Auto, ui_node.props().common.height);
+    assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
     let first_checkbox = &ui_node.children()[0].children()[0];
     let second_checkbox = &ui_node.children()[1].children()[0];
     assert_eq!(
@@ -168,6 +169,18 @@ fn list_node_uses_kuc_row_height_for_task_checkbox() {
         "{:#?}",
         second_checkbox.props().common
     );
+}
+
+#[test]
+fn export_list_preserves_viewer_height_and_width() {
+    let factory = KucNodeFactory::new(&[], 120).export_surface(true);
+    let mut node = viewer_node("[x] done\n[/] doing");
+    node.rect.height = 72.0;
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiDimension::Px(72), ui_node.props().common.height);
+    assert_eq!(UiDimension::Px(120), ui_node.props().common.width);
 }
 
 #[test]

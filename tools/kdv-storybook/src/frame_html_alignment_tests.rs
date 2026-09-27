@@ -278,7 +278,10 @@ impl HtmlAlignmentFrameSupport {
     }
 
     fn semantic_bands(canvas: &Canvas) -> Result<HtmlAlignmentBands, Box<dyn std::error::Error>> {
-        let bands = Self::text_bands(canvas);
+        let bands = Self::text_bands(canvas)
+            .into_iter()
+            .filter(|band| band.height() > 1)
+            .collect::<Vec<_>>();
         HtmlAlignmentBands::new(&bands)
     }
 

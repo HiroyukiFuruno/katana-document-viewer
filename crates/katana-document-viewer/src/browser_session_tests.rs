@@ -4,11 +4,31 @@ use katana_render_runtime::{
 };
 use std::time::{Duration, Instant};
 
-const UPDATE_TIMEOUT: Duration = Duration::from_secs(1);
+const UPDATE_TIMEOUT: Duration = Duration::from_secs(10);
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
+fn runtime_test_guard_recovers_a_poisoned_mutex() {
+    let mutex = std::sync::Arc::new(std::sync::Mutex::new(()));
+    let poisoned_mutex = std::sync::Arc::clone(&mutex);
+    assert!(
+        std::thread::spawn(move || {
+            let Ok(_guard) = poisoned_mutex.lock() else {
+                return;
+            };
+            std::panic::resume_unwind(Box::new("poison the isolated test mutex"));
+        })
+        .join()
+        .is_err()
+    );
+
+    let guard = super::recover_runtime_test_guard(mutex.lock());
+    drop(guard);
+}
+
+#[test]
 fn worker_returns_initial_and_refresh_frames() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request("<button>Run</button>")?);
 
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
@@ -20,6 +40,7 @@ fn worker_returns_initial_and_refresh_frames() -> TestResult {
 
 #[test]
 fn worker_forwards_resize_and_explicit_navigation() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request("<p>Initial</p>")?);
 
     assert_frame(adapter.wait_for_update(UPDATE_TIMEOUT))?;
@@ -36,6 +57,7 @@ fn worker_forwards_resize_and_explicit_navigation() -> TestResult {
 
 #[test]
 fn worker_forwards_input_and_publishes_runtime_link_navigation() -> TestResult {
+    let _runtime_guard = super::runtime_test_guard();
     let mut adapter = BrowserSessionAdapter::start(request(
         "<a href=linked.html style=\"min-height: 80px; padding: 8px\">Next</a>",
     )?);

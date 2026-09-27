@@ -1,9 +1,9 @@
 use crate::{
-    SpreadsheetCellArtifact, SpreadsheetCellStyleArtifact, SpreadsheetCellValue,
-    SpreadsheetConditionalFormattingArtifact, SpreadsheetCoordinate, SpreadsheetDataBarArtifact,
-    SpreadsheetHorizontalAlignment, SpreadsheetIconArtifact, SpreadsheetMergedCellArtifact,
-    SpreadsheetRatingArtifact, SpreadsheetSheetArtifact, SpreadsheetTrackArtifact,
-    SpreadsheetVerticalAlignment,
+    SpreadsheetBorderSideArtifact, SpreadsheetCellArtifact, SpreadsheetCellBorderArtifact,
+    SpreadsheetCellStyleArtifact, SpreadsheetCellValue, SpreadsheetConditionalFormattingArtifact,
+    SpreadsheetCoordinate, SpreadsheetDataBarArtifact, SpreadsheetHorizontalAlignment,
+    SpreadsheetIconArtifact, SpreadsheetMergedCellArtifact, SpreadsheetRatingArtifact,
+    SpreadsheetSheetArtifact, SpreadsheetTrackArtifact, SpreadsheetVerticalAlignment,
 };
 
 const TEXT_COLOR: [u8; 3] = [0x10, 0x20, 0x30];
@@ -59,6 +59,15 @@ pub(super) fn sample_cell(coordinate: SpreadsheetCoordinate) -> SpreadsheetCellA
     }
 }
 
+pub(super) fn sample_materialized_cell(
+    coordinate: SpreadsheetCoordinate,
+) -> crate::multi_format::SpreadsheetMaterializedCell {
+    crate::multi_format::SpreadsheetMaterializedCell {
+        cell: sample_cell(coordinate),
+        borders: sample_borders(),
+    }
+}
+
 fn sample_style() -> SpreadsheetCellStyleArtifact {
     SpreadsheetCellStyleArtifact {
         font_name: "Aptos".to_owned(),
@@ -73,6 +82,16 @@ fn sample_style() -> SpreadsheetCellStyleArtifact {
         vertical_alignment: SpreadsheetVerticalAlignment::Center,
         wrap_text: true,
         number_format: "0.0".to_owned(),
+    }
+}
+
+fn sample_borders() -> SpreadsheetCellBorderArtifact {
+    SpreadsheetCellBorderArtifact {
+        left: Some(SpreadsheetBorderSideArtifact {
+            style: "thin".to_owned(),
+            color: Some(color([0xB7, 0xC4, 0xCE])),
+        }),
+        ..SpreadsheetCellBorderArtifact::default()
     }
 }
 

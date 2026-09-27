@@ -19,5 +19,7 @@ pub use builder::ViewerNodePlanner;
 pub use code_highlighter::ViewerCodeHighlighter;
 pub use types::{
     VIEWER_TEXT_COLOR_CHANNELS, ViewerDiagramKind, ViewerHtmlAlignment, ViewerHtmlRole, ViewerNode,
-    ViewerNodeKind, ViewerNodePlan, ViewerTextSpan, ViewerTextStyle,
+    ViewerNodeKind, ViewerNodePlan, ViewerTableAlignment, ViewerTableCellProjection,
+    ViewerTableProjection, ViewerTableRowProjection, ViewerTableVerticalAlignment, ViewerTextSpan,
+    ViewerTextStyle,
 };

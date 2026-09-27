@@ -2,6 +2,7 @@ use super::mouse_document_point::DocumentPoint;
 use crate::KucDiagramControlResolver;
 use crate::layout::{preview_content_width, preview_viewport_height};
 use crate::preview::PreviewScene;
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::{ViewerRect, ViewerTarget};
 use katana_ui_core::render_model::UiNodeId;
 use katana_ui_core_storybook::{
@@ -42,16 +43,17 @@ impl StorybookHostActionHits {
         preview_width: usize,
     ) -> Arc<Vec<UiTreeHostActionHit>> {
         scene.host_action_cache.hits_or_insert(preview_width, || {
-            UiTreeSurfaceHost::new(scene.theme.clone()).document_host_action_hits(
-                scene.tree.root(),
-                UiTreeRenderArea {
-                    x: 0,
-                    y: 0,
-                    width: preview_width,
-                    height: scene.content_height.ceil().max(1.0) as usize,
-                    scroll_y: 0.0,
-                },
-            )
+            KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
+                .document_host_action_hits(
+                    scene.tree.root(),
+                    UiTreeRenderArea {
+                        x: 0,
+                        y: 0,
+                        width: preview_width,
+                        height: scene.content_height.ceil().max(1.0) as usize,
+                        scroll_y: 0.0,
+                    },
+                )
         })
     }
 
@@ -72,7 +74,7 @@ impl StorybookHostActionHits {
         preview_height: f32,
         scroll_y: f32,
     ) -> Vec<UiTreeNodeHit> {
-        UiTreeSurfaceHost::new(scene.theme.clone()).viewport_node_hits(
+        KucThemeBridge::document_host(scene.theme.clone(), scene.typography).viewport_node_hits(
             scene.tree.root(),
             UiTreeRenderArea {
                 x: 0,
@@ -130,21 +132,22 @@ impl StorybookHostActionHits {
                 effective_scroll_y,
             );
         }
-        let (hits, node_hits) = UiTreeSurfaceHost::new(scene.theme.clone())
-            .viewport_interaction_hits(
-                root,
-                UiTreeRenderArea {
-                    x: 0,
-                    y: 0,
-                    width: preview_width,
-                    height: preview_height.max(1),
-                    scroll_y: if slideshow || scene.fullscreen_diagram_active() {
-                        0.0
-                    } else {
-                        Self::render_scroll_delta(scene, scroll_y)
+        let (hits, node_hits) =
+            KucThemeBridge::document_host(scene.theme.clone(), scene.typography)
+                .viewport_interaction_hits(
+                    root,
+                    UiTreeRenderArea {
+                        x: 0,
+                        y: 0,
+                        width: preview_width,
+                        height: preview_height.max(1),
+                        scroll_y: if slideshow || scene.fullscreen_diagram_active() {
+                            0.0
+                        } else {
+                            Self::render_scroll_delta(scene, scroll_y)
+                        },
                     },
-                },
-            );
+                );
         if slideshow {
             return (Arc::new(hits), node_hits);
         }

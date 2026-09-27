@@ -1,4 +1,4 @@
-use super::{grid_action, navigation_intent};
+use super::{grid_action, support::SpreadsheetGridSupport};
 use crate::{DocumentGridCommand, DocumentGridNavigation};
 use katana_ui_core::molecule::{GenericGrid, GridAction, GridCoordinate, GridNavigationIntent};
 
@@ -41,6 +41,6 @@ fn assert_navigation_mappings() {
         ),
     ];
     for (source, expected) in mappings {
-        assert_eq!(expected, navigation_intent(source));
+        assert_eq!(expected, SpreadsheetGridSupport::navigation_intent(source));
     }
 }

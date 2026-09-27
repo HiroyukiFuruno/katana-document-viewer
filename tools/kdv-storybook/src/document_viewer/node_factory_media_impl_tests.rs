@@ -129,17 +129,18 @@ fn export_surface_diagram_media_node_uses_export_raster_surface()
     let factory = KucNodeFactory::new(&artifacts, EXPORT_MEDIA_MAX_WIDTH).export_surface(true);
 
     let ui_node = factory.media_node(&node);
+    let image = find_image_surface(&ui_node).kuc_expect("export diagram image surface");
 
-    assert_eq!(UiNodeKind::ImageSurface, ui_node.kind());
+    assert_eq!(UiNodeKind::Stack, ui_node.kind());
     assert_eq!(UiVisualRole::ExportMediaFrame, ui_node.props().visual_role);
-    assert_eq!(DIAGRAM_MEDIA_MAX_WIDTH, ui_node.props().image_surface.width);
-    assert_eq!(430, ui_node.props().image_surface.height);
-    assert_eq!(100, ui_node.props().image_surface.content_scale);
+    assert_eq!(DIAGRAM_MEDIA_MAX_WIDTH, image.props().image_surface.width);
+    assert_eq!(430, image.props().image_surface.height);
+    assert_eq!(100, image.props().image_surface.content_scale);
     assert_eq!(
         DIAGRAM_MEDIA_MAX_WIDTH * 1000,
-        ui_node.props().image_surface.display_width_milli
+        image.props().image_surface.display_width_milli
     );
-    assert_eq!(430_000, ui_node.props().image_surface.display_height_milli);
+    assert_eq!(430_000, image.props().image_surface.display_height_milli);
     Ok(())
 }
 

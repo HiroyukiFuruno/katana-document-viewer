@@ -1,5 +1,9 @@
+#[cfg(target_os = "windows")]
+use super::os_proportional_font_family;
 use super::{SpanTextWidthMeasurer, whitespace_width};
 use crate::{ViewerTextSpan, ViewerTextStyle};
+#[cfg(target_os = "windows")]
+use cosmic_text::Family;
 
 #[test]
 fn cached_width_is_zero_for_empty_text() {
@@ -40,4 +44,13 @@ fn cached_width_shapes_italic_and_emoji_styles() {
 fn whitespace_width_scales_with_font_size() {
     assert_eq!(2, whitespace_width(5.0, false));
     assert_eq!(3, whitespace_width(5.0, true));
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn proportional_measurement_uses_katana_windows_primary_font() {
+    assert!(matches!(
+        os_proportional_font_family(),
+        Family::Name("Yu Gothic")
+    ));
 }

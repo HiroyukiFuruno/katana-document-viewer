@@ -21,7 +21,7 @@ fn badge_row_html_renders_as_image_surface() {
         .first()
         .kuc_expect("badge row should wrap image surface");
 
-    assert_eq!(UiNodeKind::AlignCenter, ui_node.kind());
+    assert_eq!(UiNodeKind::Row, ui_node.kind());
     assert_eq!(UiNodeKind::ImageSurface, image_node.kind());
     assert!(
         image_node
@@ -31,6 +31,6 @@ fn badge_row_html_renders_as_image_surface() {
             .starts_with("html-badge-row:node:bytes=")
     );
     assert_eq!(200, image_node.props().image_surface.content_scale);
-    assert_eq!(UiDimension::Px(34), ui_node.props().common.height);
+    assert_eq!(UiDimension::Px(28), ui_node.props().common.height);
     assert_eq!(UiVisualRole::Content, ui_node.props().visual_role);
 }

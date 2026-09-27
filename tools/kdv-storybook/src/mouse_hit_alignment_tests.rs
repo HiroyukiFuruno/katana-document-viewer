@@ -8,9 +8,10 @@ use super::{
 };
 use crate::layout::StorybookPreviewArea;
 use crate::media_host_action::StorybookMediaHostAction;
+use crate::preview_theme_bridge::KucThemeBridge;
 use katana_document_viewer::ViewerCommand;
 use katana_ui_core::render_model::{UiTaskMarker, UiTextSpanAction};
-use katana_ui_core_storybook::{UiTreeHostActionHit, UiTreeRenderArea, UiTreeSurfaceHost};
+use katana_ui_core_storybook::{UiTreeHostActionHit, UiTreeRenderArea};
 
 #[test]
 fn link_hit_rect_center_click_matches_kuc_drawn_action() -> Result<(), Box<dyn std::error::Error>> {
@@ -99,17 +100,18 @@ fn viewport_router_uses_render_scroll_delta_when_tree_has_root_scroll_offset()
     let mut scrolled_scene = scene.clone();
     scrolled_scene.tree = scrolled_scene.tree.with_scroll_area_offset_y(root_offset);
     let scroll_y = root_offset as f32;
-    let (raw_hits, _) = UiTreeSurfaceHost::new(scrolled_scene.theme.clone())
-        .viewport_interaction_hits(
-            scrolled_scene.tree.root(),
-            UiTreeRenderArea {
-                x: 0,
-                y: 0,
-                width: crate::layout::preview_content_width(WINDOW_WIDTH),
-                height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
-                scroll_y: 0.0,
-            },
-        );
+    let (raw_hits, _) =
+        KucThemeBridge::document_host(scrolled_scene.theme.clone(), scrolled_scene.typography)
+            .viewport_interaction_hits(
+                scrolled_scene.tree.root(),
+                UiTreeRenderArea {
+                    x: 0,
+                    y: 0,
+                    width: crate::layout::preview_content_width(WINDOW_WIDTH),
+                    height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
+                    scroll_y: 0.0,
+                },
+            );
     let expected = raw_hits
         .into_iter()
         .filter(|hit| hit.action.text_span_action().is_some())
@@ -303,18 +305,19 @@ fn visible_viewport_action_hit(
     predicate: impl Fn(&UiTreeHostActionHit) -> bool,
 ) -> Result<UiTreeHostActionHit, Box<dyn std::error::Error>> {
     let tree_offset = scene.tree.root().props().scroll_area.offset_y as f32;
-    let (hits, _) = UiTreeSurfaceHost::new(scene.theme.clone()).viewport_interaction_hits(
-        scene.tree.root(),
-        UiTreeRenderArea {
-            x: 0,
-            y: 0,
-            width: crate::layout::preview_content_width(WINDOW_WIDTH),
-            height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
-            scroll_y: (scroll_y - tree_offset).max(0.0),
-        },
-    );
+    let host = KucThemeBridge::document_host(scene.theme.clone(), scene.typography);
+    let area = UiTreeRenderArea {
+        x: 0,
+        y: 0,
+        width: crate::layout::preview_content_width(WINDOW_WIDTH),
+        height: crate::layout::preview_viewport_height(WINDOW_HEIGHT),
+        scroll_y: (scroll_y - tree_offset).max(0.0),
+    };
+    let (hits, _) = host.viewport_interaction_hits(scene.tree.root(), area);
+    let hit_count = hits.len();
+    let matching_count = hits.iter().filter(|hit| predicate(hit)).count();
     hits.into_iter()
-        .filter(predicate)
+        .filter(|hit| predicate(hit))
         .find_map(|mut hit| {
             hit.rect.y = hit.rect.y.saturating_add(
                 DocumentPoint::effective_scroll_y(scene, scroll_y)
@@ -323,5 +326,17 @@ fn visible_viewport_action_hit(
             );
             (hit.rect.width > 0 && hit.rect.height > 0).then_some(hit)
         })
-        .ok_or_else(|| std::io::Error::other("missing visible KUC viewport action hit").into())
+        .ok_or_else(|| {
+            let document_clipped_hits = host.viewport_host_action_hits(scene.tree.root(), area);
+            let document_clipped_matching_count = document_clipped_hits
+                .iter()
+                .filter(|hit| predicate(hit))
+                .count();
+            std::io::Error::other(format!(
+                "missing visible KUC viewport action hit: hits={hit_count}, matching={matching_count}, document_clipped_hits={}, document_clipped_matching={document_clipped_matching_count}, scroll_y={scroll_y}, tree_offset={tree_offset}, content_height={}",
+                document_clipped_hits.len(),
+                scene.content_height
+            ))
+            .into()
+        })
 }

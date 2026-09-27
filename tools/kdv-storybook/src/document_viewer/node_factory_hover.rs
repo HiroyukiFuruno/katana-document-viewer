@@ -15,7 +15,13 @@ impl<'a> KucNodeFactory<'a> {
         if self.hovered_node_id != Some(node.node_id.0.as_str()) {
             return ui_node;
         }
-        let common = ui_node.props().common.clone();
+        let mut common = ui_node.props().common.clone();
+        if ui_node.kind() == UiNodeKind::Text {
+            // Text の requested height は clip 専用で、Stack に引き継ぐと後続の advance が変わる。
+            common = common
+                .width(self.viewer_width_for_node(node))
+                .height(UiDimension::Auto);
+        }
         UiNode::new(UiNodeKind::Stack, "")
             .common(common)
             .visual_role(UiVisualRole::HoverSurface)

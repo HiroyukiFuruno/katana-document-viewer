@@ -3,10 +3,12 @@ use katana_document_viewer::{ViewerHtmlRole, ViewerNode, ViewerNodeKind, ViewerR
 use katana_markdown_model::{
     ByteRange, KmmNodeId, LineColumn, LineColumnRange, RawSnippet, SourceSpan,
 };
-use katana_ui_core::render_model::UiNodeKind;
+use katana_ui_core::render_model::{UiNodeKind, UiVisualRole};
 
 const VALID_SVG_IMAGE: &str = r#"<p align="center"><img src="data:image/svg+xml,%3Csvg%3E%3C%2Fsvg%3E" width="128" alt="icon"></p>"#;
 const BROKEN_KATANA_SVG_IMAGE: &str = r#"<p align="center"><img src="data:image/svg+xml,%3Csvg xmlns=%22<http://www.w3.org/2000/svg%22> width=%22128%22 height=%22128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23ddd%22/%3E%3C/svg%3E" width="128" alt="icon"></p>"#;
+const MALFORMED_QUOTED_ATTRIBUTE_IMAGE: &str =
+    r#"<p align="center"><img src="custom:payload<broken> visible tail" alt="icon"></p>"#;
 const MAX_MEDIA_WIDTH: u32 = 240;
 const HTML_IMAGE_NODE_WIDTH: f32 = 240.0;
 const HTML_IMAGE_NODE_HEIGHT: f32 = 32.0;
@@ -21,13 +23,49 @@ fn parses_valid_svg_data_uri_image() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn broken_katana_svg_data_uri_renders_image_surface_for_export_surface_parity() {
+fn malformed_quoted_attribute_falls_back_to_a_text_node() {
+    let factory = KucNodeFactory::new(&[], MAX_MEDIA_WIDTH);
+    let node = html_node(MALFORMED_QUOTED_ATTRIBUTE_IMAGE);
+
+    let ui_node = factory.viewer_node(&node);
+
+    assert_eq!(UiNodeKind::Text, ui_node.kind());
+}
+
+#[test]
+fn interactive_normalizable_katana_svg_data_uri_hides_unsafe_raw_source() {
     let factory = KucNodeFactory::new(&[], MAX_MEDIA_WIDTH);
     let node = html_node(BROKEN_KATANA_SVG_IMAGE);
 
     let ui_node = factory.viewer_node(&node);
 
+    assert_eq!(UiNodeKind::Text, ui_node.kind());
+    assert_eq!(
+        katana_ui_core::render_model::UiDimension::Auto,
+        ui_node.props().common.height
+    );
+    assert!(ui_node.props().label.is_empty());
+    assert_eq!(
+        BROKEN_KATANA_SVG_IMAGE,
+        ui_node
+            .props()
+            .text
+            .spans
+            .iter()
+            .map(|span| span.text.as_str())
+            .collect::<String>()
+    );
+}
+
+#[test]
+fn export_surface_html_image_keeps_kdv_vertical_media_margin_role() {
+    let factory = KucNodeFactory::new(&[], MAX_MEDIA_WIDTH).export_surface(true);
+    let node = html_node(BROKEN_KATANA_SVG_IMAGE);
+
+    let ui_node = factory.viewer_node(&node);
+
     assert_eq!(UiNodeKind::ImageSurface, ui_node.kind());
+    assert_eq!(UiVisualRole::ExportMediaFrame, ui_node.props().visual_role);
 }
 
 #[test]
