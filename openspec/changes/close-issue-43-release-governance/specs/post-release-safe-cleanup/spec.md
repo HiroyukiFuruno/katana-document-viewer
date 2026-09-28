@@ -24,10 +24,15 @@ For local cleanup, the command SHALL switch to the default branch and fast-forwa
 
 ### Requirement: Release workflow cleanup is limited to safe remote release branches
 After GitHub Release creation succeeds, the release workflow SHALL run the cleanup command in remote scope. Remote cleanup MUST delete only the merged, non-default branch associated with the released pull request and MUST not force-delete a branch.
+The cleanup step MUST authenticate its GitHub Release lookup independently of earlier workflow steps.
 
 #### Scenario: Merged release branch is safe to delete remotely
 - **WHEN** the GitHub Release has been created and the released pull request branch is merged and non-default
 - **THEN** the workflow cleanup SHALL delete that remote branch without force
+
+#### Scenario: Cleanup has an authenticated GitHub Release lookup
+- **WHEN** the workflow invokes remote cleanup after publishing a GitHub Release
+- **THEN** the cleanup step SHALL receive the GitHub Actions token required to read that Release
 
 #### Scenario: Remote branch is not proven merged
 - **WHEN** the release workflow cannot prove that the candidate remote branch is merged
