@@ -17,7 +17,10 @@ from datetime import datetime, timezone
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LOCAL_CARGO_CONFIG = ROOT / ".cargo/config.toml"
-CHANGE = ROOT / "openspec/changes/v0-2-0-markdown-viewer-kuc-integration"
+CHANGE = (
+    ROOT
+    / "openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration"
+)
 USER_FEEDBACK = CHANGE / "user-feedback-todo.md"
 REMAINING_PLAN = CHANGE / "remaining-plan.md"
 STORYBOOK_USER_ACCEPTANCE = CHANGE / "storybook-user-acceptance.md"

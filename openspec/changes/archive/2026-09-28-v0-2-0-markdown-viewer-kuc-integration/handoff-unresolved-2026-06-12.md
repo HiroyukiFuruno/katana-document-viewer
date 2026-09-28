@@ -242,7 +242,7 @@ KDV v0.2.0 の DoD は未達。`just storybook-score-check` は 2026-06-12 の�
 - `tools/kdv-storybook/src/preview.rs`
 - `tools/kdv-storybook/src/preview_diagram_disk_cache_tests.rs`
 - `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/handoff-unresolved-2026-06-12.md`
-- `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
+- `openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
 
 内容:
 
@@ -276,7 +276,7 @@ KDV v0.2.0 の DoD は未達。`just storybook-score-check` は 2026-06-12 の�
 - `tools/kdv-storybook/src/window_scene.rs`
 - `tools/kdv-storybook/src/window_tests.rs`
 - `tools/kdv-storybook/src/frame_performance_tests.rs`
-- `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
+- `openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
 
 内容:
 

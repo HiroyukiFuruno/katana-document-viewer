@@ -208,7 +208,7 @@ fn assert_legacy_storybook_acceptance_contract(
     let release_dod_script =
         std::fs::read_to_string(root.join("scripts/release/assert-viewer-recovery-dod.py"))?;
     let acceptance_doc = std::fs::read_to_string(root.join(
-        "openspec/changes/v0-2-0-markdown-viewer-kuc-integration/storybook-user-acceptance.md",
+        "openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/storybook-user-acceptance.md",
     ))?;
     assert_contains_all(
         "release DoD acceptance contract",
@@ -1724,7 +1724,7 @@ fn assert_live_acceptance_doc_contract(
     root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let acceptance_doc = std::fs::read_to_string(root.join(
-        "openspec/changes/v0-2-0-markdown-viewer-kuc-integration/storybook-user-acceptance.md",
+        "openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/storybook-user-acceptance.md",
     ))?;
     let current_acceptance_section = acceptance_doc
         .split("## Evidence")

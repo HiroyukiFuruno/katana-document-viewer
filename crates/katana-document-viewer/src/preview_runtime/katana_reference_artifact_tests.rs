@@ -612,7 +612,7 @@ fn openspec_requirements_are_connected_to_storybook_gates() -> Result<(), Box<dy
 {
     let root = workspace_root()?;
     let spec = std::fs::read_to_string(root.join(
-        "openspec/changes/v0-2-0-markdown-viewer-kuc-integration/specs/markdown-viewer-kuc-integration/spec.md",
+        "openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/specs/markdown-viewer-kuc-integration/spec.md",
     ))?;
     let justfile = std::fs::read_to_string(root.join("Justfile"))?;
     let storybook_check = recipe_body(&justfile, "storybook-check")?;
@@ -651,7 +651,7 @@ fn openspec_requirements_are_connected_to_storybook_gates() -> Result<(), Box<dy
 fn openspec_requirements_are_connected_to_score_check() -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let spec = std::fs::read_to_string(root.join(
-        "openspec/changes/v0-2-0-markdown-viewer-kuc-integration/specs/markdown-viewer-kuc-integration/spec.md",
+        "openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/specs/markdown-viewer-kuc-integration/spec.md",
     ))?;
     let justfile = std::fs::read_to_string(root.join("Justfile"))?;
     let score_check = recipe_body(&justfile, "storybook-score-check")?;

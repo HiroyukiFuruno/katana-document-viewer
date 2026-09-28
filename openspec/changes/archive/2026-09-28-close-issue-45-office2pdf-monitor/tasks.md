@@ -17,4 +17,4 @@
 
 - [x] 3.1 Add a Just entrypoint and workflow-contract tests for the monitor and PR gating. delegation-exception: `直列のクリティカルパス`。証跡: command: `rtk proxy just office2pdf-upstream-monitor-check`.
 - [x] 3.2 Run formatter, lint, AST lint, monitor self-tests, OpenSpec validation, and the applicable quality checks without changing thresholds or references. delegation-exception: `直列のクリティカルパス`。証跡: command: `rtk proxy just JOBS=2 check`; command: `rtk proxy just office2pdf-upstream-monitor-check`; command: `rtk proxy scripts/openspec validate close-issue-45-office2pdf-monitor --strict`.
-- [ ] 3.3 Record the first current-version monitor result and update Issue #45 with workflow and evidence links after the workflow is merged.
+- [x] 3.3 Record the first current-version monitor result and update Issue #45 with workflow and evidence links after the workflow is merged. 証跡: v0.5.7 公開後の Issue #45 comment `issuecomment-5860420832`; monitor workflow run `36355317405` の discover success / candidate skipped。
