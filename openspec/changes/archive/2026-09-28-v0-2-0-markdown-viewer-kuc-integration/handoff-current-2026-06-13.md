@@ -12,7 +12,7 @@ KDV v0.2.0 viewer parity は未完了。KatanA の viewer / slideshow を完全�
 
 - 計画書: `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/kdv-v0.2.0-viewer-recovery-plan.md`
 - 残作業正本: `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/remaining-plan.md`
-- ユーザー実機指摘台帳: `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
+- ユーザー実機指摘台帳: `openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
 - 詳細引き継ぎ履歴: `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/handoff-unresolved-2026-06-12.md`
 - 設計方針: `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/design.md`
 
@@ -262,7 +262,7 @@ KDV v0.2.0 viewer parity は未完了。KatanA の viewer / slideshow を完全�
 
 ## 次担当者の最短手順
 
-1. `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md` の `[ ]` と `[/]` を確認する。
+1. `openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md` の `[ ]` と `[/]` を確認する。
 2. `just storybook` を起動し、KatanA 実画面と同じ fixture / theme / font size / viewport で比較する。
 3. `just storybook-interaction-check`、`just storybook-performance-check`、`just storybook-score-check` を実行し、実画面指摘との接続不足を洗い出す。
 4. 最初に KUC default preset / hit-test / cursor / hover の境界を直す。KDV 側で個別補正しない。
@@ -298,7 +298,7 @@ KDV v0.2.0 viewer parity は未完了。KatanA の viewer / slideshow を完全�
 - `crates/katana-document-viewer/src/viewer/node_plan/builder_media_text_height.rs`
 - `crates/katana-document-viewer/src/viewer/node_plan/types_tests.rs`
 - `crates/katana-document-viewer/src/viewer/node_plan/builder_rich_height_tests.rs`
-- `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
+- `openspec/changes/archive/2026-09-28-v0-2-0-markdown-viewer-kuc-integration/user-feedback-todo.md`
 - `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/handoff-unresolved-2026-06-12.md`
 - `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/kdv-v0.2.0-viewer-recovery-plan.md`
 - `openspec/changes/v0-2-0-markdown-viewer-kuc-integration/handoff-current-2026-06-13.md`
