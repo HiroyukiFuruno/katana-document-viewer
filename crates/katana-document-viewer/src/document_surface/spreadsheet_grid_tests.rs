@@ -23,6 +23,14 @@ fn large_sheet_requests_only_the_visible_window_and_maps_cells() -> TestResult {
     let borders = frame
         .grid_cell_borders(DocumentGridCoordinate { row: 2, column: 2 })
         .ok_or("border metadata is missing")?;
+    let batch_borders = frame
+        .grid_cell_border_entries()
+        .iter()
+        .find_map(|(coordinate, candidate)| {
+            (*coordinate == DocumentGridCoordinate { row: 2, column: 2 }).then_some(candidate)
+        })
+        .ok_or("materialized grid borders did not preserve the merged anchor entry")?;
+    assert_eq!(borders, batch_borders);
     assert_eq!(
         Some(("thin", Some("#B7C4CE"))),
         borders

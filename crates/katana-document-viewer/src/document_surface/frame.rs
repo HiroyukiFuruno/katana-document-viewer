@@ -101,6 +101,15 @@ impl DocumentSurfaceFrame {
             .find_map(|(candidate, borders)| (*candidate == coordinate).then_some(borders))
     }
 
+    /// Returns every projected grid-cell border entry in the source grid order.
+    ///
+    /// Hosts that render multiple cells can traverse this borrowed collection once instead of
+    /// performing an individual coordinate lookup for every cell.
+    #[must_use]
+    pub fn grid_cell_border_entries(&self) -> &[(DocumentGridCoordinate, DocumentGridCellBorders)] {
+        &self.grid_borders
+    }
+
     pub(crate) fn with_navigation_metadata(
         mut self,
         item_labels: Vec<String>,
