@@ -11,5 +11,6 @@
 ## 3. Verification and release
 
 - [x] 3.1 Run focused document-surface, public semver, format, strict Clippy, AST, and OpenSpec checks.
-- [x] 3.2 Evaluate KUC 0.4.0 and all other compatible published dependencies; record adoption or rejection evidence without lowering gates.
+  - 証跡: `rtk proxy cargo test -p katana-document-viewer --lib document_surface::frame::tests --locked` (3 passed), `rtk proxy cargo test -p katana-document-viewer --lib large_sheet_requests_only_the_visible_window_and_maps_cells --locked`, `rtk proxy just lint`, `rtk proxy just ast-lint`, `rtk proxy just semver-check` (196/196), `rtk proxy scripts/openspec validate v0-5-8-grid-border-batch-projection --strict`.
+- [x] 3.2 Evaluate KUC 0.4.0 and all other compatible published dependencies; record adoption or rejection evidence without lowering gates. 証跡: file: `openspec/changes/v0-5-8-grid-border-batch-projection/evidence/dependency-evaluation.md`; `rtk proxy cargo info katana-ui-core@0.4.0`; `rtk proxy just document-surface-boundary-check`; `rtk proxy just release-contract-check`; `rtk proxy just v8-runtime-check`.
 - [ ] 3.3 Complete the Draft PR review, required checks, merge, v0.5.8 registry publication, fresh registry consumer check, Issue #56 closure, and scoped cleanup.
