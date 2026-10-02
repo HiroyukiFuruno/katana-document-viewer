@@ -4,7 +4,7 @@ evidence_line_pattern() {
   local file="$1"
   local evidence_token
 
-  evidence_token="(${DELEGATION_KEYWORD_PATTERN}|agent:[[:space:]]*|model:[[:space:]]*.*gpt-5[.]3-codex-spark)"
+  evidence_token="(${DELEGATION_KEYWORD_PATTERN}|agent:[[:space:]]*|model:[[:space:]]*.*(gpt-5[.]3-codex-spark|gpt-6-luna))"
 
   case "$(basename "$file")" in
     tasks.md)
@@ -27,17 +27,7 @@ check_evidence_payload() {
     "$context" "$payload" agent model reasoning file command verify close
   validate_agent_ids "$context" "$payload"
 
-  if ! payload_has_only_exact_backtick_field_value \
-    "model" "$MODEL_TOKEN" "$payload"; then
-    fail_fast "$context" \
-      "subagent / Spark証跡のmodelは gpt-5.3-codex-spark だけにしてください。"
-  fi
-
-  if ! payload_has_only_exact_backtick_field_value \
-    "reasoning" "$REASONING_FIELD_VALUE" "$payload"; then
-    fail_fast "$context" \
-      "subagent / Spark証跡のreasoningは medium だけにしてください。"
-  fi
+  validate_execution_model_and_reasoning "$context" "$payload"
 
   while IFS= read -r file_ref; do
     has_file_reference=1
@@ -62,6 +52,30 @@ check_evidence_payload() {
     fail_fast "$context" \
       "subagent / Spark証跡には close: \`${CLOSE_COMMAND_TOKEN}\` を必須化してください。"
   fi
+}
+
+validate_execution_model_and_reasoning() {
+  local context="$1" payload="$2" luna=0
+  if ! payload_has_only_exact_backtick_field_value "model" "$MODEL_TOKEN" "$payload"; then
+    if grep -Fxq -- '- 許可model: `gpt-6-luna` / reasoning: `none` / `low` / `medium`。' "$REPO_POLICY_FILE" &&
+      payload_has_only_exact_backtick_field_value "model" "gpt-6-luna" "$payload"; then
+      luna=1
+    else
+      fail_fast "$context" \
+        "subagent証跡のmodelは gpt-5.3-codex-spark または明示許可された gpt-6-luna にしてください。"
+    fi
+  fi
+  if payload_has_only_exact_backtick_field_value "reasoning" "$REASONING_FIELD_VALUE" "$payload"; then
+    return
+  fi
+  if [[ "$luna" -eq 1 ]] && {
+    payload_has_only_exact_backtick_field_value "reasoning" "low" "$payload" ||
+      payload_has_only_exact_backtick_field_value "reasoning" "none" "$payload"
+  }; then
+    return
+  fi
+  fail_fast "$context" \
+    "subagent証跡のreasoningは medium を明示し、明示許可Lunaのみ low / none も使用できます。"
 }
 
 tasks_file_has_started_work() {

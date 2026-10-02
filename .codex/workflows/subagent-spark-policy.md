@@ -3,7 +3,9 @@
 - 許可済みの作業で、分離できる実装・調査は原則 subagent へ移譲する。
 - 作業済みactive tasks.mdにはsubagent / Spark証跡または許可済みの
   `delegation-exception:`を残す。
-- subagent は `gpt-5.3-codex-spark` / reasoning `medium` を明示する。
+- 旧Spark証跡は `gpt-5.3-codex-spark` / reasoning `medium` を明示する。
+- 最新ユーザーModel Routing Policyに従う軽量実行・限定調査は `gpt-6-luna` を明示し、`low` / `none` を優先する。調査の分離に必要な `medium` も実行値どおり記録する。旧証跡を別モデルへ書き換えない。
+- 許可model: `gpt-6-luna` / reasoning: `none` / `low` / `medium`。
 - 親モデル継承や `fork_context` 制約を理由に、model / reasoning の明示を省略しない。
 - OpenSpec の subagent / Spark 証跡には `file:` を必須化し、`command: multi_agent_v1.spawn_agent` と `close: multi_agent_v1.close_agent` を残す。
 - OpenSpec の subagent / Spark 証跡では `command:` を実起動だけに使い、検証コマンドは `verify:` に分ける。

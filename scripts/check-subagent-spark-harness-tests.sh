@@ -172,8 +172,51 @@ expect_pass_with_inherited_git_dir() {
     fail_test "valid subagent evidence should pass from a Git hook environment"
 }
 
+expect_explicit_luna_policy_passes() {
+  local workspace level payload
+  workspace="$(mktemp -d)"
+  trap 'rm -rf "$workspace"' RETURN
+  for level in none low medium; do
+    payload="$(valid_payload)"
+    payload="${payload/gpt-5.3-codex-spark/gpt-6-luna}"
+    payload="${payload/medium/$level}"
+    write_workspace "$workspace" "$(line_with_payload "/" "$payload")"
+    printf '%s\n' '- 許可model: `gpt-6-luna` / reasoning: `none` / `low` / `medium`。' \
+      >>"${workspace}/.codex/workflows/subagent-spark-policy.md"
+    run_harness "$workspace" || fail_test "explicit Luna policy/$level should pass"
+  done
+}
+
+expect_luna_policy_still_rejects_invalid_evidence() {
+  local workspace payload
+  workspace="$(mktemp -d)"
+  trap 'rm -rf "$workspace"' RETURN
+  payload="${1/gpt-5.3-codex-spark/gpt-6-luna}"
+  write_workspace "$workspace" "$(line_with_payload "/" "$payload")"
+  printf '%s\n' '- 許可model: `gpt-6-luna` / reasoning: `none` / `low` / `medium`。' \
+    >>"${workspace}/.codex/workflows/subagent-spark-policy.md"
+  if run_harness "$workspace"; then
+    fail_test "Luna evidence with $2 should fail"
+  fi
+  grep -Fq -- "$3" "${workspace}/stderr" || fail_test "Luna evidence should explain $3"
+}
+
 expect_pass
 expect_pass_with_inherited_git_dir
+expect_explicit_luna_policy_passes
+expect_failure "Luna without explicit repository policy" \
+  "$(line_with_payload "/" "$(valid_payload | sed 's/gpt-5.3-codex-spark/gpt-6-luna/')")" \
+  "modelは gpt-5.3-codex-spark"
+expect_luna_policy_still_rejects_invalid_evidence \
+  "$(valid_payload | sed 's/medium/high/')" "unsupported reasoning" "reasoningは medium"
+expect_luna_policy_still_rejects_invalid_evidence \
+  "$(valid_payload | sed 's/medium/low` \/ reasoning: `medium/')" "contradictory reasoning" "reasoningは medium"
+expect_luna_policy_still_rejects_invalid_evidence \
+  "$(valid_payload | sed 's/agent: `[^`]*` \/ //')" "missing id" "実行agent id"
+expect_luna_policy_still_rejects_invalid_evidence \
+  "$(valid_payload | sed 's/ \/ verify: `[^`]*`//')" "missing verification" "verify:"
+expect_luna_policy_still_rejects_invalid_evidence \
+  "$(valid_payload | sed 's/ \/ close: `[^`]*`//')" "missing close" "close:"
 expect_failure "missing agent id" \
   "$(line_with_payload "/" 'model: `gpt-5.3-codex-spark` / reasoning: `medium` / file: `dummy` / command: `multi_agent_v1.spawn_agent`')" \
   "実行agent id"
