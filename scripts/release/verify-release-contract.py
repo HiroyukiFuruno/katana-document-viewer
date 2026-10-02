@@ -16,10 +16,10 @@ from toml_compat import loads as toml_loads
 VERSION_RE = re.compile(r"^v(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)$")
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 RELEASE_CONTRACT = "multi-format-viewer"
-KRR_MIN_VERSION = (0, 4, 20)
+KRR_MIN_VERSION = (0, 4, 22)
 # Cargoの裸のバージョン指定はcaret互換のため、KRRを完全固定しない。
 KRR_DECLARED_VERSION = ".".join(map(str, KRR_MIN_VERSION))
-KRR_VERSION_REQUIREMENT = "^0.4.20"
+KRR_VERSION_REQUIREMENT = "^0.4.22"
 KRR_LOCK_VERSION_RE = re.compile(r"^(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)$")
 V8_VERSION = "152.2.0"
 V8_DECLARED_VERSION = f"={V8_VERSION}"
@@ -54,7 +54,7 @@ LINUX_SANDBOX_DEPENDENCIES = {
     "seccompiler": "0.5.0",
     "skarn-sandbox": "1.0.1",
 }
-KUC_VERSION = "0.4.0"
+KUC_VERSION = "0.4.1"
 KUC_DECLARED_VERSION = f"={KUC_VERSION}"
 MULTI_FORMAT_SOURCES = (
     "crates/katana-document-viewer/src/multi_format/artifact.rs",
@@ -610,7 +610,7 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
                 f"{label} must upload preview-crop diagnostics after a failed release gate."
             )
     release_created = release.find("name: Create GitHub Release")
-    cleanup = release.find("name: Clean up merged remote release branch")
+    cleanup = release.find("name: Audit merged remote release branch")
     publish = release.find("name: Publish crates.io")
     cleanup_block = release[cleanup:] if cleanup >= 0 else ""
     cleanup_required = (
@@ -618,7 +618,6 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         "post-release-cleanup.py",
         '--scope remote',
         '--branch "${RELEASE_BRANCH}"',
-        "--apply",
     )
     if (
         release_created < 0
@@ -626,9 +625,10 @@ def release_workflow_errors(preflight: str, release: str) -> list[str]:
         or publish < 0
         or not release_created < publish < cleanup
         or any(token not in cleanup_block for token in cleanup_required)
+        or "--apply" in cleanup_block
     ):
         errors.append(
-            "release workflow must authenticate and publish crates.io after the GitHub Release before remote branch cleanup."
+            "release workflow must publish crates.io after the GitHub Release before a non-destructive remote branch audit."
         )
     return errors
 
@@ -792,7 +792,7 @@ version = 4
 
 [[package]]
 name = "katana-render-runtime"
-version = "0.4.20"
+version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -803,10 +803,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 """
     assert not lockfile_errors(registry_lock)
-    assert lockfile_errors(registry_lock.replace('version = "0.4.20"', 'version = "0.4.19"'))
-    assert not lockfile_errors(registry_lock.replace('version = "0.4.20"', 'version = "0.4.21"'))
-    assert not lockfile_errors(registry_lock.replace('version = "0.4.20"', 'version = "0.4.99"'))
-    assert lockfile_errors(registry_lock.replace('version = "0.4.20"', 'version = "0.5.0"'))
+    assert lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.21"'))
+    assert not lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.23"'))
+    assert not lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.99"'))
+    assert lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.5.0"'))
     duplicate_package = registry_lock.split("[[package]]", maxsplit=1)[1]
     assert lockfile_errors(registry_lock + "\n[[package]]" + duplicate_package)
     assert lockfile_errors(registry_lock.replace(REGISTRY_SOURCE, "path+file:///tmp/krr"))
@@ -848,12 +848,13 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
             "if-no-files-found: warn",
             "name: Create GitHub Release",
             "name: Publish crates.io",
-            "name: Clean up merged remote release branch",
+            "name: Audit merged remote release branch",
             "GH_TOKEN: ${{ github.token }}",
-            "post-release-cleanup.py --scope remote --branch \"${RELEASE_BRANCH}\" --apply",
+            "post-release-cleanup.py --scope remote --branch \"${RELEASE_BRANCH}\"",
         )
     )
     assert not release_workflow_errors(release_preflight, release_workflow)
+    assert release_workflow_errors(release_preflight, release_workflow + " --apply")
     assert release_workflow_errors(
         'xvfb-run -a just VERSION="${{ steps.version.outputs.version }}" release-check\n',
         release_workflow,

@@ -7,7 +7,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.5.8"
+version = "0.5.9"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/HiroyukiFuruno/katana-document-viewer"
@@ -25,8 +25,8 @@ rappct = "=0.13.3"
 rlimit = "0.11"
 zip = { version = "8.6", default-features = false, features = ["deflate"] }
 katana-markdown-model = "0.2.2"
-katana-render-runtime = "0.4.20"
-katana-ui-core = { version = "=0.4.0", features = ["raster-host"] }
+katana-render-runtime = "0.4.22"
+katana-ui-core = { version = "=0.4.1", features = ["raster-host"] }
 serde_json = "1"
 syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
 cosmic-text = "0.19"
@@ -36,7 +36,7 @@ image = { version = "0.25", default-features = false, features = ["bmp", "gif", 
 ironcalc = "=0.8.3"
 libc = "=0.2.189"
 minifb = "0.28"
-office2pdf = { package = "office2pdf", version = "=0.7.0" }
+office2pdf = { package = "office2pdf", version = "=0.8.0" }
 process_control = "5.2"
 resvg = "0.48"
 skarn-sandbox = "=1.0.1"
