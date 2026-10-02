@@ -11,6 +11,7 @@ pub struct OfficeStaticViewerSession {
     pdf: PdfViewerSession,
     conversion_key: super::office_conversion_key::OfficeConversionKey,
     trace_session: Option<super::debug_trace::TraceSession>,
+    worker_config: OfficeWorkerConfig,
 }
 
 impl std::fmt::Debug for OfficeStaticViewerSession {
@@ -38,19 +39,15 @@ impl OfficeStaticViewerSession {
         let mut diagnostics = profile.diagnostics();
         diagnostics.extend(output.preflight_diagnostics);
         diagnostics.extend(output.warnings.into_iter().map(engine_warning));
-        let pdf_source =
-            BinaryDocumentSource::new(source.identity.clone(), "application/pdf", output.pdf);
-        let pdf = {
-            let _decode = super::debug_trace::DebugTrace::start("office.pdf_decode");
-            PdfViewerSession::open(pdf_source)?
-        };
-        let items = static_items(&pdf);
-        let artifact = static_artifact(source, profile, diagnostics, items);
+        // 原本は変換後に不要なため、PDF解析の割当と寿命を重ねずmetadataだけを残す。
+        let artifact = static_artifact(source, profile, diagnostics, Vec::new());
+        let (artifact, pdf) = decode_static_pdf(artifact, output.pdf)?;
         Ok(Self {
             artifact,
             pdf,
             conversion_key,
             trace_session,
+            worker_config: config,
         })
     }
 
@@ -87,6 +84,38 @@ impl OfficeStaticViewerSession {
         self.trace_session
             .map(super::debug_trace::DebugTrace::session)
     }
+
+    pub(super) fn render_item_with_worker(
+        &mut self,
+        request: PdfPageRenderRequest,
+    ) -> Result<PdfRenderedPage, OfficeWorkerError> {
+        let _trace_scope = self.trace_scope();
+        let _render = super::debug_trace::DebugTrace::start("office.raster");
+        super::debug_trace::DebugTrace::event(
+            "office.frame_artifact",
+            format_args!(
+                "page_index={} content_bytes={}",
+                request.page_index,
+                self.conversion_key.content_bytes()
+            ),
+        );
+        self.pdf
+            .render_page_with_worker(request, &self.worker_config)
+    }
+}
+
+fn decode_static_pdf(
+    mut artifact: OfficeStaticDocumentArtifact,
+    bytes: Vec<u8>,
+) -> Result<(OfficeStaticDocumentArtifact, PdfViewerSession), PdfViewerError> {
+    let source = BinaryDocumentSource::new(artifact.identity.clone(), "application/pdf", bytes);
+    let pdf = {
+        let _decode = super::debug_trace::DebugTrace::start("office.pdf_decode");
+        PdfViewerSession::open(source)?
+    };
+    artifact.items = static_items(&pdf);
+    artifact.item_count = artifact.items.len();
+    Ok((artifact, pdf))
 }
 
 fn static_profile(format: OfficeDocumentFormat) -> Result<ViewerQualityProfile, OfficeWorkerError> {

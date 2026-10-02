@@ -102,12 +102,14 @@ impl PagedDocumentSession {
         self.render_scale().and_then(|scale| {
             let request = PdfPageRenderRequest::new(page_index, scale);
             let rendered = match &mut self.engine {
-                PagedEngine::Pdf(session) => session.render_page(request),
-                PagedEngine::Office(session) => session.render_item(request),
+                PagedEngine::Pdf(session) => session
+                    .render_page(request)
+                    .map_err(DocumentSessionError::from),
+                PagedEngine::Office(session) => session
+                    .render_item_with_worker(request)
+                    .map_err(office_frame_error),
             };
-            rendered
-                .map_err(DocumentSessionError::from)
-                .and_then(|rendered| self.frame_from_rendered(rendered))
+            rendered.and_then(|rendered| self.frame_from_rendered(rendered))
         })
     }
     fn frame_from_rendered(
@@ -160,6 +162,13 @@ impl PagedDocumentSession {
 
     pub(super) fn info_parts(&self) -> super::document_session_types::DocumentRuntimeInfo<'_> {
         (self.format, &self.capabilities, &self.diagnostics)
+    }
+}
+
+fn office_frame_error(error: super::OfficeWorkerError) -> DocumentSessionError {
+    match error {
+        super::OfficeWorkerError::Pdf(error) => DocumentSessionError::Pdf(error),
+        error => DocumentSessionError::Office(error),
     }
 }
 

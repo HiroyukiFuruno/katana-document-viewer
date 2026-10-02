@@ -5,6 +5,20 @@ use std::path::{Path, PathBuf};
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
+fn isolated_office_keeps_legacy_pdf_errors_and_preserves_worker_errors() {
+    assert_eq!(
+        DocumentSessionError::Pdf(super::super::PdfViewerError::InvalidScale),
+        office_frame_error(super::super::OfficeWorkerError::Pdf(
+            super::super::PdfViewerError::InvalidScale
+        ))
+    );
+    assert_eq!(
+        DocumentSessionError::Office(super::super::OfficeWorkerError::WorkerTimedOut),
+        office_frame_error(super::super::OfficeWorkerError::WorkerTimedOut)
+    );
+}
+
+#[test]
 fn invalid_pdf_fails_at_the_unified_session_open_boundary() {
     let source = BinaryDocumentSource::new(
         ViewerSourceIdentity::new("file:///invalid.pdf", "sha256:invalid"),
