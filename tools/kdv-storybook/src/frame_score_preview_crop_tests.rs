@@ -24,6 +24,62 @@ const KATANA_PREVIEW_CROP_REFERENCE: &str = "assets/reference/katana/preview_cro
 const KATANA_SAMPLE_DIAGRAMS_CROP_REFERENCE: &str =
     "assets/reference/katana/preview_crops/sample-diagrams-top.png";
 
+// producerの実artifactはCIへ暗黙代入せず、専用入口で四つの入力を必ず指定する。
+#[test]
+#[ignore = "requires explicit immutable KatanA crop/full/geometry/manifest inputs"]
+fn storybook_current_katana_diagrams_crop_visual_score() -> Result<(), Box<dyn std::error::Error>> {
+    let paths = current_crop_input_paths()?;
+    verify_current_crop_provenance(&paths)?;
+    let crop_path = paths[1].to_str().ok_or("crop path must be valid UTF-8")?;
+    assert_preview_crop_score(
+        crop_path,
+        "katana/sample_diagrams.md",
+        "current-katana/sample_diagrams.md-preview-crop",
+        true,
+    )
+}
+
+fn current_crop_input_paths() -> Result<[PathBuf; 4], Box<dyn std::error::Error>> {
+    let mut paths = Vec::new();
+    for name in [
+        "KDV_CURRENT_CROP_MANIFEST",
+        "KDV_CURRENT_CROP_PNG",
+        "KDV_CURRENT_CROP_FULL_PNG",
+        "KDV_CURRENT_CROP_GEOMETRY",
+    ] {
+        let path = std::env::var_os(name).ok_or_else(|| format!("required input: {name}"))?;
+        paths.push(PathBuf::from(path));
+    }
+    paths
+        .try_into()
+        .map_err(|_| "expected four explicit inputs".into())
+}
+
+fn verify_current_crop_provenance(paths: &[PathBuf; 4]) -> Result<(), Box<dyn std::error::Error>> {
+    let verifier = workspace_root()?.join("scripts/feasibility/verify-current-preview-crop.py");
+    let output = std::process::Command::new("python3")
+        .arg("-B")
+        .arg(verifier)
+        .arg("--manifest")
+        .arg(&paths[0])
+        .arg("--crop")
+        .arg(&paths[1])
+        .arg("--full")
+        .arg(&paths[2])
+        .arg("--geometry")
+        .arg(&paths[3])
+        .args(["--expected-fixture", "katana/sample_diagrams.md"])
+        .output()?;
+    if !output.status.success() {
+        return Err(format!(
+            "current crop provenance failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .into());
+    }
+    Ok(())
+}
+
 #[test]
 fn storybook_score_visual_uses_katana_preview_crop_reference()
 -> Result<(), Box<dyn std::error::Error>> {
@@ -1309,6 +1365,9 @@ fn assert_preview_crop_score(
         candidate.height,
     );
     dump_pair(dump_name, &reference, &candidate)?;
+    println!(
+        "storybook_preview_crop_score fixture={fixture} threshold={VISUAL_SCORE_THRESHOLD} report={report:?}"
+    );
     assert!(
         report.score >= VISUAL_SCORE_THRESHOLD,
         "storybook preview crop visual_score is {}/{} for {}; average={} content={} row={} r2c={} c2r={} loss_bands={:?} dimension={} reference={}x{} candidate={}x{}",
