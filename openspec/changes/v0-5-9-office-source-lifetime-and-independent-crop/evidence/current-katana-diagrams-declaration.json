@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "producer_repo": "https://github.com/HiroyukiFuruno/KatanA",
+  "producer_commit": "7b5224d4e6c452446329d7d8f2e4b3c4778e086c",
+  "fixture": "katana/sample_diagrams.md",
+  "fixture_sha256": "88f5cfae620fa721cd0a53765402833dc6e705dfc27c6cd1808143530e043dd3",
+  "execution_mode": "in-process",
+  "dependency_versions": {"KDV": "0.5.8", "KUC": "0.4.0", "KRR": "0.4.21"},
+  "sha256": {
+    "crop": "c6b6326f76374ea2712ca634b877ece7162acf7ea949ec1c1c4ee23b0fc31577",
+    "full": "f77baa764224dcc653ed0288263dab16c292d8a353933d4278e6343c8ed67bf1",
+    "geometry": "8ed27489f487873a91fbf6e6af5a3d54ce5436c7d1a3d8fe324ecd11a2993ac3"
+  },
+  "sizes": {"crop": {"width": 1280, "height": 2400}, "full": {"width": 2565, "height": 4774}},
+  "expected_ui_frame_nr": 1223,
+  "geometry_contract": {
+    "config": 14,
+    "font_scale": 2,
+    "scroll_y": 0,
+    "viewport": {"x": 44, "y": 134, "width": 1187, "height": 2225},
+    "physical_crop": {"x": 88, "y": 268, "width": 2374, "height": 4450},
+    "content_top_y": 134,
+    "full_width": 2565,
+    "full_height": 4774
+  }
+}
