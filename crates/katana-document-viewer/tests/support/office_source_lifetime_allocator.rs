@@ -1,4 +1,5 @@
 use std::alloc::{GlobalAlloc, Layout, System};
+use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 pub const RELEASE_MARKER: &str = "[KDV_LIFETIME_TEST] original_source_dealloc";
@@ -15,13 +16,13 @@ pub fn marker_write_failed() -> bool {
 
 #[cfg(unix)]
 unsafe extern "C" {
-    fn write(fd: i32, bytes: *const u8, count: usize) -> isize;
+    fn write(fd: i32, bytes: *const c_void, count: usize) -> isize;
 }
 
 #[cfg(windows)]
 #[link(name = "ucrt")]
 unsafe extern "C" {
-    fn _write(fd: i32, bytes: *const u8, count: u32) -> i32;
+    fn _write(fd: i32, bytes: *const c_void, count: u32) -> i32;
 }
 
 fn record_release(pointer: *mut u8) {
@@ -34,10 +35,10 @@ fn record_release(pointer: *mut u8) {
     const ROW: &[u8] = b"[KDV_LIFETIME_TEST] original_source_dealloc\n";
     // allocator内の再入を避け、固定byte列だけを有効なstderrへ書き込む。
     #[cfg(unix)]
-    let written = unsafe { write(2, ROW.as_ptr(), ROW.len()) };
+    let written = unsafe { write(2, ROW.as_ptr().cast(), ROW.len()) };
     // Windows CRTのcountは32bitで、この固定byte列の長さはその範囲内。
     #[cfg(windows)]
-    let written = unsafe { _write(2, ROW.as_ptr(), ROW.len() as u32) };
+    let written = unsafe { _write(2, ROW.as_ptr().cast(), ROW.len() as u32) };
     WRITE_FAILED.store(written as usize != ROW.len(), Ordering::SeqCst);
 }
 

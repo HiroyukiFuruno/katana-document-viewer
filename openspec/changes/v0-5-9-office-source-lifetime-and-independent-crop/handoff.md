@@ -2,6 +2,8 @@
 
 ## 固定した指示と担当境界
 
+最新（2026-10-02）: 6commitを通常hook検査付きでpushし、Draft PR61を作成。86bbdc95へのcloud reviewはissuecomment-5953951257でmajor findingsなし、全review thread0を再取得済み。Ubuntu CI37015396565は寿命testの`write`宣言がC ABIの`*const c_void`でなく`*const u8`だったためstrict lintでFAIL。test helperのみ標準型へ修正し、macOSの実寿命2test・fmt/AST/strict ClippyがPASS。次HEADのreview/3OS/preflightは再取得する。以前の「未commit/PRなし」記述は過去snapshotであり現状ではない。公開/下流/独立三項目/Close/cleanupは未完了。
+
 Git復旧は `core.bare=false` の設定だけで完了し、`git st` exit0を確認済み。
 新しいstash/autostash、新worktree、clone、並行作業branchは禁止。
 既存cwdの `release/v0.5.9` で #58/#59 の原因解明・必要修正・公開・後処理まで続ける。
