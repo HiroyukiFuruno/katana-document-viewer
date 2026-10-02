@@ -13,6 +13,8 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from git_fixture_environment import isolated_git_fixture
+
 
 @dataclass(frozen=True)
 class Worktree:
@@ -236,6 +238,7 @@ def remote_cleanup(default: str, branch: str, apply: bool) -> int:
     return 0
 
 
+@isolated_git_fixture()
 def self_test() -> None:
     assert release_errors(None, "v0.5.6") == ["GitHub Release v0.5.6 does not exist."]
     assert release_errors({"isDraft": False, "isPrerelease": False}, "v0.5.6") == []

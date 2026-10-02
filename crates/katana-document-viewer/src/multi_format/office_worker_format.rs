@@ -16,3 +16,17 @@ pub(super) const fn engine_format(format: OfficeDocumentFormat) -> Format {
         OfficeDocumentFormat::Xlsx => Format::Xlsx,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::conversion_options;
+    use std::path::PathBuf;
+
+    #[test]
+    fn updated_engine_preserves_fonts_and_hidden_slide_exclusion() {
+        let path = PathBuf::from("deterministic-fonts");
+        let options = conversion_options(path.clone());
+        assert_eq!(vec![path], options.font_paths);
+        assert!(!options.include_hidden_slides);
+    }
+}

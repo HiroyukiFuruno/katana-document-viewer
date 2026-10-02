@@ -65,8 +65,15 @@ coverage-missing: coverage-v8-refresh
     DEBUG=true {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
-check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness
+check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
     @echo "checks passed"
+
+current-preview-crop-verifier-test:
+    python3 -B scripts/feasibility/verify-current-preview-crop.py --self-test
+
+# 四つの外部artifact入力はKDV_CURRENT_CROP_*環境変数で明示し、既存referenceを代入しない。
+current-preview-crop-score-check:
+    {{CARGO}} test -j {{JOBS}} --release --target-dir {{STORYBOOK_TARGET_DIR}} -p kdv-storybook --locked frame::test_modules::score_preview_crop_tests::storybook_current_katana_diagrams_crop_visual_score -- --exact --ignored --nocapture --test-threads=1
 
 # Run release-line mapping tests without contacting external services.
 release-target-script-test:
@@ -610,6 +617,7 @@ install-governance-hook:
 
 # Validate the Issue and post-release cleanup governance tools without mutating Git state.
 release-governance-check:
+    python3 -B scripts/release/test-git-fixture-environment.py
     python3 scripts/release/verify-issue-governance.py --self-test
     python3 scripts/release/post-release-cleanup.py --self-test
 

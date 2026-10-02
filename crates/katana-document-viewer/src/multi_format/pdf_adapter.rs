@@ -8,6 +8,9 @@ use crate::PdfOutlineItem;
 use hayro::hayro_interpret::InterpreterSettings;
 use hayro::hayro_syntax::Pdf;
 use hayro::{RenderCache, RenderSettings, render};
+#[path = "pdf_adapter_worker.rs"]
+mod worker;
+
 pub struct PdfViewerSession {
     pdf: Pdf,
     artifact: PdfDocumentArtifact,

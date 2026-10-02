@@ -1,5 +1,7 @@
 #[cfg(target_os = "macos")]
 use super::office_worker_monitor::MacOsMemoryMonitor;
+#[path = "office_worker_process_command_config.rs"]
+mod command_config;
 #[cfg(target_os = "linux")]
 #[path = "office_worker_process_linux.rs"]
 mod linux;
@@ -7,14 +9,18 @@ mod linux;
 #[path = "office_worker_process_windows.rs"]
 mod windows;
 use super::{OfficeDocumentFormat, OfficeWorkerConfig, OfficeWorkerError};
+#[cfg(not(windows))]
+use command_config::configure_command;
+#[cfg(windows)]
+use command_config::cpu_seconds;
+use command_config::format_argument;
 #[cfg(target_os = "linux")]
 use linux::wait_for_worker;
 #[cfg(all(not(windows), not(target_os = "linux")))]
 use process_control::{ChildExt, Control};
 use std::path::Path;
 #[cfg(not(windows))]
-use std::process::{Command, Stdio};
-use std::time::Duration;
+use std::process::Command;
 
 pub(crate) struct OfficeWorkerProcess;
 
@@ -25,8 +31,25 @@ impl OfficeWorkerProcess {
         format: OfficeDocumentFormat,
         config: &OfficeWorkerConfig,
     ) -> Result<Option<i64>, OfficeWorkerError> {
+        Self::run_mode(workspace, format_argument(format), config)
+    }
+
+    #[cfg(not(windows))]
+    pub(crate) fn run_pdf_raster(
+        workspace: &Path,
+        config: &OfficeWorkerConfig,
+    ) -> Result<Option<i64>, OfficeWorkerError> {
+        Self::run_mode(workspace, "pdf-raster", config)
+    }
+
+    #[cfg(not(windows))]
+    fn run_mode(
+        workspace: &Path,
+        format_argument: &str,
+        config: &OfficeWorkerConfig,
+    ) -> Result<Option<i64>, OfficeWorkerError> {
         let mut command = Command::new(&config.executable);
-        configure_command(&mut command, workspace, format, config);
+        configure_command(&mut command, workspace, format_argument, config);
         #[cfg(coverage)]
         let coverage_profile = super::coverage_profile::ChildCoverageProfile::configure(
             &mut command,
@@ -56,6 +79,14 @@ impl OfficeWorkerProcess {
         config: &OfficeWorkerConfig,
     ) -> Result<Option<i64>, OfficeWorkerError> {
         windows::OfficeWorkerWindowsProcess::run(workspace, format, config)
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn run_pdf_raster(
+        workspace: &Path,
+        config: &OfficeWorkerConfig,
+    ) -> Result<Option<i64>, OfficeWorkerError> {
+        windows::OfficeWorkerWindowsProcess::run_pdf_raster(workspace, config)
     }
 }
 
@@ -111,62 +142,6 @@ fn normalize_wait_result(
 }
 
 #[cfg(not(windows))]
-fn configure_command(
-    command: &mut Command,
-    workspace: &Path,
-    format: OfficeDocumentFormat,
-    config: &OfficeWorkerConfig,
-) {
-    configure_command_with_debug(
-        command,
-        workspace,
-        format,
-        config,
-        super::debug_trace::DebugTrace::enabled(),
-    );
-}
-
-#[cfg(not(windows))]
-fn configure_command_with_debug(
-    command: &mut Command,
-    workspace: &Path,
-    format: OfficeDocumentFormat,
-    config: &OfficeWorkerConfig,
-    debug_enabled: bool,
-) {
-    command
-        .arg(workspace)
-        .arg(format_argument(format))
-        .arg(config.max_memory_bytes.to_string())
-        .arg(cpu_seconds(config.timeout).to_string())
-        .arg(config.max_output_bytes.to_string())
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .env_clear();
-    if debug_enabled {
-        command.stderr(Stdio::inherit()).env("DEBUG", "true");
-        if let Some((session, source)) = super::debug_trace::DebugTrace::worker_environment() {
-            command
-                .env("KDV_TRACE_SESSION", session)
-                .env("KDV_TRACE_SOURCE", source);
-        }
-    } else {
-        command.stderr(Stdio::null());
-    }
-}
-
-const fn format_argument(format: OfficeDocumentFormat) -> &'static str {
-    match format {
-        OfficeDocumentFormat::Docx => "docx",
-        OfficeDocumentFormat::Pptx => "pptx",
-        OfficeDocumentFormat::Xlsx => "xlsx",
-    }
-}
-
-fn cpu_seconds(timeout: Duration) -> u64 {
-    timeout.as_secs().saturating_add(1).max(1)
-}
-
 #[cfg(test)]
 #[path = "office_worker_process_tests.rs"]
 mod tests;

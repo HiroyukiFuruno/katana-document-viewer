@@ -17,9 +17,24 @@ impl OfficeWorkerWindowsProcess {
         format: OfficeDocumentFormat,
         config: &OfficeWorkerConfig,
     ) -> Result<Option<i64>, OfficeWorkerError> {
+        Self::run_mode(workspace, super::format_argument(format), config)
+    }
+
+    pub(super) fn run_pdf_raster(
+        workspace: &Path,
+        config: &OfficeWorkerConfig,
+    ) -> Result<Option<i64>, OfficeWorkerError> {
+        Self::run_mode(workspace, "pdf-raster", config)
+    }
+
+    fn run_mode(
+        workspace: &Path,
+        format_argument: &str,
+        config: &OfficeWorkerConfig,
+    ) -> Result<Option<i64>, OfficeWorkerError> {
         let staged_executable = stage_windows_worker(workspace, config)?;
         let capabilities = windows_capabilities(workspace, &staged_executable, config)?;
-        let options = build_options(workspace, &staged_executable, format, config);
+        let options = build_options(workspace, &staged_executable, format_argument, config);
         let child = {
             let _spawn = crate::multi_format::debug_trace::DebugTrace::start("office.worker_spawn");
             rappct::launch::launch_in_container_with_io(&capabilities, &options)
@@ -75,7 +90,7 @@ fn grant_access(
 fn build_options(
     workspace: &Path,
     staged_executable: &Path,
-    format: OfficeDocumentFormat,
+    format_argument: &str,
     config: &OfficeWorkerConfig,
 ) -> rappct::LaunchOptions {
     use rappct::JobLimits;
@@ -85,7 +100,7 @@ fn build_options(
         cmdline: Some(worker_command_line(
             workspace,
             staged_executable,
-            format,
+            format_argument,
             config,
         )),
         cwd: Some(workspace.to_path_buf()),
@@ -124,13 +139,13 @@ fn worker_environment_with_trace(
 fn worker_command_line(
     workspace: &Path,
     staged_executable: &Path,
-    format: OfficeDocumentFormat,
+    format_argument: &str,
     config: &OfficeWorkerConfig,
 ) -> String {
     WindowsCommandLine::from_arguments([
         staged_executable.to_string_lossy().into_owned(),
         workspace.to_string_lossy().into_owned(),
-        super::format_argument(format).to_owned(),
+        format_argument.to_owned(),
         config.max_memory_bytes.to_string(),
         super::cpu_seconds(config.timeout).to_string(),
         config.max_output_bytes.to_string(),

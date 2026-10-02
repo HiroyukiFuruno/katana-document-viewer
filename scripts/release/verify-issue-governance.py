@@ -15,6 +15,8 @@ import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 
+from git_fixture_environment import isolated_git_fixture
+
 
 ISSUE_URL = re.compile(
     r"https://github\.com/(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/issues/(?P<number>[1-9][0-9]*)"
@@ -232,6 +234,7 @@ def validate_push() -> list[str]:
     return errors
 
 
+@isolated_git_fixture()
 def self_test() -> None:
     assert repository_from_origin("https://github.com/HiroyukiFuruno/katana-document-viewer.git") == (
         "HiroyukiFuruno/katana-document-viewer"
@@ -443,6 +446,10 @@ def _self_test_delegate_replays_updates() -> None:
         validator.parent.mkdir(parents=True)
         shutil.copyfile(root / ".githooks/pre-push", hook)
         shutil.copyfile(Path(__file__), validator)
+        shutil.copyfile(
+            Path(__file__).with_name("git_fixture_environment.py"),
+            validator.with_name("git_fixture_environment.py"),
+        )
         hook.chmod(0o700)
         delegate = fixture / "consume-stdin"
         delegate.write_text("#!/bin/sh\ncat >/dev/null\n", encoding="utf-8")

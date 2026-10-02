@@ -34,3 +34,33 @@ fn session_accessors_and_cache_are_covered_in_the_library_target() -> Result<(),
     assert_eq!(page.surface.rgba.len(), session.cached_byte_count());
     Ok(())
 }
+
+#[test]
+fn worker_raster_reuses_the_bounded_cache_and_preserves_validation_errors()
+-> Result<(), Box<dyn std::error::Error>> {
+    let bytes = include_bytes!("../../../../assets/reference/katana/pdf/sample.pdf").to_vec();
+    let source = BinaryDocumentSource::new(
+        ViewerSourceIdentity::new("fixture:cache", "immutable"),
+        "application/pdf",
+        bytes,
+    );
+    let mut session = PdfViewerSession::open(source)?;
+    let config = super::super::OfficeWorkerConfig::new(std::path::PathBuf::from(
+        "/missing/kdv-office-worker",
+    ));
+    let request = PdfPageRenderRequest::new(0, 1.0);
+    let cached = session.render_page(request)?;
+    assert_eq!(cached, session.render_page_with_worker(request, &config)?);
+    assert_eq!(
+        Err(super::super::OfficeWorkerError::Pdf(
+            PdfViewerError::InvalidScale
+        )),
+        session.render_page_with_worker(PdfPageRenderRequest::new(0, f32::NAN), &config)
+    );
+    assert!(matches!(
+        session.render_page_with_worker(PdfPageRenderRequest::new(1, 1.0), &config),
+        Err(super::super::OfficeWorkerError::WorkerUnavailable { .. })
+    ));
+    assert_eq!(1, session.cached_page_count());
+    Ok(())
+}

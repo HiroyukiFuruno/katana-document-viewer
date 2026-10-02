@@ -1,7 +1,8 @@
 use super::{
     BinaryDocumentSource, OfficeDocumentFormat, OfficeDocumentSource, OfficeStaticDocumentArtifact,
     OfficeStaticViewerSession, OfficeWorkerConfig, OfficeWorkerError, PdfViewerError,
-    PdfViewerSession, ViewerQualityProfile, static_profile,
+    PdfViewerSession, ViewerQualityProfile, decode_static_pdf, engine_warning, static_artifact,
+    static_profile,
 };
 use crate::multi_format::office_conversion_key::OfficeConversionKey;
 use crate::multi_format::{ViewerSourceIdentity, debug_trace::DebugTrace};
@@ -52,6 +53,7 @@ fn test_session() -> Result<SessionFixture, Box<dyn std::error::Error>> {
             pdf,
             conversion_key: conversion_key.clone(),
             trace_session: None,
+            worker_config: OfficeWorkerConfig::new(PathBuf::from("worker")),
         },
     ))
 }
@@ -101,4 +103,36 @@ fn static_profiles_cover_every_office_format() {
         )),
         static_profile(OfficeDocumentFormat::Xlsx)
     );
+}
+
+#[test]
+fn source_metadata_and_diagnostics_survive_items_attached_after_pdf_open() -> TestResult {
+    let identity = ViewerSourceIdentity::new("file:///representative.docx", "sha256:test");
+    let source = representative_source(&identity);
+    let mime = source.mime.clone();
+    let profile = static_profile(source.format)?;
+    let capabilities = profile.capabilities.clone();
+    let diagnostics = vec![engine_warning("retained warning".to_owned())];
+    let artifact = static_artifact(source, profile, diagnostics.clone(), Vec::new());
+    assert_eq!(0, artifact.item_count);
+    assert!(artifact.items.is_empty());
+
+    let bytes = include_bytes!("../../../../assets/reference/katana/pdf/sample.pdf").to_vec();
+    let (artifact, pdf) = decode_static_pdf(artifact, bytes)?;
+
+    assert_eq!(identity, artifact.identity);
+    assert_eq!(mime, artifact.mime);
+    assert_eq!(OfficeDocumentFormat::Docx, artifact.format);
+    assert_eq!(capabilities, artifact.capabilities);
+    assert_eq!(diagnostics, artifact.diagnostics);
+    assert_eq!(pdf.artifact().page_count, artifact.item_count);
+    assert!(!artifact.items.is_empty());
+    Ok(())
+}
+
+#[test]
+fn failed_pdf_decode_keeps_the_typed_error() {
+    let identity = ViewerSourceIdentity::new("fixture:invalid.pdf", "immutable");
+    let artifact = representative_artifact(&identity);
+    assert!(decode_static_pdf(artifact, b"not a PDF".to_vec()).is_err());
 }
