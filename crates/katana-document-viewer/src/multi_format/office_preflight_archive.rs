@@ -43,6 +43,9 @@ impl OfficePreflightArchive {
         limits: OfficePreflightLimits,
         depth: usize,
     ) -> Result<(OfficePreflightReport, Vec<super::ViewerDiagnostic>), OfficePreflightError> {
+        // 外側preflightと再帰内包時間を同名stageへ二重加算しない。
+        let _trace = (depth == 0)
+            .then(|| super::debug_trace::DebugTrace::start("office.package_inspection"));
         validate_depth(depth)?;
         OfficePreflightPolicy::validate_source(source, limits)?;
         let mut archive = open_archive(source)?;

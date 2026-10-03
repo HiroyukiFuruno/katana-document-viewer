@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import tempfile
 from pathlib import Path
 
@@ -46,6 +47,21 @@ REQUIRED_STAGES = {
     "crates/katana-document-viewer/src/multi_format/spreadsheet_worker_open.rs": (
         "spreadsheet.package_parse",
     ),
+    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine.rs": (
+        "spreadsheet.filter_catalog",
+        "spreadsheet.streaming_detection",
+        "spreadsheet.sheet_artifacts",
+        "spreadsheet.persisted_filters",
+        "spreadsheet.streaming_open",
+    ),
+    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine_model.rs": (
+        "spreadsheet.model_import",
+        "spreadsheet.model_init",
+        "spreadsheet.model_evaluate",
+    ),
+    "crates/katana-document-viewer/src/multi_format/office_preflight_zip_entries.rs": (
+        "office.zip_integrity",
+    ),
     "crates/katana-document-viewer/src/multi_format/document_session_spreadsheet.rs": (
         "spreadsheet.frame_publication",
     ),
@@ -57,6 +73,70 @@ WINDOWS_SPREADSHEET_STDERR = (
     "crates/katana-document-viewer/src/multi_format/spreadsheet_worker_spawn_windows_stderr.rs"
 )
 WINDOWS_OFFICE_PROCESS = "crates/katana-document-viewer/src/multi_format/office_worker_process_windows.rs"
+OFFICE_PREFLIGHT_PARENT = (
+    "crates/katana-document-viewer/src/multi_format/office_worker_parent_preflight.rs"
+)
+OFFICE_PREFLIGHT_ARCHIVE = (
+    "crates/katana-document-viewer/src/multi_format/office_preflight_archive.rs"
+)
+OFFICE_PREFLIGHT_STAGE = 'DebugTrace::start("office.preflight")'
+OFFICE_PACKAGE_INSPECTION_STAGE = 'DebugTrace::start("office.package_inspection")'
+
+
+def office_preflight_contract_errors(root: Path) -> list[str]:
+    errors: list[str] = []
+    parent_path = root / OFFICE_PREFLIGHT_PARENT
+    archive_path = root / OFFICE_PREFLIGHT_ARCHIVE
+    if not parent_path.is_file():
+        errors.append(
+            f"Office preflight parent source is missing: {OFFICE_PREFLIGHT_PARENT}"
+        )
+        parent_source = ""
+    else:
+        parent_source = parent_path.read_text(encoding="utf-8")
+    if parent_source.count(OFFICE_PREFLIGHT_STAGE) != 1:
+        errors.append("office.preflight must have exactly one outer owner in parent preflight")
+
+    if not archive_path.is_file():
+        errors.append(f"Office archive preflight source is missing: {OFFICE_PREFLIGHT_ARCHIVE}")
+        return errors
+    archive_source = archive_path.read_text(encoding="utf-8")
+    if OFFICE_PREFLIGHT_STAGE in archive_source:
+        errors.append("archive preflight must not emit duplicate office.preflight")
+
+    inspect_start = archive_source.find("fn inspect(")
+    if inspect_start == -1:
+        errors.append("Office archive inspect function is missing")
+        return errors
+    inspect_open = archive_source.find("{", inspect_start)
+    if inspect_open == -1:
+        errors.append("Office archive inspect function body is missing")
+        return errors
+    depth = 0
+    inspect_end = -1
+    for index in range(inspect_open, len(archive_source)):
+        if archive_source[index] == "{":
+            depth += 1
+        elif archive_source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                inspect_end = index + 1
+                break
+    if inspect_end == -1:
+        errors.append("Office archive inspect function body is unclosed")
+        return errors
+    inspect_body = archive_source[inspect_open:inspect_end]
+    gated_stage = re.compile(
+        r"(?:\(\s*depth\s*==\s*0\s*\)\s*\.then\s*\(\s*\|\|\s*"
+        r"|if\s+depth\s*==\s*0\s*\{[\s\S]{0,40}?Some\s*\(\s*)"
+        r"[\s\S]{0,240}?"
+        r"DebugTrace::start\(\s*\"office\.package_inspection\"\s*\)"
+    )
+    if OFFICE_PACKAGE_INSPECTION_STAGE not in inspect_body:
+        errors.append("office.package_inspection is missing from archive inspect")
+    elif not gated_stage.search(inspect_body):
+        errors.append("office.package_inspection must be gated by depth == 0")
+    return errors
 
 
 def stage_errors(root: Path) -> list[str]:
@@ -71,6 +151,7 @@ def stage_errors(root: Path) -> list[str]:
             if stage not in source:
                 errors.append(f"profiling stage is missing: {stage} ({relative})")
     errors.extend(windows_contract_errors(root))
+    errors.extend(office_preflight_contract_errors(root))
     return errors
 
 
@@ -141,6 +222,19 @@ def self_test() -> None:
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("\n".join(stages), encoding="utf-8")
+        (root / OFFICE_PREFLIGHT_PARENT).write_text(
+            'office.archive_intake\noffice.package_parse\n'
+            'fn preflight_diagnostics() { let _trace = DebugTrace::start("office.preflight"); }',
+            encoding="utf-8",
+        )
+        (root / OFFICE_PREFLIGHT_ARCHIVE).write_text(
+            "impl Archive {\n"
+            "    fn inspect(depth: usize) {\n"
+            '        let _trace = (depth == 0).then(|| DebugTrace::start("office.package_inspection"));\n'
+            "    }\n"
+            "}\n",
+            encoding="utf-8",
+        )
         (root / WINDOWS_SPREADSHEET_SPAWN).write_text(
             "#[cfg(windows)]\n"
             "    pub(crate) fn spawn() { let _spawn = DebugTrace::start(\"spreadsheet.worker_spawn\"); }\n"
@@ -170,7 +264,40 @@ def self_test() -> None:
             "rappct::StdioConfig::Null",
             encoding="utf-8",
         )
-        assert stage_errors(root) == []
+        assert stage_errors(root) == [], stage_errors(root)
+        archive_path = root / OFFICE_PREFLIGHT_ARCHIVE
+        archive_source = archive_path.read_text(encoding="utf-8")
+        archive_path.write_text(
+            archive_source.replace(
+                'DebugTrace::start("office.package_inspection")', OFFICE_PREFLIGHT_STAGE
+            ),
+            encoding="utf-8",
+        )
+        assert any("duplicate office.preflight" in error for error in stage_errors(root))
+        archive_path.write_text(archive_source, encoding="utf-8")
+        parent_path = root / OFFICE_PREFLIGHT_PARENT
+        parent_source = parent_path.read_text(encoding="utf-8")
+        parent_path.write_text(
+            parent_source.replace(OFFICE_PREFLIGHT_STAGE, ""), encoding="utf-8"
+        )
+        assert any("exactly one outer owner" in error for error in stage_errors(root))
+        parent_path.write_text(parent_source, encoding="utf-8")
+        archive_path.write_text(
+            archive_source.replace("depth == 0", "depth > 0"), encoding="utf-8"
+        )
+        assert any("gated by depth == 0" in error for error in stage_errors(root))
+        archive_path.write_text(
+            archive_source.replace(OFFICE_PACKAGE_INSPECTION_STAGE, ""), encoding="utf-8"
+        )
+        assert any("package_inspection is missing" in error for error in stage_errors(root))
+        archive_path.write_text(archive_source, encoding="utf-8")
+        for relative, stages in REQUIRED_STAGES.items():
+            path = root / relative
+            original = path.read_text(encoding="utf-8")
+            for stage in stages:
+                path.write_text(original.replace(stage, "missing_stage"), encoding="utf-8")
+                assert any(stage in error for error in stage_errors(root))
+            path.write_text(original, encoding="utf-8")
         (root / WINDOWS_SPREADSHEET_STDERR).write_text(
             "forward_debug_stderr(&mut source)\n"
             "forward_stderr_chunks(source, |chunk| {\n"

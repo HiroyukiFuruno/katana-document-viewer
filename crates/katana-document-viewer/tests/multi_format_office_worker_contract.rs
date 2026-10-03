@@ -350,6 +350,32 @@ fn xlsx_never_routes_through_the_static_office_worker() -> TestResult {
 }
 
 #[test]
+fn preflight_trace_has_one_outer_stage_and_one_root_inspection() -> TestResult {
+    let output = std::process::Command::new(std::env::current_exe()?)
+        .args([
+            "--exact",
+            "missing_worker_is_a_typed_failure_without_in_process_fallback",
+            "--nocapture",
+        ])
+        .env("DEBUG", "true")
+        .output()?;
+    assert!(output.status.success());
+    let traces = String::from_utf8(output.stderr)?;
+    for stage in ["office.preflight", "office.package_inspection"] {
+        let marker = format!("[KDV_TRACE] stage={stage} ");
+        assert_eq!(
+            traces
+                .lines()
+                .filter(|line| line.starts_with(&marker))
+                .count(),
+            1,
+            "stage {stage} must be emitted once: {traces}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn worker_entrypoint_rejects_malformed_invocations_before_sandboxing() {
     let absolute = std::env::temp_dir();
     let office_cases = [
