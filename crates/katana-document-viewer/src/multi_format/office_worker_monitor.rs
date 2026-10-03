@@ -35,6 +35,8 @@ impl MacOsMemoryMonitor {
         use std::sync::atomic::Ordering;
 
         self.stop.store(true, Ordering::Release);
+        // park前の通知もtokenとして保持し、停止時にpoll周期を待たない。
+        self.worker.thread().unpark();
         let _ = self.worker.join();
         self.exceeded.load(Ordering::Acquire)
     }
@@ -69,7 +71,7 @@ impl MacOsMemoryMonitor {
                 let _ = process.kill();
                 break;
             }
-            std::thread::sleep(MEMORY_POLL_INTERVAL);
+            std::thread::park_timeout(MEMORY_POLL_INTERVAL);
         }
     }
 }
