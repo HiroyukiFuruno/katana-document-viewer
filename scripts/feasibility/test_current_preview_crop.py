@@ -23,13 +23,14 @@ verifier = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verifier)
 
 
-def png_image(width: int, height: int) -> bytes:
-    def chunk(kind: bytes, data: bytes) -> bytes:
-        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+def png_chunk(kind: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
+
+def png_image(width: int, height: int) -> bytes:
     data = struct.pack(">IIBBBBB", width, height, 1, 0, 0, 0, 0)
     rows = (b"\x00" + bytes((width + 7) // 8)) * height
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", data) + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
+    return b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", data) + png_chunk(b"IDAT", zlib.compress(rows)) + png_chunk(b"IEND", b"")
 
 
 def clean_state() -> dict[str, Any]:
@@ -385,6 +386,39 @@ class CurrentPreviewCropTests(unittest.TestCase):
         self.assertIn("does not match the scorer fixture", mismatching.stderr)
         self.assertEqual(mismatching.stdout, "")
         self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+
+def write_native_fixture(directory: Path, lane: str, corruption: str) -> None:
+    # native回帰も同じ公開factoryを使い、破損時は宣言hashを更新して実デコードを検証する。
+    if list(directory.iterdir()) or lane not in ("crop", "full"):
+        raise ValueError("native fixture requires an empty directory and a PNG lane")
+    case = CurrentPreviewCropTests()
+    case.setUp()
+    try:
+        case.verify_preserving_inputs()
+        path = case.crop if lane == "crop" else case.full
+        png = path.read_bytes()
+        if corruption == "header-only":
+            path.write_bytes(png[:33])
+        elif corruption == "crc":
+            length = struct.unpack(">I", png[33:37])[0]
+            damaged = bytearray(png)
+            damaged[41 + length] ^= 1
+            path.write_bytes(damaged)
+        elif corruption == "zlib":
+            length = struct.unpack(">I", png[33:37])[0]
+            payload = bytearray(png[41:41 + length])
+            payload[0] = 0
+            path.write_bytes(png[:33] + png_chunk(b"IDAT", payload) + png[45 + length:])
+        elif corruption != "none":
+            raise ValueError("unknown native PNG corruption")
+        case.refresh_hashes()
+        case.write_manifest()
+        for source in (case.manifest, case.crop, case.full, case.geometry):
+            with (directory / source.name).open("xb") as output:
+                output.write(source.read_bytes())
+    finally:
+        case.tearDown()
 
 
 def run_self_tests() -> None:
