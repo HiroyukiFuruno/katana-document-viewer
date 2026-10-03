@@ -1,10 +1,14 @@
 # v0.5.10 継続台帳
 
-## 一次情報と現在地
+## current-HEAD後続
+
+4関心別commitを通常pushしDraft PR62を作成、HEAD ee81ea8bのCodex formal reviewはP0/P1なし/P2一件preflight二重計上。最新人間「二重計上直すで良いです！」で採用は明示承認済み。製品修正53e6af5はouter office.preflightを維持、inner office.package_inspectionはdepth0のみ。native子process stderr回帰2件は旧source各RED→候補18184両GREEN、profiling契約mutationもmain確認。新source全release-check82524と代表Office fidelity48909/verify-recordは各exit0、current scorerの独立visual/追加score23・export parity2・外部crop1もPASS。台帳のみ未commit、通常push・同thread reply/resolve・再レビュー・新HEAD CI/公開は未完。evidence/preflight-trace-review.mdを読む。以下は初期候補履歴であり後続状態を上書きしない。
+
+## 一次情報と初期候補履歴
 
 最新人間指示は残Issue58/59の原因確定・必要修正公開・Close・cleanupまで。HTML元closeは公開KRR修正後にrootが担当するのでKDVで重複しない。同階層tasks.md/design.md/specs/evidenceを一次情報とし、旧v0.5.9と私有release-progressの過去snapshotを現在地に読み替えない。
 
-現在の既存cwdは単一release/v0.5.10、未commit/未push/PRなし。master/originはa5e98022で非変更/0/0、stash0、既存root worktree1。macOS監視stopをRelease→unpark→join、100ms park_timeoutにし、RSS/kill/exceeded/公開APIを保持した。ZIP/XLSX細分DEBUGのみ追加し処理は変更しない。公開依存cc/font-types/uuidの互換3件更新、KUC0.4.1/KRR0.4.22/office2pdf0.8.0/V8 singleton152.2.0を維持。
+初期候補は既存cwdの単一release/v0.5.10、未commit/未push/PRなしだった。master/originはa5e98022で非変更/0/0、stash0、既存root worktree1。macOS監視stopをRelease→unpark→join、100ms park_timeoutにし、RSS/kill/exceeded/公開APIを保持した。ZIP/XLSX細分DEBUGのみ追加し処理は変更しない。公開依存cc/font-types/uuidの互換3件更新、KUC0.4.1/KRR0.4.22/office2pdf0.8.0/V8 singleton152.2.0を維持。
 
 ## 実証済み
 
