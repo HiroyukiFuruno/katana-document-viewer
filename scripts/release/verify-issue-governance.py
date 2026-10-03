@@ -184,9 +184,15 @@ def section_has_external_override(section: object, filename: str, local_sha: str
 
 def manifest_override_errors(files: Iterable[str], local_sha: str) -> list[str]:
     errors: list[str] = []
-    for filename in files:
-        if Path(filename).name != "Cargo.toml":
-            continue
+    manifests = {filename for filename in files if Path(filename).name == "Cargo.toml"}
+    if manifests:
+        # 所属やpackage名の変更は未変更の依存元にも影響するため、同commitの全manifestを検査する。
+        manifests.update(
+            filename
+            for filename in run(["git", "ls-tree", "-rz", "--name-only", local_sha]).split("\0")
+            if Path(filename).name == "Cargo.toml"
+        )
+    for filename in sorted(manifests):
         content = manifest_at_commit(local_sha, filename)
         if content is None:
             continue
@@ -502,11 +508,13 @@ def _self_test_workspace_dependencies() -> None:
                 tip = _workspace_fixture_commit(filename, package + dependency)
                 assert manifest_override_errors({filename}, tip) == [], dependency
             _self_test_reject_external_workspace_sources(filename, package, directory)
+            _workspace_fixture_commit(filename, package + allowed[0])
             tip = _workspace_fixture_commit(
                 "Cargo.toml", workspace + '[workspace.dependencies]\nlibrary = { path = "crates/library" }\n'
             )
             assert manifest_override_errors({"Cargo.toml"}, tip) == []
-            _self_test_excluded_workspace_member(filename, package, workspace)
+            _self_test_excluded_workspace_member(filename, workspace)
+            _self_test_changed_workspace_membership(filename, workspace)
         finally:
             os.chdir(previous)
 
@@ -530,14 +538,41 @@ def _self_test_reject_external_workspace_sources(filename: str, package: str, di
         assert manifest_override_errors({filename}, tip), dependency
 
 
-def _self_test_excluded_workspace_member(filename: str, package: str, workspace: str) -> None:
-    _workspace_fixture_commit(filename, package + '[dependencies]\nlibrary = { path = "../../crates/library" }\n')
+def _self_test_excluded_workspace_member(filename: str, workspace: str) -> None:
+    assert manifest_override_errors({filename}, run(["git", "rev-parse", "HEAD"]).strip()) == []
     for excluded in ("crates/*", "./crates/library"):
         tip = _workspace_fixture_commit("Cargo.toml", workspace + f'exclude = ["{excluded}"]\n')
         assert manifest_override_errors({filename}, tip)
         # working treeを書き換えても、pushするcommitの所属情報を読み替えない。
         Path("Cargo.toml").write_text(workspace, encoding="utf-8")
         assert manifest_override_errors({filename}, tip)
+
+
+def _self_test_changed_workspace_membership(filename: str, workspace: str) -> None:
+    changes = (
+        '[workspace]\nmembers = ["tools/storybook"]\n',
+        workspace + 'exclude = ["crates/library"]\n',
+        workspace + 'exclude = ["crates/*"]\n',
+    )
+    expected = [f"{filename} declares a path or git dependency override."]
+    for membership in changes:
+        base = _workspace_fixture_commit("Cargo.toml", workspace)
+        assert manifest_override_errors({filename}, base) == []
+        tip = _workspace_fixture_commit("Cargo.toml", membership)
+        files = changed_files(tip, base)
+        assert files == {"Cargo.toml"}
+        assert manifest_override_errors(files, tip) == expected, membership
+    base = _workspace_fixture_commit("Cargo.toml", workspace)
+    tip = _workspace_fixture_commit("Cargo.toml", workspace + '[workspace.metadata]\nrelease = "next"\n')
+    assert changed_files(tip, base) == {"Cargo.toml"}
+    assert manifest_override_errors(changed_files(tip, base), tip) == []
+    base = tip
+    tip = _workspace_fixture_commit(
+        "crates/library/Cargo.toml", '[package]\nname = "renamed-library"\nversion = "1.0.0"\n'
+    )
+    files = changed_files(tip, base)
+    assert files == {"crates/library/Cargo.toml"}
+    assert manifest_override_errors(files, tip) == expected
 
 
 def _self_test_delegate_failure() -> None:

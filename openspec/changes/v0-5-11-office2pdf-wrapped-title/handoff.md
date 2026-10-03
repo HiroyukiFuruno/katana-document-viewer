@@ -1,5 +1,7 @@
 # 0.5.11 継続点
 
+PR63 Draft/HEAD50a1b519へのcloud reviewがP1 discussion_r4175368704を指摘。root-only workspace変更の実Git RED53836→全commit manifest再検査GREEN28860を確認。member削除/exact・glob exclude/依存先package改名の変更集合と未変更依存元、無害metadata許可、caller保全/全governance self-test PASS。checker49c9151a…/green00ead279…、AST51063/OpenSpec26997 exit0、Rust/worker/PNG/lock非変更。途中fixture準備2FAILも保存して成功扱いしない。修正は未commit/未push、thread未reply/未resolve。次は最終自己レビュー/台帳検査→通常commit/push→固有証跡thread reply/resolve→fresh全thread/current新HEAD cloud review/3OS/preflight。旧HEAD50a CI37161167653/preflight37161167647は実行中だが新HEADの成功へ流用しない。正常push96318はexit0終了、PR作成/attach/review依頼済み。終了sessionをpollしない。
+
 最終governance checker933762d7…でrelease-governance-check37231 exit0、全log0c0217c6…。excludeの`./`/wildcardとworking-tree非影響も回帰済み、meta guard16787/AST47610/strict OpenSpec exit0。未公開3commitは保持し、guard修正commitにIssue58/59完全URLを記録して正常pushへ進む。最終required CI/preflightを旧成功で代替しない。Rust/lock/scorerは非変更。
 
 最新: 正常push18186はprecheckで内部workspace誤拒否/Issue URL不足が確定したため、owned just process groupだけを中断してexit1（子処理130）。remote未作成確認。harness-engineeringで実Git RED10300→GREEN17438、最終release-governance-check87580 exit0。checker9cdf3c4e…は同commit内の正式member/nameだけを許し、外部/git/patch/replace/未登録・excluded memberを拒否、caller保全もPASS。2.4/evidence/governance-workspace-2026-10-04.mdへ記録した。Rust/lock/scorer sourceは非変更。後続governance commitへOpen Issueの完全URLを記録して正常再push→Draft review/CI/公開へ進む。旧push18186をpollしない。

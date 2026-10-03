@@ -12,6 +12,14 @@ The push checker SHALL allow a relative internal dependency only when the destin
 - **WHEN** the pushed commit excludes a member but the working tree removes the exclusion
 - **THEN** the checker still rejects the dependency using the committed state
 
+#### Scenario: Only workspace membership or a dependency destination changes
+- **WHEN** a push changes only the root member list or exclusions, or renames a dependency destination package without editing the dependent manifest
+- **THEN** the checker inspects all committed manifests and rejects the now-invalid existing path connection
+
+#### Scenario: Root metadata changes without invalidating dependencies
+- **WHEN** the root manifest changes metadata while existing internal connections remain valid
+- **THEN** the checker accepts the push after inspecting the existing dependent manifests
+
 ### Requirement: External source and Issue guards remain mandatory
 
 The checker SHALL continue rejecting git, absolute or external paths, unregistered or excluded members, mismatched package identities, nested source overrides, and source overrides in patch or replace tables. It SHALL preserve Open Issue URL and upstream registry, migration, manifest, lockfile, and verification evidence requirements.

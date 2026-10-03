@@ -15,7 +15,7 @@
 ## 3. 品質と公開
 
 - [x] 3.1 fmt/AST/strict Clippy/全test/coverage100%/fidelity/score/semver/strict release-check/V8 singleton/consumer linkを新graphで通す。証跡: file: `evidence/quality-gate-2026-10-04.md`、標準release-check73836 exit0、functions3742/3742・lines30730/30730各100/未cover0、package/publish dry-run PASS、実native V8 link PASS。公開後fresh consumerは3.3で別検証。delegation-exception: `直列のクリティカルパス`。
-- [ ] 3.2 Draft PR作成/current-HEAD review/P0P1修正/個別reply resolve/fresh全thread/Ready/required finalHEAD全成功/通常merge/自動公開を完了する。delegation-exception: `直列のクリティカルパス`。
+- [ ] 3.2 Draft PR作成/current-HEAD review/P0P1修正/個別reply resolve/fresh全thread/Ready/required finalHEAD全成功/通常merge/自動公開を完了する。PR63 Draft、50a1b519のP1 discussion_r4175368704は実Git RED53836→GREEN28860、全manifest再検査/AST/OpenSpec PASS、修正push・reply/resolve・新HEAD review/CIは未完。delegation-exception: `直列のクリティカルパス`。
 - [ ] 3.3 GitHub/crates.io/checksum/VCS/公開workerとfresh registry consumerを検証して、局所Issue証跡更新・merged local branch cleanupを完了する。delegation-exception: `直列のクリティカルパス`。
 
 ## 4. 元DoDの保持
