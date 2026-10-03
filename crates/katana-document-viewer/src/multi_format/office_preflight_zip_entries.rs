@@ -11,6 +11,7 @@ impl OfficeZipEntries {
         bytes: &[u8],
         archive: &mut ZipArchive<Cursor<&[u8]>>,
     ) -> Result<(), OfficePreflightError> {
+        let _trace = super::debug_trace::DebugTrace::start("office.zip_integrity");
         Self::validate_declared_count(bytes, archive.len())?;
         (0..archive.len()).try_for_each(|index| Self::validate_entry(bytes, archive, index))
     }

@@ -13,10 +13,9 @@ pub(crate) use super::spreadsheet_engine_support::SpreadsheetEngineSupport;
 #[path = "spreadsheet_engine_error.rs"]
 mod error;
 pub(super) use error::SpreadsheetEngineError;
-
-const LANGUAGE: &str = "en";
-const LOCALE: &str = "en";
-const TIMEZONE: &str = "UTC";
+#[path = "spreadsheet_engine_model.rs"]
+mod model;
+use model::load_model;
 
 pub(super) struct SpreadsheetEngineSession {
     backend: SpreadsheetEngineBackend,
@@ -37,8 +36,15 @@ impl SpreadsheetEngineSession {
         name: &str,
         limits: SpreadsheetViewerLimits,
     ) -> Result<Self, SpreadsheetEngineError> {
-        let filters = SpreadsheetFilterCatalog::read(&bytes, limits.max_sheets)?;
-        if StreamingSpreadsheetSession::is_required(&bytes)? {
+        let filters = {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.filter_catalog");
+            SpreadsheetFilterCatalog::read(&bytes, limits.max_sheets)?
+        };
+        let streaming_required = {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.streaming_detection");
+            StreamingSpreadsheetSession::is_required(&bytes)?
+        };
+        if streaming_required {
             return Self::open_streaming(bytes, limits, filters);
         }
         Self::open_model(bytes, name, limits, filters)
@@ -50,16 +56,11 @@ impl SpreadsheetEngineSession {
         limits: SpreadsheetViewerLimits,
         filters: Vec<Option<super::SpreadsheetAutoFilterArtifact>>,
     ) -> Result<Self, SpreadsheetEngineError> {
-        let workbook = match ironcalc::import::load_from_xlsx_bytes(&bytes, name, LOCALE, TIMEZONE)
-        {
-            Ok(workbook) => workbook,
-            Err(error) => return Err(SpreadsheetEngineError::Import(error.to_string())),
+        let model = load_model(&bytes, name)?;
+        let sheets = {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.sheet_artifacts");
+            SpreadsheetSheetBuilder::build(&model, limits.max_sheets, limits.max_logical_cells)?
         };
-        let mut model =
-            Model::from_workbook(workbook, LANGUAGE).map_err(SpreadsheetEngineError::Model)?;
-        model.evaluate();
-        let sheets =
-            SpreadsheetSheetBuilder::build(&model, limits.max_sheets, limits.max_logical_cells)?;
         let mut session = Self {
             backend: SpreadsheetEngineBackend::Model(Box::new(model)),
             active_filters: Vec::new(),
@@ -67,7 +68,10 @@ impl SpreadsheetEngineSession {
             filters,
             limits,
         };
-        session.initialize_persisted_filters()?;
+        {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.persisted_filters");
+            session.initialize_persisted_filters()?;
+        }
         Ok(session)
     }
 
@@ -76,7 +80,10 @@ impl SpreadsheetEngineSession {
         limits: SpreadsheetViewerLimits,
         filters: Vec<Option<super::SpreadsheetAutoFilterArtifact>>,
     ) -> Result<Self, SpreadsheetEngineError> {
-        let streaming = StreamingSpreadsheetSession::open(bytes, limits)?;
+        let streaming = {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.streaming_open");
+            StreamingSpreadsheetSession::open(bytes, limits)?
+        };
         let sheets = streaming.sheets().to_vec();
         let mut session = Self {
             backend: SpreadsheetEngineBackend::Streaming(streaming),
@@ -85,7 +92,10 @@ impl SpreadsheetEngineSession {
             filters,
             limits,
         };
-        session.initialize_persisted_filters()?;
+        {
+            let _trace = super::debug_trace::DebugTrace::start("spreadsheet.persisted_filters");
+            session.initialize_persisted_filters()?;
+        }
         Ok(session)
     }
 

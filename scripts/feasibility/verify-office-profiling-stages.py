@@ -46,6 +46,24 @@ REQUIRED_STAGES = {
     "crates/katana-document-viewer/src/multi_format/spreadsheet_worker_open.rs": (
         "spreadsheet.package_parse",
     ),
+    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine.rs": (
+        "spreadsheet.filter_catalog",
+        "spreadsheet.streaming_detection",
+        "spreadsheet.sheet_artifacts",
+        "spreadsheet.persisted_filters",
+        "spreadsheet.streaming_open",
+    ),
+    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine_model.rs": (
+        "spreadsheet.model_import",
+        "spreadsheet.model_init",
+        "spreadsheet.model_evaluate",
+    ),
+    "crates/katana-document-viewer/src/multi_format/office_preflight_archive.rs": (
+        "office.preflight",
+    ),
+    "crates/katana-document-viewer/src/multi_format/office_preflight_zip_entries.rs": (
+        "office.zip_integrity",
+    ),
     "crates/katana-document-viewer/src/multi_format/document_session_spreadsheet.rs": (
         "spreadsheet.frame_publication",
     ),
@@ -171,6 +189,13 @@ def self_test() -> None:
             encoding="utf-8",
         )
         assert stage_errors(root) == []
+        for relative, stages in REQUIRED_STAGES.items():
+            path = root / relative
+            original = path.read_text(encoding="utf-8")
+            for stage in stages:
+                path.write_text(original.replace(stage, "missing_stage"), encoding="utf-8")
+                assert any(stage in error for error in stage_errors(root))
+            path.write_text(original, encoding="utf-8")
         (root / WINDOWS_SPREADSHEET_STDERR).write_text(
             "forward_debug_stderr(&mut source)\n"
             "forward_stderr_chunks(source, |chunk| {\n"

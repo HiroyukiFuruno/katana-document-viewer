@@ -43,6 +43,7 @@ impl OfficePreflightArchive {
         limits: OfficePreflightLimits,
         depth: usize,
     ) -> Result<(OfficePreflightReport, Vec<super::ViewerDiagnostic>), OfficePreflightError> {
+        let _trace = super::debug_trace::DebugTrace::start("office.preflight");
         validate_depth(depth)?;
         OfficePreflightPolicy::validate_source(source, limits)?;
         let mut archive = open_archive(source)?;
