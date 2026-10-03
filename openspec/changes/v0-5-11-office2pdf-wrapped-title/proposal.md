@@ -11,6 +11,7 @@ Issue #58の外部crop評価では、PythonのIHDR/provenance検査後にRust sc
 - 元私有PPTXの原本/独立参照/SHA/既存制限を保持した新graphの再受入証跡を取得する。
 - 外部crop/full PNGの実画素デコードを既存native評価入口で必須化し、宣言hashを更新したheader-only/IDAT CRC/zlib破損を拒否する回帰を追加する。
 - 全標準gate、Draft current-HEAD review、required checks、通常merge、自動公開、fresh consumer、局所cleanupまで0.5.11として進める。
+- push governanceが既存の同Git workspace内依存を外部sourceと誤判定する問題を、commit内の正式member/name照合と実Git回帰で修正する。外部path/git・patch/replaceの拒否とOpen Issue URL/evidenceの必須条件は維持する。
 - KRR公開待ちのHTML、current canonicalの独立非visual評価、全配布受入をOffice局所成功から推定しない。
 
 ## Capabilities
@@ -19,6 +20,7 @@ Issue #58の外部crop評価では、PythonのIHDR/provenance検査後にRust sc
 
 - `office-wrapped-title-registry-regression`: 公開converter更新後の折返し見出しサイズとautofit契約をworker境界で検証する。
 - `current-crop-png-integrity`: provenance検査だけを画像実体の完全性とみなさず、両PNGのデコード成功を採点の前提にする。
+- `release-workspace-source-boundary`: 同commitの内部workspace接続と外部未公開sourceを区別してgovernanceを検証する。
 
 ### Modified Capabilities
 

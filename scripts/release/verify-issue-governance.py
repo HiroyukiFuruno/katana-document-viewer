@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -125,6 +127,61 @@ def dependency_sections(manifest: dict[str, object]) -> list[object]:
     return sections
 
 
+def workspace_member_paths(local_sha: str) -> set[str]:
+    content = manifest_at_commit(local_sha, "Cargo.toml")
+    if content is None:
+        return set()
+    workspace = tomllib.loads(content).get("workspace")
+    if not isinstance(workspace, dict) or not isinstance(workspace.get("members"), list):
+        return set()
+    excluded = workspace.get("exclude", [])
+    if not isinstance(excluded, list) or any(
+        not isinstance(path, str) or posixpath.isabs(path) for path in excluded
+    ):
+        return set()
+    members: set[str] = set()
+    for member in workspace["members"]:
+        if not isinstance(member, str) or posixpath.isabs(member):
+            continue
+        normalized = posixpath.normpath(member)
+        if (
+            normalized != ".."
+            and not normalized.startswith("../")
+            and not any(fnmatch.fnmatchcase(normalized, posixpath.normpath(path)) for path in excluded)
+        ):
+            members.add(normalized)
+    return members
+
+
+def is_workspace_dependency(name: str, definition: object, filename: str, local_sha: str) -> bool:
+    if not isinstance(definition, dict) or "git" in definition:
+        return False
+    path = definition.get("path")
+    if not isinstance(path, str) or posixpath.isabs(path):
+        return False
+    if any(has_source_override(value) for key, value in definition.items() if key != "path"):
+        return False
+    destination = posixpath.normpath(posixpath.join(posixpath.dirname(filename), path))
+    if destination not in workspace_member_paths(local_sha):
+        return False
+    content = manifest_at_commit(local_sha, posixpath.join(destination, "Cargo.toml"))
+    if content is None:
+        return False
+    package = tomllib.loads(content).get("package")
+    # 同commitの正式memberだけを接続し、同名の外部sourceを例外扱いしない。
+    return isinstance(package, dict) and package.get("name") == definition.get("package", name)
+
+
+def section_has_external_override(section: object, filename: str, local_sha: str) -> bool:
+    if not isinstance(section, dict):
+        return has_source_override(section)
+    return any(
+        has_source_override(definition)
+        and not is_workspace_dependency(name, definition, filename, local_sha)
+        for name, definition in section.items()
+    )
+
+
 def manifest_override_errors(files: Iterable[str], local_sha: str) -> list[str]:
     errors: list[str] = []
     for filename in files:
@@ -134,7 +191,12 @@ def manifest_override_errors(files: Iterable[str], local_sha: str) -> list[str]:
         if content is None:
             continue
         manifest = tomllib.loads(content)
-        if any(has_source_override(section) for section in dependency_sections(manifest)):
+        override_tables = (manifest.get("patch"), manifest.get("replace"))
+        if any(has_source_override(section) for section in override_tables) or any(
+            section_has_external_override(section, filename, local_sha)
+            for section in dependency_sections(manifest)
+            if not any(section is table for table in override_tables)
+        ):
             errors.append(f"{filename} declares a path or git dependency override.")
     return errors
 
@@ -299,6 +361,7 @@ def self_test() -> None:
         raise AssertionError("malformed pre-push input must be rejected")
     _self_test_validate_update(issue)
     _self_test_new_branch_range()
+    _self_test_workspace_dependencies()
     _self_test_delegate_failure()
     _self_test_delegate_replays_updates()
     _self_test_hook_installer()
@@ -404,6 +467,77 @@ def _self_test_new_branch_range() -> None:
             assert manifest_override_errors({"Cargo.toml"}, base) == []
         finally:
             os.chdir(previous)
+
+
+def _workspace_fixture_commit(filename: str, content: str) -> str:
+    path = Path(filename)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    run(["git", "add", "."])
+    run(["git", "commit", "--quiet", "-m", "workspace fixture"])
+    return run(["git", "rev-parse", "HEAD"]).strip()
+
+
+def _self_test_workspace_dependencies() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        previous = Path.cwd()
+        try:
+            os.chdir(directory)
+            run(["git", "init", "--initial-branch=master", "--quiet"])
+            run(["git", "config", "user.name", "KDV Self Test"])
+            run(["git", "config", "user.email", "kdv-self-test@example.invalid"])
+            workspace = '[workspace]\nmembers = ["crates/library", "tools/storybook"]\n'
+            _workspace_fixture_commit("Cargo.toml", workspace)
+            _workspace_fixture_commit(
+                "crates/library/Cargo.toml", '[package]\nname = "library"\nversion = "1.0.0"\n'
+            )
+            filename = "tools/storybook/Cargo.toml"
+            package = '[package]\nname = "storybook"\nversion = "1.0.0"\n'
+            allowed = (
+                '[dependencies]\nlibrary = { path = "../../crates/library" }\n',
+                '[dev-dependencies]\nalias = { package = "library", path = "../../crates/library" }\n',
+                '[target."cfg(windows)".build-dependencies]\nlibrary = { path = "../../crates/library" }\n',
+            )
+            for dependency in allowed:
+                tip = _workspace_fixture_commit(filename, package + dependency)
+                assert manifest_override_errors({filename}, tip) == [], dependency
+            _self_test_reject_external_workspace_sources(filename, package, directory)
+            tip = _workspace_fixture_commit(
+                "Cargo.toml", workspace + '[workspace.dependencies]\nlibrary = { path = "crates/library" }\n'
+            )
+            assert manifest_override_errors({"Cargo.toml"}, tip) == []
+            _self_test_excluded_workspace_member(filename, package, workspace)
+        finally:
+            os.chdir(previous)
+
+
+def _self_test_reject_external_workspace_sources(filename: str, package: str, directory: str) -> None:
+    _workspace_fixture_commit(
+        "crates/not-member/Cargo.toml", '[package]\nname = "library"\nversion = "1.0.0"\n'
+    )
+    rejected = (
+        '[dependencies]\nlibrary = { path = "../../../../sibling" }\n',
+        '[dependencies]\nlibrary = { path = "../../crates/not-member" }\n',
+        f'[dependencies]\nlibrary = {{ path = "{directory}/crates/library" }}\n',
+        '[dependencies]\nwrong_name = { path = "../../crates/library" }\n',
+        '[dependencies]\nlibrary = { path = "../../crates/library", git = "https://example.invalid/library" }\n',
+        '[dependencies]\nlibrary = { path = "../../crates/library", nested = { path = "../sibling" } }\n',
+        '[patch.crates-io]\nlibrary = { path = "../../crates/library" }\n',
+        '[replace]\n"library:1.0.0" = { path = "../../crates/library" }\n',
+    )
+    for dependency in rejected:
+        tip = _workspace_fixture_commit(filename, package + dependency)
+        assert manifest_override_errors({filename}, tip), dependency
+
+
+def _self_test_excluded_workspace_member(filename: str, package: str, workspace: str) -> None:
+    _workspace_fixture_commit(filename, package + '[dependencies]\nlibrary = { path = "../../crates/library" }\n')
+    for excluded in ("crates/*", "./crates/library"):
+        tip = _workspace_fixture_commit("Cargo.toml", workspace + f'exclude = ["{excluded}"]\n')
+        assert manifest_override_errors({filename}, tip)
+        # working treeを書き換えても、pushするcommitの所属情報を読み替えない。
+        Path("Cargo.toml").write_text(workspace, encoding="utf-8")
+        assert manifest_override_errors({filename}, tip)
 
 
 def _self_test_delegate_failure() -> None:

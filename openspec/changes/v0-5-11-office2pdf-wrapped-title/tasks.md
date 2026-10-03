@@ -10,6 +10,7 @@
 - [x] 2.1 公開synthetic fixtureのautofitなし26pt/中央アンカー・明示autofit保持をKDV実worker/PDF合成変換でRED→GREENにする。証跡: file: `evidence/dependency-update-2026-10-04.md`、test: `office_wrapped_title_contract`の実PDF glyph/全文/複数行/anchor3件PASS。公開0.5.10実workerでは暗黙autofitの1件FAILを確認。通常profile/full gateは3.1で別検証。原本はGitHubへ出さない。delegation-exception: `直列のクリティカルパス`。
 - [x] 2.2 新registry graphの元原本PPTX変換を同SHA/同制限/同fontで再受入し、全slideの文字/geometryと未評価の区別を記録する。証跡: file: `evidence/original-slide-verification-2026-10-04.md`、3PPTX全46pageのcollector/別verifier exit0。自然PDF診断であり、配布受入・geometry tolerance・95点は未評価。delegation-exception: `直列のクリティカルパス`。
 - [x] 2.3 外部crop/full両PNGの実デコードを既存native scorerで必須化し、hash更新済みheader-only/IDAT CRC/zlib破損の回帰をRED→GREENにする。証跡: file: `evidence/current-crop-png-integrity-2026-10-04.md`、実native4test PASS/6破損入力拒否・入力bytes非変更。score/geometry/referenceは変更しない。delegation-exception: `直列のクリティカルパス`。
+- [x] 2.4 push governanceの内部workspace誤拒否を実Git回帰で直し、外部source/Issue証拠の必須条件を維持する。証跡: file: `evidence/governance-workspace-2026-10-04.md`、旧10300の内部接続assertion RED→17438 GREEN、最終release-governance-check37231 exit0/内部4条件・外部9拒否・相対/wildcard exclude・commit/working-tree境界・caller保全PASS。通常再pushの終端は3.2で確認。delegation-exception: `直列のクリティカルパス`。
 
 ## 3. 品質と公開
 

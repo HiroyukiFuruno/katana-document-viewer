@@ -18,6 +18,7 @@
 - 直接/推移/lockfileを調査し、最新互換更新と必要なmajor移行を評価する。libc0.2.190/minifb0.29の候補もcontract/API影響を調べ、満たせない更新は理由と残存版を記録する。
 - HTMLは公開KRR修正版後rootが元正常closeを再受入する。Office局所作業をその待ちだけで止めない。
 - PNG完全性は既存imageのPNG decoderへ委ね、Pythonに独自の画像codecや追加pip依存を作らない。両PNGの全画素decodeをnative入口へ追加し、score計算前に不正入力を拒否する。既存Python公開synthetic PNG/geometry/manifest factoryをnative回帰から使い、hash不一致だけの拒否を誤って成功としない。点数式・既存reference・95閾値は不変。
+- governanceはpush対象commitのroot workspace member/依存先Cargo.toml/nameをGit treeで照合する。既存Storybook→KDV内部接続だけを外部overrideと区別し、working treeの別状態から承認を作らない。絶対path・repo外・未登録/excluded member・名前不一致・git・nested source・patch/replaceは拒否を維持し、既存Open Issue URLと公開依存証拠条件も変更しない。
 
 ## Risks / Trade-offs
 

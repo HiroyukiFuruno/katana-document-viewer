@@ -1,5 +1,9 @@
 # 0.5.11 継続点
 
+最終governance checker933762d7…でrelease-governance-check37231 exit0、全log0c0217c6…。excludeの`./`/wildcardとworking-tree非影響も回帰済み、meta guard16787/AST47610/strict OpenSpec exit0。未公開3commitは保持し、guard修正commitにIssue58/59完全URLを記録して正常pushへ進む。最終required CI/preflightを旧成功で代替しない。Rust/lock/scorerは非変更。
+
+最新: 正常push18186はprecheckで内部workspace誤拒否/Issue URL不足が確定したため、owned just process groupだけを中断してexit1（子処理130）。remote未作成確認。harness-engineeringで実Git RED10300→GREEN17438、最終release-governance-check87580 exit0。checker9cdf3c4e…は同commit内の正式member/nameだけを許し、外部/git/patch/replace/未登録・excluded memberを拒否、caller保全もPASS。2.4/evidence/governance-workspace-2026-10-04.mdへ記録した。Rust/lock/scorer sourceは非変更。後続governance commitへOpen Issueの完全URLを記録して正常再push→Draft review/CI/公開へ進む。旧push18186をpollしない。
+
 最新73836は標準strict release-check終端exit0。coverage functions3742/3742・lines30730/30730各100/未cover0、package/publish dry-runもPASS、原本/参照/固定binary非変更。主log SHA6b92ad78…/完全coverage集計bc04f3fa…を保全。既知macOS非fatal linker warningを保持。tasks3.1だけ完了へ更新し、commit/push/Draft review/required CI/公開/fresh consumer/元DoDは未完。下記の進行中73836は履歴でpollしない。次は自己レビュー最終確認・正常commit/push・Draft PRから進める。
 
 最新73836: strict coverageはfunctions3742/3742・lines30730/30730各100/未cover0で終端PASS、元RTK全集計copyの実SHA bc04f3fa…一致。regions98.80%をfunctions/lines100と混同しない。recipeがcoverage生成物7.8GiBをcleanし、cargo package fresh verification buildへ進行。package/publish dryrun/fullgate終端は未完。evidence/quality-gate-2026-10-04.mdを参照し、同buildを二重起動しない。
