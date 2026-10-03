@@ -1,5 +1,7 @@
 # v0.5.9 継続台帳
 
+現在地訂正（2026-10-03）: v0.5.9はPR61 merge a5e98022、3OS/preflight/Release terminal success、GitHub/crates.io/fresh Linux/Mac consumer・旧stash5件の採否検証後drop・local release/v0.5.9削除まで完了。fresh thread0/hasNextPage=false、実crate SHA6e0ad33a…、stash0/master-origin0/0を再確認しtasks4.2/4.4へ反映した。evidence/post-release-checkpoint-2026-10-03.md参照。現在は別の単一release/v0.5.10で実証済みOffice監視待機修正の公開フローを進行しており、新change tasks/handoffを先に読む。下記の未公開/旧5stash保全/旧branch使用は過去snapshot。Issue58非visual・Issue59元配布/HTML/残差判断は未完なので本changeをarchiveしない。
+
 ## 固定した指示と担当境界
 
 最新（2026-10-02）: 6commitを通常hook検査付きでpushし、Draft PR61を作成。86bbdc95へのcloud reviewはissuecomment-5953951257でmajor findingsなし、全review thread0を再取得済み。Ubuntu CI37015396565は寿命testの`write`宣言がC ABIの`*const c_void`でなく`*const u8`だったためstrict lintでFAIL。test helperのみ標準型へ修正し、macOSの実寿命2test・fmt/AST/strict ClippyがPASS。次HEADのreview/3OS/preflightは再取得する。以前の「未commit/PRなし」記述は過去snapshotであり現状ではない。公開/下流/独立三項目/Close/cleanupは未完了。
