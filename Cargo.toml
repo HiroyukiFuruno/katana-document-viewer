@@ -7,7 +7,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.5.10"
+version = "0.5.11"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/HiroyukiFuruno/katana-document-viewer"
@@ -34,9 +34,9 @@ flate2 = "1"
 hayro = "=0.7.1"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
 ironcalc = "=0.8.3"
-libc = "=0.2.189"
-minifb = "0.28"
-office2pdf = { package = "office2pdf", version = "=0.8.0" }
+libc = "=0.2.190"
+minifb = "0.29"
+office2pdf = { package = "office2pdf", version = "=0.8.1" }
 process_control = "5.2"
 resvg = "0.48"
 skarn-sandbox = "=1.0.1"
