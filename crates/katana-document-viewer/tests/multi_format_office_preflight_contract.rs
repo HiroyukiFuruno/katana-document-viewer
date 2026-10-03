@@ -495,3 +495,27 @@ fn nested_office_packages_are_bounded_recursively() -> TestResult {
     ));
     Ok(())
 }
+
+#[test]
+fn nested_preflight_trace_counts_root_inspection_only() -> TestResult {
+    let output = std::process::Command::new(std::env::current_exe()?)
+        .args([
+            "--exact",
+            "nested_office_packages_are_bounded_recursively",
+            "--nocapture",
+        ])
+        .env("DEBUG", "true")
+        .output()?;
+    assert!(output.status.success());
+    let traces = String::from_utf8(output.stderr)?;
+    assert_eq!(
+        traces
+            .lines()
+            .filter(|line| { line.starts_with("[KDV_TRACE] stage=office.package_inspection ") })
+            .count(),
+        1,
+        "nested inspections must not add inclusive root timings: {traces}"
+    );
+    assert!(!traces.contains("[KDV_TRACE] stage=office.preflight "));
+    Ok(())
+}
