@@ -1,0 +1,13 @@
+# Windows wrapped-title worker regression
+
+PR63 discussion_r4175443118のP1は妥当。従来ITはWindowsでもraw Commandでworkerを起動していたが、製品workerはAppContainer外をsandbox failure/exit70で拒否する。公開APIやworker側の安全検査を変更せず、テスト用の実起動だけ修正する。
+
+Windowsでは製品と同じrappctのAppContainer profile/ACL/staged executable/job起動を使う。実workspaceをPackages下のAC/Tempに作り、空白を含むpathで製品のWindowsCommandLine実装を直接再使用する。親の任意環境は渡さずTEMP/TMPをworkspaceへ固定し、Windows必須変数は既存rappct APIが補う。job memory2GiB/kill-on-close、worker引数CPU46秒/output128MiB、親wait45秒を維持する。timeout/errorは成功扱いせず返す。元workerファイル/既存profileを削除しない。
+
+compiled PDFの全文、26pt、複数行、明示autofit、中央対上端anchorの3実回帰は条件を一切変更していない。Windowsにも3件を残し、AppContainer外の直接起動がexit70/status failed/stage sandboxになる実negative controlを追加した。quoted-pathの既存unit testもWindows ITへ含まれる。Mock、固定待ち、OS除外、公開API追加はない。
+
+Mac focused actual-worker3件/ignored0/exit0（raw SHA674b8a7ba9aa392325edffabf9e8320da6841e9155565e4d74e4ed87c831e40b）、AST1件/exit0（c9bc0d5844aeb949e6dbe27ae8f4532639f1616ec796ccb45f0a7133d08642ab）。strict Clippyで余分なi64変換が一度FAILしたため削除し、固定後strict Clippy exit0。製品src/Storybook/src/manifest/lockは差分0。
+
+read-only補助監査（Faraday/gpt-6-luna/medium）はrappct0.13.3の型/API/profile/ACL/job/timeout/quoteを照合しブロッカーなし。mainが必須Windows環境補完とworkerのfailure responseを書き出す経路を直接再確認した。補助監査もMac実行もWindows実行の代用ではない。Windows native required CIと新HEAD cloud review、全thread再取得、Linux大型sidebar原因修正、公開はまだ未完として追跡する。
+
+delegation-exception: `直列のクリティカルパス`。mainがP1修正・実検証・統合を担当し、非競合の限定API照合だけ補助へ分離した。

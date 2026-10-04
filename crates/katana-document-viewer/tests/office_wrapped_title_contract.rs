@@ -1,9 +1,18 @@
+#[cfg(not(windows))]
 use process_control::{ChildExt, Control};
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
+#[cfg(not(windows))]
 use std::process::{Command, Stdio};
 use std::time::Duration;
 use zip::write::SimpleFileOptions;
+
+#[cfg(windows)]
+#[path = "../src/multi_format/windows_command_line.rs"]
+mod windows_command_line;
+#[cfg(windows)]
+#[path = "support/office_wrapped_title_windows.rs"]
+mod windows_worker;
 
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 const TITLE: &str = "A centered title retains its declared size without implicit autofit";
@@ -39,7 +48,7 @@ fn title_pptx(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
 }
 
 fn converted_pdf(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
-    let directory = tempfile::tempdir()?;
+    let directory = worker_workspace()?;
     std::fs::write(
         directory.path().join("input.office"),
         title_pptx(autofit, anchor)?,
@@ -47,8 +56,36 @@ fn converted_pdf(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
     let worker = std::env::var_os("KDV_WRAPPED_TITLE_WORKER")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_kdv-office-worker")));
+    assert_eq!(
+        run_worker(&worker, directory.path())?,
+        0,
+        "actual worker must convert the fixture"
+    );
+    let response: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(directory.path().join("response.json"))?)?;
+    assert_eq!(response["status"], "completed");
+    Ok(std::fs::read(directory.path().join("output.pdf"))?)
+}
+
+#[cfg(not(windows))]
+fn worker_workspace() -> TestResult<tempfile::TempDir> {
+    Ok(tempfile::tempdir()?)
+}
+
+#[cfg(windows)]
+fn worker_workspace() -> TestResult<tempfile::TempDir> {
+    windows_worker::workspace()
+}
+
+#[cfg(windows)]
+fn run_worker(worker: &Path, workspace: &Path) -> TestResult<i64> {
+    windows_worker::run(worker, workspace, Duration::from_secs(45))
+}
+
+#[cfg(not(windows))]
+fn run_worker(worker: &Path, workspace: &Path) -> TestResult<i64> {
     let mut child = Command::new(worker)
-        .arg(directory.path())
+        .arg(workspace)
         .args(["pptx", "2147483648", "46", "134217728"])
         .env_clear()
         .stdin(Stdio::null())
@@ -60,15 +97,9 @@ fn converted_pdf(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
         .strict_errors()
         .wait()?
         .ok_or("wrapped-title worker exceeded its existing deadline")?;
-    assert_eq!(
-        status.code(),
-        Some(0),
-        "actual worker must convert the fixture"
-    );
-    let response: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(directory.path().join("response.json"))?)?;
-    assert_eq!(response["status"], "completed");
-    Ok(std::fs::read(directory.path().join("output.pdf"))?)
+    Ok(status
+        .code()
+        .ok_or("wrapped-title worker terminated by a signal")?)
 }
 
 #[derive(Debug)]
