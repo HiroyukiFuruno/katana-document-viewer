@@ -60,7 +60,38 @@ pub(super) fn run(worker: &Path, workspace: &Path, timeout: Duration) -> TestRes
     let capabilities = SecurityCapabilitiesBuilder::new(&profile.sid).build()?;
     let options = options(&staged, workspace);
     let child = rappct::launch::launch_in_container_with_io(&capabilities, &options)?;
-    Ok(i64::from(child.wait(Some(timeout))?))
+    wait_with_drained_output(child, timeout)
+}
+
+fn wait_with_drained_output(
+    mut child: rappct::launch::LaunchedIo,
+    timeout: Duration,
+) -> TestResult<i64> {
+    drop(child.stdin.take());
+    let mut stdout = child
+        .stdout
+        .take()
+        .ok_or("worker stdout pipe unavailable")?;
+    let mut stderr = child
+        .stderr
+        .take()
+        .ok_or("worker stderr pipe unavailable")?;
+    std::thread::scope(|scope| -> TestResult<i64> {
+        let output = std::thread::Builder::new().spawn_scoped(scope, move || {
+            std::io::copy(&mut stdout, &mut std::io::sink())
+        })?;
+        let errors = std::thread::Builder::new().spawn_scoped(scope, move || {
+            std::io::copy(&mut stderr, &mut std::io::sink())
+        })?;
+        let status = child.wait(Some(timeout));
+        output
+            .join()
+            .map_err(|_| "worker stdout reader panicked")??;
+        errors
+            .join()
+            .map_err(|_| "worker stderr reader panicked")??;
+        Ok(i64::from(status?))
+    })
 }
 
 fn options(worker: &Path, workspace: &Path) -> LaunchOptions {
@@ -76,7 +107,8 @@ fn options(worker: &Path, workspace: &Path) -> LaunchOptions {
         ])),
         cwd: Some(workspace.to_path_buf()),
         env: Some(worker_environment(workspace)),
-        stdio: StdioConfig::Null,
+        // Nullは親の全継承可能handleを渡すため、専用pipeだけを明示して起動する。
+        stdio: StdioConfig::Pipe,
         join_job: Some(JobLimits {
             memory_bytes: Some(2_147_483_648),
             cpu_rate_percent: None,
@@ -84,6 +116,20 @@ fn options(worker: &Path, workspace: &Path) -> LaunchOptions {
         }),
         ..LaunchOptions::default()
     }
+}
+
+#[test]
+fn worker_pipes_keep_launch_and_resource_limits_explicit() {
+    let workspace = Path::new("C:\\wrapped title workspace");
+    let launch = options(&workspace.join("kdv-office-worker.exe"), workspace);
+    assert!(matches!(launch.stdio, StdioConfig::Pipe));
+    let limits = launch.join_job.as_ref();
+    assert_eq!(
+        limits.and_then(|limits| limits.memory_bytes),
+        Some(2_147_483_648)
+    );
+    assert!(limits.is_some_and(|limits| limits.kill_on_job_close));
+    assert!(!launch.suspended);
 }
 
 #[test]

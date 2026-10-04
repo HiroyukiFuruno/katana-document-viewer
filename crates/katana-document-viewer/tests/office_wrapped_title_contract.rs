@@ -11,6 +11,9 @@ use zip::write::SimpleFileOptions;
 #[path = "../src/multi_format/windows_command_line.rs"]
 mod windows_command_line;
 #[cfg(windows)]
+#[path = "support/office_wrapped_title_windows_production.rs"]
+mod windows_production;
+#[cfg(windows)]
 #[path = "support/office_wrapped_title_windows.rs"]
 mod windows_worker;
 #[path = "support/office_wrapped_title_environment.rs"]
