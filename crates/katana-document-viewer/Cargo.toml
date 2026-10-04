@@ -59,4 +59,5 @@ rappct = { workspace = true }
 
 [dev-dependencies]
 pdf-extract = "0.12.1"
+rappct = { workspace = true }
 toml = { workspace = true }

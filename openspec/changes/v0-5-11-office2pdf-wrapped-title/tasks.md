@@ -16,9 +16,10 @@
 
 - [ ] 3.0 Linux大型sidebarの実NotFoundを診断し、原因修正と同サイズ受入を完遂する。証跡: file: `evidence/linux-sidebar-diagnostics-2026-10-04.md`、通常FAILを保持した失敗時限定trace採取を準備、Linux原因は未確定。delegation-exception: `直列のクリティカルパス`。
 - [ ] 3.0.1 Windows wrapped-title ITのP1を実AppContainer起動で修正し、同じPDF3件と直接起動拒否のnative回帰を通す。証跡: file: `evidence/windows-worker-regression-2026-10-04.md`、Mac focused3件/AST/strict Clippy PASS、Windows nativeは未実行。製品API/安全検査/制限は非変更。delegation-exception: `直列のクリティカルパス`。
+- [ ] 3.0.2 追加Windows環境P1で必須変数の明示補完を修正し、全OS builder回帰とWindows native起動を検証する。証跡: file: `evidence/windows-worker-regression-2026-10-04.md`、同unitのRED→GREEN/実PDF3を含むMac4PASS、Windows nativeは未確認。delegation-exception: `直列のクリティカルパス`。
 
 - [x] 3.1 fmt/AST/strict Clippy/全test/coverage100%/fidelity/score/semver/strict release-check/V8 singleton/consumer linkを新graphで通す。証跡: file: `evidence/quality-gate-2026-10-04.md`、標準release-check73836 exit0、functions3742/3742・lines30730/30730各100/未cover0、package/publish dry-run PASS、実native V8 link PASS。公開後fresh consumerは3.3で別検証。delegation-exception: `直列のクリティカルパス`。
-- [ ] 3.2 Draft PR作成/current-HEAD review/P0P1修正/個別reply resolve/fresh全thread/Ready/required finalHEAD全成功/通常merge/自動公開を完了する。PR63 HEADf9500c03はDraft/通常push済み。後着Windows P1 thread PRRT_kwDOSTfBFs6otIi4は未解決、修正候補を3.0.1で検証中。Linux large smokeの旧NotFoundを保持し、新診断preflight37164026414/3OS37164026415進行中。新HEADの全review/原因修正/公開は未完。delegation-exception: `直列のクリティカルパス`。
+- [ ] 3.2 Draft PR作成/current-HEAD review/P0P1修正/個別reply resolve/fresh全thread/Ready/required finalHEAD全成功/通常merge/自動公開を完了する。PR63 HEAD7756607dはDraft/通常push済み。Windows起動P1 thread PRRT_kwDOSTfBFs6otIi4と追加環境P1 PRRT_kwDOSTfBFs6otZjKはnative結果待ちで未resolve。環境builderのRED→GREEN候補を3.0.2で検証中。旧f950 largeの通常四操作は実live logでPASS、旧NotFound原因確定とはしない。新775 preflight37165322286/3OS37165322281進行中で最終公開未完。delegation-exception: `直列のクリティカルパス`。
 - [ ] 3.3 GitHub/crates.io/checksum/VCS/公開workerとfresh registry consumerを検証して、局所Issue証跡更新・merged local branch cleanupを完了する。delegation-exception: `直列のクリティカルパス`。
 
 ## 4. 元DoDの保持

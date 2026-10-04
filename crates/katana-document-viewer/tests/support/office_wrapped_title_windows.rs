@@ -1,11 +1,11 @@
 use super::TestResult;
 use super::windows_command_line::WindowsCommandLine;
+use super::worker_environment::worker_environment;
 use process_control::{ChildExt, Control};
 use rappct::acl::{AccessMask, ResourcePath, grant_to_package};
 use rappct::{
     AppContainerProfile, JobLimits, LaunchOptions, SecurityCapabilitiesBuilder, StdioConfig,
 };
-use std::ffi::OsString;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -75,13 +75,7 @@ fn options(worker: &Path, workspace: &Path) -> LaunchOptions {
             "134217728".to_owned(),
         ])),
         cwd: Some(workspace.to_path_buf()),
-        // 任意の親環境は渡さず、一時領域を固定する。Windows必須変数はrappctが補う。
-        env: Some(
-            ["TEMP", "TMP"]
-                .into_iter()
-                .map(|name| (OsString::from(name), workspace.as_os_str().to_owned()))
-                .collect(),
-        ),
+        env: Some(worker_environment(workspace)),
         stdio: StdioConfig::Null,
         join_job: Some(JobLimits {
             memory_bytes: Some(2_147_483_648),
@@ -103,6 +97,7 @@ fn direct_worker_is_rejected_outside_appcontainer() -> TestResult {
         .arg(directory.path())
         .args(["pptx", "2147483648", "46", "134217728"])
         .env_clear()
+        .envs(worker_environment(directory.path()))
         .stdin(std::process::Stdio::null())
         .spawn()?;
     let status = child

@@ -13,6 +13,8 @@ mod windows_command_line;
 #[cfg(windows)]
 #[path = "support/office_wrapped_title_windows.rs"]
 mod windows_worker;
+#[path = "support/office_wrapped_title_environment.rs"]
+mod worker_environment;
 
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 const TITLE: &str = "A centered title retains its declared size without implicit autofit";
