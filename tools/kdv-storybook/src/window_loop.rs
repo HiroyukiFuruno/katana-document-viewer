@@ -1189,6 +1189,7 @@ impl StorybookWindow {
             WindowOptions {
                 resize: true,
                 scale_mode: ScaleMode::AspectRatioStretch,
+                use_gpu: minifb::UseGPU::Disabled,
                 ..WindowOptions::default()
             },
         )

@@ -1,0 +1,11 @@
+# Linux 大型sidebar失敗の診断
+
+current PR63 HEAD0cb1736fのpreflight37162326565/job111318144337は、default/narrowの実window検査とrelease build成功後、large2048x1496で`Os NotFound(code2)`を返した。raw SHA968c43e42ec9279fb076ee1a210ac463c889affc023b86d76d58d4c1c0ebb9e9。PRはDraftへ戻し、mergeしない。
+
+同sourceのMac locked dev build60167 exit0、実large検査27547 exit0/file-hover,file-click,settings-hover,settings-clickが通過した。binary SHA5d987dcc63d4451a5887b7c68384fafe98106adbf140fc42818f1d9661510d8d/raw088eadc8dddbbf5275c432c13dfeddf2d0b4a4f8de40c98736611032c3838b53。Mac成功はLinuxの原因確定や配布受入を証明しない。
+
+既存preflightに、通常受入失敗時だけLinux file-system syscall trace付きlarge検査を採取する観測を追加する。最初の受入終了コードを必ず返し、追加診断の成功をrequired gateの成功に読み替えない。成功時はtraceを起動しないので通常検査のタイミングを変えない。failed traceを既存failure artifactへ保持し、欠けたパスを確定してから修正する。画像/fixture/score/サイズ/timeout/公開依存は非変更。
+
+原因修正・Linux再現・required checks成功・current-HEAD cloud review・公開は未完。公開済み0.5.10やlocal fullgateをこのpreflight失敗の代替にしない。
+
+YAML parse/全5 Bash blockの構文検査exit0。実workflowから抽出したfailure branchで初回終了0/23と診断終了0/19の4組をBashで検査し、初回終了値を保持することを確認した（unit control-flow検査、実Linux受入ではない）。AST63250/strict OpenSpec/diff-check exit0。release-contract-check73212/harness5742も終端exit0。自己レビューは観測差分についてPASS、原因修正そのものは未完として保持する。

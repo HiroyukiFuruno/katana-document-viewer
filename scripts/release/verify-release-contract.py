@@ -50,7 +50,7 @@ FIXED_SELECTED_ENGINES = {
     "ironcalc": ("ironcalc", "0.8.3"),
 }
 LINUX_SANDBOX_DEPENDENCIES = {
-    "libc": "0.2.189",
+    "libc": "0.2.190",
     "seccompiler": "0.5.0",
     "skarn-sandbox": "1.0.1",
 }
@@ -749,7 +749,7 @@ def self_test() -> None:
                 'hayro = "=0.7.1"',
                 'office2pdf = { package = "office2pdf", version = "=0.7.0" }',
                 'ironcalc = "=0.8.3"',
-                'libc = "=0.2.189"',
+                'libc = "=0.2.190"',
                 'seccompiler = "=0.5.0"',
                 'skarn-sandbox = "=1.0.1"',
                 f'katana-ui-core = {{ version = "{KUC_DECLARED_VERSION}", features = ["raster-host"] }}',
