@@ -77,7 +77,111 @@ fn verify_current_crop_provenance(paths: &[PathBuf; 4]) -> Result<(), Box<dyn st
         )
         .into());
     }
+    // IHDRとhashだけでは画像データ破損を検出できないため、fullも採点前に実画素まで読む。
+    for (lane, path) in ["crop", "full"].into_iter().zip(&paths[1..=2]) {
+        let input = std::fs::File::open(path)?;
+        let image = image::ImageReader::with_format(
+            std::io::BufReader::new(input),
+            image::ImageFormat::Png,
+        )
+        .decode()
+        .map_err(|error| format!("current {lane} PNG pixel decode failed: {error}"))?;
+        drop(image.into_rgba8());
+    }
     Ok(())
+}
+
+struct CurrentPngFixture {
+    _directory: tempfile::TempDir,
+    paths: [PathBuf; 4],
+}
+
+fn current_png_fixture(
+    lane: &str,
+    corruption: &str,
+) -> Result<CurrentPngFixture, Box<dyn std::error::Error>> {
+    let directory = tempfile::tempdir()?;
+    let output = std::process::Command::new("python3")
+        .args([
+            "-B",
+            "-c",
+            "import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); from test_current_preview_crop import write_native_fixture; write_native_fixture(Path(sys.argv[2]), sys.argv[3], sys.argv[4])",
+        ])
+        .arg(workspace_root()?.join("scripts/feasibility"))
+        .arg(directory.path())
+        .args([lane, corruption])
+        .output()?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).into_owned().into());
+    }
+    let paths = ["manifest.json", "crop.png", "full.png", "geometry.json"]
+        .map(|name| directory.path().join(name));
+    Ok(CurrentPngFixture {
+        _directory: directory,
+        paths,
+    })
+}
+
+fn reject_corrupt_current_png(corruption: &str) -> Result<(), Box<dyn std::error::Error>> {
+    for lane in ["full", "crop"] {
+        let fixture = current_png_fixture(lane, corruption)?;
+        let paths = &fixture.paths;
+        let before = paths
+            .iter()
+            .map(std::fs::read)
+            .collect::<Result<Vec<_>, _>>()?;
+        let result = verify_current_crop_provenance(paths);
+        assert!(
+            result.is_err(),
+            "rehashed {lane} {corruption} PNG must be rejected before scoring"
+        );
+        let error = result.err().ok_or("expected a PNG decoding failure")?;
+        assert!(
+            error
+                .to_string()
+                .contains(&format!("current {lane} PNG pixel decode failed:")),
+            "corrupt image must fail actual PNG decoding, not a declaration mismatch: {error}"
+        );
+        let after = paths
+            .iter()
+            .map(std::fs::read)
+            .collect::<Result<Vec<_>, _>>()?;
+        assert_eq!(before, after, "evaluation must preserve explicit inputs");
+    }
+    Ok(())
+}
+
+#[test]
+fn current_crop_provenance_accepts_decodable_pngs() -> Result<(), Box<dyn std::error::Error>> {
+    let fixture = current_png_fixture("full", "none")?;
+    let paths = &fixture.paths;
+    let before = paths
+        .iter()
+        .map(std::fs::read)
+        .collect::<Result<Vec<_>, _>>()?;
+    verify_current_crop_provenance(paths)?;
+    let after = paths
+        .iter()
+        .map(std::fs::read)
+        .collect::<Result<Vec<_>, _>>()?;
+    assert_eq!(before, after);
+    Ok(())
+}
+
+#[test]
+fn current_crop_provenance_rejects_header_only_pngs() -> Result<(), Box<dyn std::error::Error>> {
+    reject_corrupt_current_png("header-only")
+}
+
+#[test]
+fn current_crop_provenance_rejects_idat_crc_corruption() -> Result<(), Box<dyn std::error::Error>> {
+    reject_corrupt_current_png("crc")
+}
+
+#[test]
+fn current_crop_provenance_rejects_rehashed_zlib_corruption()
+-> Result<(), Box<dyn std::error::Error>> {
+    reject_corrupt_current_png("zlib")
 }
 
 #[test]

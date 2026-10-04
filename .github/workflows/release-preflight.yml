@@ -57,6 +57,7 @@ jobs:
       - name: Install diagram test dependencies
         run: |
           .github/scripts/install-linux-render-dependencies.sh
+          sudo apt-get install -y strace
           if ! command -v magick >/dev/null 2>&1; then
             printf '%s\n' \
               '#!/usr/bin/env bash' \
@@ -90,7 +91,16 @@ jobs:
       - name: Release check
         if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/v')
         run: |
-          xvfb-run -a just storybook-release-acceptance-artifacts
+          if xvfb-run -a just storybook-release-acceptance-artifacts; then
+            :
+          else
+            acceptance_status=$?
+            # 通常検査の終了コードを保持し、追加採取の成功で失敗を消さない。
+            strace -f -e trace=%file -o "$RUNNER_TEMP/storybook-sidebar-files.trace" \
+              xvfb-run -a just storybook-window-sidebar-large-screenshot-smoke \
+              || printf '%s\n' 'sidebar diagnostic reproduction failed; see file trace'
+            exit "$acceptance_status"
+          fi
           mkdir -p "$RUNNER_TEMP/storybook-preview-crop-diagnostics"
           cp -a target/acceptance/preview-crop-reference/. "$RUNNER_TEMP/storybook-preview-crop-diagnostics/"
           cargo clean
@@ -105,4 +115,5 @@ jobs:
           path: |
             target/acceptance/preview-crop-reference
             ${{ runner.temp }}/storybook-preview-crop-diagnostics
+            ${{ runner.temp }}/storybook-sidebar-files.trace
           if-no-files-found: warn
