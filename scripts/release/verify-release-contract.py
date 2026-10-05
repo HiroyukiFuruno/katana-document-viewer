@@ -16,10 +16,10 @@ from toml_compat import loads as toml_loads
 VERSION_RE = re.compile(r"^v(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)$")
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 RELEASE_CONTRACT = "multi-format-viewer"
-KRR_MIN_VERSION = (0, 4, 22)
+KRR_MIN_VERSION = (0, 4, 23)
 # Cargoの裸のバージョン指定はcaret互換のため、KRRを完全固定しない。
 KRR_DECLARED_VERSION = ".".join(map(str, KRR_MIN_VERSION))
-KRR_VERSION_REQUIREMENT = "^0.4.22"
+KRR_VERSION_REQUIREMENT = f"^{KRR_DECLARED_VERSION}"
 KRR_LOCK_VERSION_RE = re.compile(r"^(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)$")
 V8_VERSION = "152.2.0"
 V8_DECLARED_VERSION = f"={V8_VERSION}"
@@ -787,12 +787,12 @@ def self_test() -> None:
         )
         workspace_manifest_path.write_text(stale_manifest, encoding="utf-8")
         assert multi_format_manifest_errors(root, "v0.5.2")
-    registry_lock = """
+    registry_lock = f"""
 version = 4
 
 [[package]]
 name = "katana-render-runtime"
-version = "0.4.22"
+version = "{KRR_DECLARED_VERSION}"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -803,10 +803,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0000000000000000000000000000000000000000000000000000000000000000"
 """
     assert not lockfile_errors(registry_lock)
-    assert lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.21"'))
-    assert not lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.23"'))
-    assert not lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.4.99"'))
-    assert lockfile_errors(registry_lock.replace('version = "0.4.22"', 'version = "0.5.0"'))
+    declared_krr = f'version = "{KRR_DECLARED_VERSION}"'
+    assert lockfile_errors(registry_lock.replace(declared_krr, 'version = "0.4.22"'))
+    assert not lockfile_errors(registry_lock.replace(declared_krr, 'version = "0.4.24"'))
+    assert not lockfile_errors(registry_lock.replace(declared_krr, 'version = "0.4.99"'))
+    assert lockfile_errors(registry_lock.replace(declared_krr, 'version = "0.5.0"'))
     duplicate_package = registry_lock.split("[[package]]", maxsplit=1)[1]
     assert lockfile_errors(registry_lock + "\n[[package]]" + duplicate_package)
     assert lockfile_errors(registry_lock.replace(REGISTRY_SOURCE, "path+file:///tmp/krr"))

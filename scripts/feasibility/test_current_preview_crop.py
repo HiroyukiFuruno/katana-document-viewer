@@ -387,14 +387,29 @@ class CurrentPreviewCropTests(unittest.TestCase):
         self.assertEqual(mismatching.stdout, "")
         self.assertEqual({path: path.read_bytes() for path in before}, before)
 
+    def test_cli_pins_the_typography_scorer_fixture(self) -> None:
+        self.declaration["fixture"] = "katana/sample.md"
+        self.write_manifest()
+        args = [sys.executable, "-B", str(VERIFIER_PATH), "--manifest", str(self.manifest), "--crop", str(self.crop), "--full", str(self.full), "--geometry", str(self.geometry), "--expected-fixture"]
+        before = {path: path.read_bytes() for path in (self.manifest, self.crop, self.full, self.geometry)}
+        matching = subprocess.run([*args, "katana/sample.md"], capture_output=True, text=True, check=False)
+        self.assertEqual(matching.returncode, 0, matching.stderr)
+        mismatching = subprocess.run([*args, "katana/sample_diagrams.md"], capture_output=True, text=True, check=False)
+        self.assertNotEqual(mismatching.returncode, 0)
+        self.assertIn("does not match the scorer fixture", mismatching.stderr)
+        self.assertEqual(mismatching.stdout, "")
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
 
-def write_native_fixture(directory: Path, lane: str, corruption: str) -> None:
+
+def write_native_fixture(directory: Path, lane: str, corruption: str, fixture: str = "katana/sample_diagrams.md") -> None:
     # native回帰も同じ公開factoryを使い、破損時は宣言hashを更新して実デコードを検証する。
-    if list(directory.iterdir()) or lane not in ("crop", "full"):
+    if list(directory.iterdir()) or lane not in ("crop", "full") or fixture not in ("katana/sample.md", "katana/sample_diagrams.md"):
         raise ValueError("native fixture requires an empty directory and a PNG lane")
     case = CurrentPreviewCropTests()
     case.setUp()
     try:
+        case.declaration["fixture"] = fixture
+        case.write_manifest()
         case.verify_preserving_inputs()
         path = case.crop if lane == "crop" else case.full
         png = path.read_bytes()

@@ -1,0 +1,23 @@
+# 自己レビュー進捗
+
+最終2026-10-05T13:35Z: 標準strict release-check23938実exit0/全段階成功。省略前coverage表TOTALを直接照合しfunctions3742/3742・lines30730/30730各100%、package/dryrun成功を確認。source-review.mdの局所自己レビューPASSを採用し通常commit/Draft PRへ進む。元current外部入力/非visual95/packaged-cleanmachineの未完は元Issueへ保持、局所PRの新停止条件にしない。公開/merge/元IssueCloseは未完。
+
+最新2026-10-05T12:05Z: 現epochは公開KRR/runtime-assets0.4.23採用済み、標準check81537 exit0・semver196PASS・描画recipe全段階成功照合済み。標準strict release-check23938は自身のcheck成功後coverage専用再build中。coverage/package/dryrunの実終端を確認するまでcommit/PR適格PASSにはしない。旧marker拒否/容量不足/上流未公開/終了sessionの記載は下記履歴であり、現在の停止理由ではない。
+
+proposal/design/specが限定する今回の評価入口と公開依存更新の品質条件と、元Issue58/59の全受入・Close条件は分離する。未提供current producerの独立四分類/packaged-cleanmachineは元Issueの未完であり、今回入口/依存patchのローカル品質が完全成功した後まで新しいPR作成の条件へすり替えない。局所公開だけでは元IssueをCloseしない。
+
+## 以下は旧epochのレビュー履歴
+
+18:46Z以後の差分再レビュー: 専用workspace-testは通常testの後ろに併設し、通常本体/対象/順序は旧HEADとdiff0。既存recipe_bodyの部分一致を避ける配置にし、parser/契約testは変更しない。旧依存recipe/前置案のFAILを保持し、focused1GREEN→最終recipe23suite2229PASS5ignored、export parity2件PASSを確認。readonly監査の旧tasks不存在という未判定はmainが現tasksを読んで補完した。標準flags漏れ中断をPASS扱いしない。coverage/semver/strictreleasecheck未完のためcommit/PR適格PASSには昇格しない。
+
+差分はcurrent crop test-only入口/helper/実ファイル回帰、専用Justfile recipe/docs、版番号/互換lock、OpenSpecに限定。runtime/public API/reference/geometry/95/safety budgetは非変更。manifest固定fixtureとrender fixtureへ同じ引数を渡すこと、Typography dark=false/Diagrams dark=true、四入力を必須にして旧reference自動代入なし、両PNG実decodeを維持することをmainが差分で確認した。固定待ち/Mock/allow/無検証fallbackなし。
+
+source段階のfixture回帰RED→GREENとPython28、更新後strictClippy・release契約は成功。内部文書参照のparent階層が一つ過剰だったため正しいrepo内docsへの相対参照に修正した。rawのpublic更新には私有原本内容/絶対pathを含めない。
+
+更新後native6PASS/AST1PASS終端を確認し、両方向fixture拒否が特定診断を要求し実入力4件を非変更で比較することを再確認した。共有容量回復後の既存Storybook全件/契約recipeを実行中。
+
+後続契約recipe/V8実link、Storybook670PASS/23ignored、core lib1960PASS/1ignoredの終端exit0を確認。全workspace IT/all-feature/coverage/semver/strictreleasecheckと実current四分類は引き続き未完で、commit/PR適格のPASSに昇格しない。終端後879MiB/owned processなし、削除/marker修復なし。
+
+再レビューでは専用recipeのexact ignored selector、helperとPython factoryの明示fixture結合、sample dark=false/diagrams dark=true、proposal/design/spec/docs/tasksの評価範囲整合も照合した。入力宣言の整合検査と生成者identity独立証明をdocsで区別し、nonvisual未評価を残した。低容量契約gate50949は終端exit0だが、既存record成功をcurrent producerの独立95へ使わない。
+
+結論はまだcommit/PR適格のPASSではない。全workspace/coverage100%/semver/strictreleasecheckとcurrent実入力/元Issue受入が未完。Cargo管理タグ欠落による安全拒否を保持し、marker修復・十分な容量確保の人間回答待ちで迂回しない。別taskの容量整理通知をmarker修復の承認にしない。

@@ -28,14 +28,27 @@ const KATANA_SAMPLE_DIAGRAMS_CROP_REFERENCE: &str =
 #[test]
 #[ignore = "requires explicit immutable KatanA crop/full/geometry/manifest inputs"]
 fn storybook_current_katana_diagrams_crop_visual_score() -> Result<(), Box<dyn std::error::Error>> {
+    assert_current_preview_crop_score("katana/sample_diagrams.md", true)
+}
+
+#[test]
+#[ignore = "requires explicit immutable KatanA crop/full/geometry/manifest inputs"]
+fn storybook_current_katana_sample_crop_visual_score() -> Result<(), Box<dyn std::error::Error>> {
+    assert_current_preview_crop_score("katana/sample.md", false)
+}
+
+fn assert_current_preview_crop_score(
+    fixture: &str,
+    dark: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let paths = current_crop_input_paths()?;
-    verify_current_crop_provenance(&paths)?;
+    verify_current_crop_provenance(&paths, fixture)?;
     let crop_path = paths[1].to_str().ok_or("crop path must be valid UTF-8")?;
     assert_preview_crop_score(
         crop_path,
-        "katana/sample_diagrams.md",
-        "current-katana/sample_diagrams.md-preview-crop",
-        true,
+        fixture,
+        &format!("current-{fixture}-preview-crop"),
+        dark,
     )
 }
 
@@ -55,7 +68,10 @@ fn current_crop_input_paths() -> Result<[PathBuf; 4], Box<dyn std::error::Error>
         .map_err(|_| "expected four explicit inputs".into())
 }
 
-fn verify_current_crop_provenance(paths: &[PathBuf; 4]) -> Result<(), Box<dyn std::error::Error>> {
+fn verify_current_crop_provenance(
+    paths: &[PathBuf; 4],
+    fixture: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let verifier = workspace_root()?.join("scripts/feasibility/verify-current-preview-crop.py");
     let output = std::process::Command::new("python3")
         .arg("-B")
@@ -68,7 +84,7 @@ fn verify_current_crop_provenance(paths: &[PathBuf; 4]) -> Result<(), Box<dyn st
         .arg(&paths[2])
         .arg("--geometry")
         .arg(&paths[3])
-        .args(["--expected-fixture", "katana/sample_diagrams.md"])
+        .args(["--expected-fixture", fixture])
         .output()?;
     if !output.status.success() {
         return Err(format!(
@@ -100,16 +116,24 @@ fn current_png_fixture(
     lane: &str,
     corruption: &str,
 ) -> Result<CurrentPngFixture, Box<dyn std::error::Error>> {
+    current_png_fixture_for("katana/sample_diagrams.md", lane, corruption)
+}
+
+fn current_png_fixture_for(
+    fixture: &str,
+    lane: &str,
+    corruption: &str,
+) -> Result<CurrentPngFixture, Box<dyn std::error::Error>> {
     let directory = tempfile::tempdir()?;
     let output = std::process::Command::new("python3")
         .args([
             "-B",
             "-c",
-            "import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); from test_current_preview_crop import write_native_fixture; write_native_fixture(Path(sys.argv[2]), sys.argv[3], sys.argv[4])",
+            "import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); from test_current_preview_crop import write_native_fixture; write_native_fixture(Path(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5])",
         ])
         .arg(workspace_root()?.join("scripts/feasibility"))
         .arg(directory.path())
-        .args([lane, corruption])
+        .args([lane, corruption, fixture])
         .output()?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).into_owned().into());
@@ -130,7 +154,7 @@ fn reject_corrupt_current_png(corruption: &str) -> Result<(), Box<dyn std::error
             .iter()
             .map(std::fs::read)
             .collect::<Result<Vec<_>, _>>()?;
-        let result = verify_current_crop_provenance(paths);
+        let result = verify_current_crop_provenance(paths, "katana/sample_diagrams.md");
         assert!(
             result.is_err(),
             "rehashed {lane} {corruption} PNG must be rejected before scoring"
@@ -152,6 +176,55 @@ fn reject_corrupt_current_png(corruption: &str) -> Result<(), Box<dyn std::error
 }
 
 #[test]
+fn current_typography_crop_provenance_accepts_decodable_pngs()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = current_png_fixture_for("katana/sample.md", "full", "none")?;
+    let before = fixture
+        .paths
+        .iter()
+        .map(std::fs::read)
+        .collect::<Result<Vec<_>, _>>()?;
+    verify_current_crop_provenance(&fixture.paths, "katana/sample.md")?;
+    let after = fixture
+        .paths
+        .iter()
+        .map(std::fs::read)
+        .collect::<Result<Vec<_>, _>>()?;
+    assert_eq!(before, after);
+    Ok(())
+}
+
+#[test]
+fn current_crop_provenance_rejects_fixture_mismatch() -> Result<(), Box<dyn std::error::Error>> {
+    for (declared, expected) in [
+        ("katana/sample.md", "katana/sample_diagrams.md"),
+        ("katana/sample_diagrams.md", "katana/sample.md"),
+    ] {
+        let fixture = current_png_fixture_for(declared, "full", "none")?;
+        let before = fixture
+            .paths
+            .iter()
+            .map(std::fs::read)
+            .collect::<Result<Vec<_>, _>>()?;
+        let result = verify_current_crop_provenance(&fixture.paths, expected);
+        let error = result.err().ok_or("fixture mismatch must be rejected")?;
+        assert!(
+            error
+                .to_string()
+                .contains("does not match the scorer fixture"),
+            "expected explicit fixture rejection: {error}"
+        );
+        let after = fixture
+            .paths
+            .iter()
+            .map(std::fs::read)
+            .collect::<Result<Vec<_>, _>>()?;
+        assert_eq!(before, after, "evaluation must preserve explicit inputs");
+    }
+    Ok(())
+}
+
+#[test]
 fn current_crop_provenance_accepts_decodable_pngs() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = current_png_fixture("full", "none")?;
     let paths = &fixture.paths;
@@ -159,7 +232,7 @@ fn current_crop_provenance_accepts_decodable_pngs() -> Result<(), Box<dyn std::e
         .iter()
         .map(std::fs::read)
         .collect::<Result<Vec<_>, _>>()?;
-    verify_current_crop_provenance(paths)?;
+    verify_current_crop_provenance(paths, "katana/sample_diagrams.md")?;
     let after = paths
         .iter()
         .map(std::fs::read)

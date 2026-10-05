@@ -201,6 +201,42 @@ expect_luna_policy_still_rejects_invalid_evidence() {
   grep -Fq -- "$3" "${workspace}/stderr" || fail_test "Luna evidence should explain $3"
 }
 
+expect_machine_readable_search_results() (
+  local workspace actual expected index
+  workspace="$(mktemp -d)"
+  trap 'rm -rf "$workspace"' EXIT
+  source "${SCRIPT_DIR}/subagent-spark-harness-lib.sh"
+  mkdir -p "$workspace/openspec/changes/first" \
+    "$workspace/openspec/changes/second" "$workspace/openspec/changes/archive/old"
+  for actual in first second archive/old; do
+    : >"$workspace/openspec/changes/$actual/tasks.md"
+    : >"$workspace/openspec/changes/$actual/handoff.md"
+  done
+  cd "$workspace"
+  actual="$(list_change_files)"
+  expected=$'openspec/changes/first/handoff.md\nopenspec/changes/first/tasks.md\nopenspec/changes/second/handoff.md\nopenspec/changes/second/tasks.md'
+  [[ "$actual" == "$expected" ]] || fail_test "machine-readable search must preserve full paths and exclude archive"
+  expected=""
+  for ((index = 1; index <= 60; index++)); do
+    printf 'evidence %s\n' "$index" >> evidence.md
+    expected="${expected}${index}:evidence ${index}"$'\n'
+  done
+  actual="$(match_evidence_lines '^evidence' evidence.md)"
+  [[ "$actual" == "${expected%$'\n'}" ]] || fail_test "machine-readable evidence must preserve every line and line number"
+  if command -v rtk >/dev/null 2>&1; then
+    mkdir bin
+    for actual in rtk find grep sort; do
+      ln -s "$(command -v "$actual")" "bin/$actual"
+    done
+    (
+      PATH="$workspace/bin"
+      [[ "$(list_change_files)" == $'openspec/changes/first/handoff.md\nopenspec/changes/first/tasks.md\nopenspec/changes/second/handoff.md\nopenspec/changes/second/tasks.md' ]] || fail_test "RTK without external rg must retain the existing find fallback"
+      [[ "$(match_evidence_lines '^evidence' evidence.md)" == "${expected%$'\n'}" ]] || fail_test "RTK without external rg must retain every grep evidence line"
+    )
+  fi
+)
+
+expect_machine_readable_search_results
 expect_pass
 expect_pass_with_inherited_git_dir
 expect_explicit_luna_policy_passes

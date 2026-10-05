@@ -2,7 +2,7 @@
 
 run_sort() {
   if command -v rtk >/dev/null 2>&1; then
-    rtk sort
+    rtk proxy sort
     return
   fi
 
@@ -10,8 +10,9 @@ run_sort() {
 }
 
 list_change_files() {
-  if command -v rtk >/dev/null 2>&1; then
-    rtk rg --files openspec/changes \
+  if command -v rtk >/dev/null 2>&1 && command -v rg >/dev/null 2>&1; then
+    # 後続検査が読むパスは、表示用の省略・グループ化を経由させない。
+    rtk proxy rg --files openspec/changes \
       -g 'openspec/changes/**/tasks.md' \
       -g 'openspec/changes/**/handoff.md' \
       -g '!openspec/changes/archive/**' \
@@ -38,8 +39,9 @@ match_evidence_lines() {
   local pattern="$1"
   local file="$2"
 
-  if command -v rtk >/dev/null 2>&1; then
-    rtk rg -n --no-filename "${pattern}" "$file" || true
+  if command -v rtk >/dev/null 2>&1 && command -v rg >/dev/null 2>&1; then
+    # 証跡の省略は検査漏れになるため、行番号と全行をそのまま渡す。
+    rtk proxy rg -n --no-filename "${pattern}" "$file" || true
     return
   fi
 

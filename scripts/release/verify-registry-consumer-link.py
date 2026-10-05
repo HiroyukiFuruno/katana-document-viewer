@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "tools/kdv-v8-registry-consumer"
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 EXPECTED_V8_VERSION = "152.2.0"
-EXPECTED_KRR_VERSION = "0.4.22"
+EXPECTED_KRR_VERSION = "0.4.23"
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 ROOT_V8_LINE = re.compile(r"^v8 v(?P<version>[^\s]+)", re.MULTILINE)
 
@@ -215,6 +215,14 @@ def self_test() -> None:
         assert not manifest_errors(manifest_path, "0.5.6")
     metadata = registry_metadata()
     assert package_errors(metadata, "0.5.6") == []
+    published_krr = registry_metadata()
+    published_krr["packages"][3]["version"] = "0.4.23"
+    assert package_errors(published_krr, "0.5.6") == []
+    previous_krr = registry_metadata()
+    previous_krr["packages"][3]["version"] = "0.4.22"
+    assert "fresh consumer must resolve exactly katana-render-runtime 0.4.23." in package_errors(
+        previous_krr, "0.5.6"
+    )
     metadata["packages"][2]["source"] = "git+https://example.invalid/v8"
     assert package_errors(metadata, "0.5.6") == [
         "fresh consumer resolved a non-registry dependency: 'v8' from "
@@ -237,7 +245,7 @@ def self_test() -> None:
     )
     assert tree_errors(
         "katana-document-viewer v0.5.6\n└── v8 v152.2.0\n",
-        "v8 v152.2.0\n├── katana-document-viewer v0.5.6\n└── katana-render-runtime v0.4.22\n",
+        f"v8 v152.2.0\n├── katana-document-viewer v0.5.6\n└── katana-render-runtime v{EXPECTED_KRR_VERSION}\n",
     ) == []
     assert tree_errors(
         "v8 v150.0.0\n└── package\n",
@@ -268,9 +276,9 @@ def registry_metadata() -> dict[str, object]:
                 "source": REGISTRY_SOURCE,
             },
             {
-                "id": "katana-render-runtime 0.4.22 (registry)",
+                "id": f"katana-render-runtime {EXPECTED_KRR_VERSION} (registry)",
                 "name": "katana-render-runtime",
-                "version": "0.4.22",
+                "version": EXPECTED_KRR_VERSION,
                 "source": REGISTRY_SOURCE,
             },
         ],

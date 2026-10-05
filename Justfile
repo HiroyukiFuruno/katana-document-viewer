@@ -49,6 +49,10 @@ test:
     {{CARGO}} test -p kdv-storybook --locked -- --test-threads=1 --skip katana_intro_text_keeps_readable_frame_band_heights --skip katana_language_link_underline_reaches_frame_pixels --skip direct_html_margin_left_fixture_reaches_frame_pixels --skip storybook_score_visual_ --skip storybook_sample_ --skip storybook_preview_crop_score_ --skip storybook_score_export_surface_excludes_overlay_controls --skip mouse_click_uses_external_scroll_for_scroll_independent_scene
     {{CARGO}} test -p kdv-storybook --locked mouse_click_uses_external_scroll_for_scroll_independent_scene -- --test-threads=1
 
+# 部分再開でも既存RUSTFLAGSとジョブ数を継承し、別fingerprintの不要buildを防ぐ。
+workspace-test:
+    {{CARGO}} test -j {{JOBS}} --workspace --all-targets --all-features --locked --exclude kdv-storybook
+
 # Backward-compatible test entrypoint
 unit-test: test
 
@@ -74,6 +78,10 @@ current-preview-crop-verifier-test:
 # 四つの外部artifact入力はKDV_CURRENT_CROP_*環境変数で明示し、既存referenceを代入しない。
 current-preview-crop-score-check:
     {{CARGO}} test -j {{JOBS}} --release --target-dir {{STORYBOOK_TARGET_DIR}} -p kdv-storybook --locked frame::test_modules::score_preview_crop_tests::storybook_current_katana_diagrams_crop_visual_score -- --exact --ignored --nocapture --test-threads=1
+
+# Typographyはsample.mdへ明示的に結合し、Diagramsの宣言を取り違えて採点しない。
+current-preview-crop-sample-score-check:
+    {{CARGO}} test -j {{JOBS}} --release --target-dir {{STORYBOOK_TARGET_DIR}} -p kdv-storybook --locked frame::test_modules::score_preview_crop_tests::storybook_current_katana_sample_crop_visual_score -- --exact --ignored --nocapture --test-threads=1
 
 # Run release-line mapping tests without contacting external services.
 release-target-script-test:
