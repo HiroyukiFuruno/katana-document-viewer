@@ -49,6 +49,9 @@ Scaffolding. The crates.io package is `katana-document-viewer`.
 
 ## Release governance
 
+For immutable external KatanA Typography/Diagrams crop evaluation, see
+[current preview crop evaluation](docs/current-preview-crop.md).
+
 Run `just install-governance-hook` once per checkout. It installs the KDV
 Issue-linked pre-push dispatcher and records an executable existing pre-push
 hook as its delegate instead of replacing it. A non-default branch push must
