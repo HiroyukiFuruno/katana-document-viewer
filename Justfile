@@ -4,7 +4,7 @@ REPO_ROOT := justfile_directory()
 RTK := env_var_or_default("RTK", `command -v rtk 2> /dev/null || true`)
 RTK_CMD := if RTK == "" { "" } else { RTK + " " }
 JOBS := env_var_or_default("JOBS", "2")
-CARGO := env_var_or_default("CARGO", "cargo")
+CARGO := env_var_or_default("CARGO", "scripts/maintenance/cargo-guard")
 VERSION := env_var_or_default("VERSION", `awk -F '"' '/^version = / { print $2; exit }' Cargo.toml`)
 VERSION_BARE := replace(VERSION, "v", "")
 TAG := "v" + VERSION_BARE
@@ -69,8 +69,11 @@ coverage-missing: coverage-v8-refresh
     DEBUG=true {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
-check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
+check: fmt-check build-cache-script-test lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
     @echo "checks passed"
+
+build-cache-script-test:
+    python3 -m unittest discover -s scripts/maintenance/tests -p 'test_guard_build_cache*.py'
 
 current-preview-crop-verifier-test:
     python3 -B scripts/feasibility/verify-current-preview-crop.py --self-test

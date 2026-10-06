@@ -105,6 +105,9 @@ jobs:
       - name: Run subagent/Spark harness check
         run: just check-subagent-harness
 
+      - name: Verify build cache capacity guard
+        run: just build-cache-script-test
+
       - name: Check types
         run: cargo check --workspace --locked
 
