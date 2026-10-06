@@ -40,12 +40,12 @@ fn process_engine_revision_is_reused_and_image_io_failures_remain_explicit() -> 
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 #[test]
 fn replaced_running_engine_keeps_its_original_fingerprint() -> TestResult {
     let root = tempfile::tempdir()?;
     let image = root.path().join("running-engine");
-    std::fs::hard_link(std::env::current_exe()?, &image)?;
+    std::fs::copy(std::env::current_exe()?, &image)?;
     let output = std::process::Command::new(&image)
         .args([
             "--exact",
@@ -60,15 +60,16 @@ fn replaced_running_engine_keeps_its_original_fingerprint() -> TestResult {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 #[test]
 #[ignore = "real child-process entrypoint invoked by the replacement regression"]
 fn replaced_engine_process_step() -> TestResult {
     let image = std::path::PathBuf::from(std::env::var_os("KDV_REPLACED_ENGINE").ok_or("image")?);
-    let original = CacheKey::executable_digest(&image)?;
+    let original = CacheKey::running_engine_digest()?;
     let replacement = image.with_extension("replacement");
     std::fs::write(&replacement, b"new-package-image")?;
     std::fs::rename(&replacement, &image)?;
+    #[cfg(target_os = "linux")]
     assert!(std::fs::File::open(std::env::current_exe()?).is_err());
     assert_ne!(original, CacheKey::executable_digest(&image)?);
     let root = tempfile::tempdir()?;

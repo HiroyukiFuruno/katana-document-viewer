@@ -13,6 +13,10 @@ pub(super) struct CacheKey;
 #[path = "persistent_cache_key_tests.rs"]
 mod tests;
 
+#[cfg(target_os = "macos")]
+#[path = "persistent_cache_engine_image.rs"]
+mod engine_image;
+
 impl CacheKey {
     pub(super) fn digest(bytes: &[u8]) -> String {
         Self::hex(&Sha256::digest(bytes))
@@ -78,14 +82,24 @@ impl CacheKey {
         if let Some(revision) = ENGINE_REVISION.get() {
             return Ok(revision.clone());
         }
-        // downstreamで再解決された描画依存も、実際にリンクされたimageから識別する。
-        #[cfg(target_os = "linux")]
-        let image = Path::new("/proc/self/exe").to_path_buf();
-        #[cfg(not(target_os = "linux"))]
-        let image = std::env::current_exe()?;
-        let revision = Self::executable_digest(&image)?;
+        let revision = Self::running_engine_digest()?;
         let _ = ENGINE_REVISION.set(revision.clone());
         Ok(revision)
+    }
+
+    pub(super) fn running_engine_digest() -> Result<String, std::io::Error> {
+        #[cfg(target_os = "macos")]
+        {
+            engine_image::digest()
+        }
+        #[cfg(target_os = "linux")]
+        {
+            Self::executable_digest(Path::new("/proc/self/exe"))
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+        {
+            Self::executable_digest(&std::env::current_exe()?)
+        }
     }
 
     fn document(cache: &PersistentDocumentCache, bytes: &[u8], settings: &str) -> String {
