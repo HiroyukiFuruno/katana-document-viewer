@@ -41,18 +41,22 @@ impl PersistentDocumentCache {
 
     pub(super) fn load(&self, key: &str) -> Result<Option<Vec<u8>>, PersistentCacheError> {
         let _lock = self.lock()?;
+        let path = self.root.join(key);
+        let metadata = path.symlink_metadata();
+        if metadata
+            .as_ref()
+            .is_ok_and(|metadata| !metadata.is_file() || metadata.file_type().is_symlink())
+        {
+            return Err(PersistentCacheError::UnsafeDirectory);
+        }
         if self.used_bytes()? > self.max_bytes {
             return Err(PersistentCacheError::Capacity);
         }
-        let path = self.root.join(key);
-        let metadata = match path.symlink_metadata() {
+        let metadata = match metadata {
             Ok(metadata) => metadata,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error.into()),
         };
-        if !metadata.is_file() || metadata.file_type().is_symlink() {
-            return Err(PersistentCacheError::UnsafeDirectory);
-        }
         if metadata.len() > self.max_bytes.min(MAX_ARTIFACT_BYTES) {
             return Err(PersistentCacheError::Capacity);
         }

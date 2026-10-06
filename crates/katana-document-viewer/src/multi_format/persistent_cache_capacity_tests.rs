@@ -42,3 +42,20 @@ fn load_rejects_a_cache_whose_total_size_exceeds_the_current_capacity() -> TestR
     assert_eq!(Some(payload), reduced.load("recovered")?);
     Ok(())
 }
+
+#[test]
+fn load_reports_capacity_for_a_missing_key_when_the_cache_is_over_capacity() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let path = root.path().join("cache");
+    let payload = vec![b'x'; 10];
+    let cache = PersistentDocumentCache::new(path.clone(), 256, "env-v1".into())?;
+    cache.save("first", &payload)?;
+    cache.save("second", &payload)?;
+    let reduced = PersistentDocumentCache::new(path, cache.used_bytes()? - 14, "env-v1".into())?;
+
+    assert!(matches!(
+        reduced.load("missing"),
+        Err(PersistentCacheError::Capacity)
+    ));
+    Ok(())
+}

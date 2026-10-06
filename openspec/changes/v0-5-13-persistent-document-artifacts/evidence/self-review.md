@@ -2,9 +2,9 @@
 
 ## 結論
 
-現公開KRR 0.4.23のsource/graphでrelease-checkが終了コード0でPASS。最新修正後の全体coverageは3776関数/31090行とも100%、未カバー0。package検証・publish dry-run・未公開版確認もPASS。Draftレビュー準備は完了。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
+現公開KRR 0.4.23のsource/graphでrelease-checkが終了コード0でPASS。容量検査順序と欠損キー回帰の最新修正後、全体coverageは3777関数/31097行とも100%、未カバー0。package検証・publish dry-run・未公開版確認もPASS。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
 
-ローカル全体ログ: RTK tee 1791244971_just_VER_8102d9.log、coverage 1791244880_just_coverage.log。
+ローカル全体ログ: RTK tee 1791257941_just_VER_8102d9.log、coverage 1791257847_just_coverage.log。最新sourceのmacOS検証であり、Linuxの最新HEAD CI成功は別途確認する。
 
 ## 指摘と判断
 
@@ -29,4 +29,10 @@ library APIとhost保存方針の責任分離、PDF/Office sessionのdrop/実res
 
 ## PR68 P2総容量縮小後のload
 
-21b383bf reviewの指摘を採用。既存の総容量契約でありDoD変更はない。実filesystem回帰 load_rejects_a_cache_whose_total_size_exceeds_the_current_capacity は修正前RED（超過loadを受理）・修正後GREEN。loadの排他lock内でused_bytesとmax_bytesを比較し、読込前にCapacityを返す。exact上限のload、clear後miss/再保存/再利用、総容量が大きくても1件128MiB上限の回帰もPASS。cache単体26件/AST PASS。clearは容量縮小後も可能なまま。総量検査はentry数に比例するdirectory scanを伴い、最終graphで既存性能・全品質ゲートを維持する。新HEADのCI/review、reply/resolveは未完。
+21b383bf reviewの指摘を採用。既存の総容量契約でありDoD変更はない。実filesystem回帰 load_rejects_a_cache_whose_total_size_exceeds_the_current_capacity は修正前RED（超過loadを受理）・修正後GREEN。loadの排他lock内でused_bytesとmax_bytesを比較し、読込前にCapacityを返す。exact上限のload、clear後miss/再保存/再利用、総容量が大きくても1件128MiB上限の回帰もPASS。9d796fe3で修正し各threadへ根拠を返信・resolve、fresh取得で解決済みを確認した。同HEADのcloud reviewに追加指摘なし。
+
+9d796fe3 Ubuntu coverageの不足1行は、used_bytesが先にunsafe entryを拒否し、対象entryの安全性拒否に到達しなくなったことが原因。対象metadataの安全性を先に検査し、総量検査、metadata結果の処理へ進む順序に修正した。load_reports_capacity_for_a_missing_key_when_the_cache_is_over_capacity を追加して、欠損キーでも総量超過を拒否する契約を維持。cache単体27件、AST、全release-checkとmacOS100% coverageがPASS。静的再レビューでP0/P1追加なし。最新HEADのLinux CIとcloud reviewは取得・確認を続ける。clearは容量縮小後も可能なまま。総量検査はentry数に比例するdirectory scanを伴い、最終KRR graphでも全品質ゲートを維持する。
+
+## 未完停止の再発防止
+
+ユーザー指示でglobal Stop hookを実装・正規のCodex /hooksでreview/trustした。物理台帳のpending/running/failedや根拠不足を検出して自動継続する。10回帰PASS、実CLIでpending終了試行→hook自動継続→done終了の結合試験もPASS。通常回答・明示中断・独立作業完了後の上流公開待ちを区別する。台帳内容の意味的な正しさは主担当が担い、hookを完了の代用にしない。

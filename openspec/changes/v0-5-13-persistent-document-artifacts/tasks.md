@@ -21,4 +21,10 @@
 
 - [ ] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、100% coverageをCIで再確認する。delegation-exception: `直列のクリティカルパス`。
 
-- [ ] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。delegation-exception: `直列のクリティカルパス`。
+- [x] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。9d796fe3修正・reply/resolve・fresh確認済み。delegation-exception: `直列のクリティカルパス`。
+
+## 継続・完了判定の是正
+
+- [ ] ユーザー指摘: 実行可能な修正・検査・結果回収を残したまま進捗報告で停止しない。CI開始や自動化登録は完了ではない。KDV内の残作業を解消し、KRR公開以外に進められる作業がないことを証跡で確認してから待機する。delegation-exception: `直列のクリティカルパス`。
+
+アンチパターン: push/CIを開始して終了し、ユーザーの再指示まで失敗回収・修正を進めない。正: 最新HEADの検査を回収し、失敗修正・review reply/resolve・再検査を継続する。担当が止まったら残DoDと停止理由を確認し、続行指示、担当変更または主担当引取を行い、証跡前に完了扱いしない。同じ規則を主担当自身にも適用し、チャット終了・heartbeat登録を作業完了の代わりにしない。ユーザーの再催促を待たず、既存範囲の修正・検査回収・証跡整備を完了する。検索語: 無意味な停止禁止 / actionable work before wait / subagent completion evidence。
