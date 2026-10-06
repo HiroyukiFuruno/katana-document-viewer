@@ -1,6 +1,7 @@
 use super::ConversionArtifact;
 use crate::multi_format::office_worker_parent::OfficeWorkerOutput;
 use crate::multi_format::persistent_cache::key::CacheKey;
+use crate::multi_format::persistent_cache::payload_codec::MAX_PAYLOAD_BYTES;
 use crate::multi_format::{
     OfficeDocumentFormat, OfficeDocumentSource, OfficeWorkerConfig, PersistentCacheError,
     PersistentDocumentCache, ViewerSourceIdentity,
@@ -11,6 +12,31 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn large_pdf_conversion_round_trips_within_the_cache_capacity() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let cache = PersistentDocumentCache::new(
+        root.path().join("cache"),
+        MAX_PAYLOAD_BYTES as u64 + 2 * 1024 * 1024,
+        "conversion-binary-v1".into(),
+    )?;
+    let source = source();
+    let config = OfficeWorkerConfig::new(std::env::current_exe()?);
+    assert_eq!(MAX_PAYLOAD_BYTES as u64, config.max_output_bytes);
+    let key = CacheKey::office(&cache, &source, &config)?;
+    let output = OfficeWorkerOutput {
+        pdf: vec![0x25; MAX_PAYLOAD_BYTES],
+        warnings: Vec::new(),
+        preflight_diagnostics: Vec::new(),
+    };
+
+    cache.save(&key, &ConversionArtifact::encode(&output)?)?;
+    let (loaded, cache_hit) = ConversionArtifact::output(&cache, &key, &source, &config)?;
+    assert!(cache_hit);
+    assert_eq!(output.pdf, loaded.pdf);
+    Ok(())
+}
+
+#[test]
+fn sixty_four_megabyte_pdf_conversion_still_round_trips() -> TestResult {
     let root = tempfile::tempdir()?;
     let cache = PersistentDocumentCache::new(
         root.path().join("cache"),

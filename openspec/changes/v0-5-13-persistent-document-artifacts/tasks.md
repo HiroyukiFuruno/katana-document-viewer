@@ -34,7 +34,7 @@
 
 ## 継続・完了判定の是正
 
-- [/] ユーザー指摘: ビルド生成物は毎回削除せず、約2回分の40GiBを超えたときだけ整理する。通常のjust導線へguardを組み込み、容量境界・所有範囲・使用中保護・実Cargo整理・排他保持を検証した。証跡: `just build-cache-script-test` 21 PASS、file: `docs/build-cache-maintenance.md`。delegation-exception: `直列のクリティカルパス`。
+- [/] ユーザー指摘: ビルド生成物は毎回削除せず、約2回分の40GiBを超えたときだけ整理する。通常のjust導線へguardを組み込み、容量境界・所有範囲・使用中保護・実Cargo整理・排他保持を検証した。証跡: `just build-cache-script-test` 23 PASS、file: `docs/build-cache-maintenance.md`。delegation-exception: `直列のクリティカルパス`。
 
 - [ ] ユーザー指摘: 実行可能な修正・検査・結果回収を残したまま進捗報告で停止しない。CI開始や自動化登録は完了ではない。KDV内の残作業を解消し、KRR公開以外に進められる作業がないことを証跡で確認してから待機する。delegation-exception: `直列のクリティカルパス`。
 

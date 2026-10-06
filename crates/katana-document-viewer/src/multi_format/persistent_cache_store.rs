@@ -4,7 +4,11 @@ use std::io::{Read, Write};
 
 const MAGIC: &[u8; 8] = b"KDVC0001";
 const HEADER_BYTES: u64 = 72;
-const MAX_ARTIFACT_BYTES: u64 = 128 * 1024 * 1024;
+const LEGACY_MAX_ARTIFACT_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_ARTIFACT_BYTES: u64 = super::payload_codec::MAX_PAYLOAD_BYTES as u64
+    + super::payload_codec::MAX_METADATA_BYTES as u64
+    + super::payload_codec::PREFIX_BYTES
+    + HEADER_BYTES;
 
 impl PersistentDocumentCache {
     pub(super) fn prepare(&self) -> Result<(), PersistentCacheError> {
@@ -57,17 +61,27 @@ impl PersistentDocumentCache {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error.into()),
         };
-        if metadata.len() > self.max_bytes.min(MAX_ARTIFACT_BYTES) {
+        Self::read_entry(&path, key, metadata.len(), self.max_bytes).map(Some)
+    }
+
+    fn read_entry(
+        path: &std::path::Path,
+        key: &str,
+        length: u64,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, PersistentCacheError> {
+        reject_unframed_oversized(path, length)?;
+        if length > max_bytes.min(MAX_ARTIFACT_BYTES) {
             return Err(PersistentCacheError::Capacity);
         }
-        if metadata.len() < HEADER_BYTES {
+        if length < HEADER_BYTES {
             return Err(PersistentCacheError::Corrupt);
         }
         let mut bytes = Vec::new();
         File::open(path)?
-            .take(self.max_bytes.min(MAX_ARTIFACT_BYTES) + 1)
+            .take(max_bytes.min(MAX_ARTIFACT_BYTES) + 1)
             .read_to_end(&mut bytes)?;
-        Self::decode(bytes, key).map(Some)
+        Self::decode(bytes, key)
     }
 
     fn decode(bytes: Vec<u8>, key: &str) -> Result<Vec<u8>, PersistentCacheError> {
@@ -79,12 +93,17 @@ impl PersistentDocumentCache {
         {
             return Err(PersistentCacheError::Corrupt);
         }
+        validate_entry_payload(payload, bytes.len() as u64)?;
         Ok(payload.to_vec())
     }
 
     pub(super) fn save(&self, key: &str, bytes: &[u8]) -> Result<(), PersistentCacheError> {
         let _lock = self.lock()?;
         let required = (bytes.len() as u64).saturating_add(HEADER_BYTES);
+        if required > MAX_ARTIFACT_BYTES {
+            return Err(PersistentCacheError::Capacity);
+        }
+        validate_entry_payload(bytes, required)?;
         let destination = self.root.join(key);
         match destination.symlink_metadata() {
             Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => {
@@ -94,9 +113,7 @@ impl PersistentDocumentCache {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => return Err(error.into()),
         }
-        if required > MAX_ARTIFACT_BYTES
-            || self.used_bytes()?.saturating_add(required) > self.max_bytes
-        {
+        if self.used_bytes()?.saturating_add(required) > self.max_bytes {
             return Err(PersistentCacheError::Capacity);
         }
         let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
@@ -134,4 +151,28 @@ impl PersistentDocumentCache {
         }
         Ok(())
     }
+}
+
+fn reject_unframed_oversized(
+    path: &std::path::Path,
+    length: u64,
+) -> Result<(), PersistentCacheError> {
+    if length <= LEGACY_MAX_ARTIFACT_BYTES {
+        return Ok(());
+    }
+    let mut magic = [0_u8; 8];
+    File::open(path)?.read_exact(&mut magic)?;
+    if magic == *MAGIC {
+        Ok(())
+    } else {
+        Err(PersistentCacheError::Capacity)
+    }
+}
+
+fn validate_entry_payload(bytes: &[u8], required: u64) -> Result<(), PersistentCacheError> {
+    if required > LEGACY_MAX_ARTIFACT_BYTES && !super::payload_codec::validate_framed_payload(bytes)
+    {
+        return Err(PersistentCacheError::Capacity);
+    }
+    Ok(())
 }

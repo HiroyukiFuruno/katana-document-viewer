@@ -71,3 +71,9 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 追加後cache単体37件とAST PASS。単体ログtmp/pr68-conversion-binary-unit.log（非公開）。公開APIのrestored_conversion_cannot_exceed_worker_output_limitは生PDFの長さを書き換え、checksum/key bindingを再計算する形へ更新し、実workerを使うerror contract5件PASS。semver196項目・全check・全coverage（3787関数/31196行100%）・version/package/dry-run/未公開版確認が同sourceでPASS。中断前後の工程を混同せず、上記各ログの結果を回収した。追加sourceのcommit/push・thread reply/resolve・fresh current HEAD review/CIは継続する。
 
 容量guard導入後の通常pushで、Storybook静的検査のliteral Cargo認識が失敗した。既知の` scripts/maintenance/cargo-guard `実行だけを既存Cargo表記へ正規化し、必須引数・selectorを維持した。`just build-cache-script-test` 21 PASS（実default guardとCARGO=cargoの受理、未知wrapper拒否）、`just ast-lint` PASS。runtime sourceは全release-check成功時から変更なし。最新push・review・CIは継続回収する。
+
+## 128MiB payload境界と容量guardの追加確認
+
+公開worker既定の128MiB PDFを保持できるよう、生payload128MiB・metadata1MiB・封筒80byteを分離した。総quotaは実ファイル容量で判定し、上限超過・非framed oversized・checksum破損を拒否する。実filesystemを含むcache単体51件を全coverageで検証した。最初のrelease-checkは物理上限拒否の未通過1行で失敗したため、上限+1byteの回帰を追加し、標準coverageを再実行した。`tmp/pr68-payload-budget-coverage-resume.log` は終了0、3796関数・31274行とも100%。元のrelease-checkを終了0とは扱わない。残りの標準release工程（llvm target clean/version/package/publish dry-run/未公開確認）も終了0で回収した。証跡: `tmp/pr68-payload-budget-release-resume.log`。最終ASTも `tmp/pr68-payload-budget-final-ast.log` で成功。read-only最終レビューで具体的な不具合なし。
+
+容量guardは標準40GiB（約2build分）、閾値以下では整理しない。別checkoutの任意検査は通常Cargoへ分離し、明示CARGO上書きを保持する。Windows文字コードをUTF-8へ固定し、Git Bashを明示した。23件のlocal回帰は成功、最終HEADのWindows実CIは未確認。

@@ -47,6 +47,10 @@ mod tests;
 mod capacity_tests;
 
 #[cfg(test)]
+#[path = "persistent_cache_budget_tests.rs"]
+mod budget_tests;
+
+#[cfg(test)]
 #[path = "persistent_cache_engine_tests.rs"]
 mod engine_tests;
 
