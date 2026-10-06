@@ -34,6 +34,7 @@ quick-xml = { workspace = true }
 resvg = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 syntect = { workspace = true }
 thiserror = { workspace = true }
 tiny-skia = { workspace = true }

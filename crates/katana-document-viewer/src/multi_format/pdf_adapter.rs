@@ -1,13 +1,12 @@
-use super::pdf_surface::PdfSurfaceDecoder;
 use super::{
     BinaryDocumentSource, PdfDocumentArtifact, PdfPageRenderRequest, PdfRenderedPage,
     PdfResourceLimitKind, PdfViewerError, PdfViewerLimits, pdf_document::PdfDocumentBuilder,
     pdf_render_cache::PdfPageCache,
 };
 use crate::PdfOutlineItem;
-use hayro::hayro_interpret::InterpreterSettings;
 use hayro::hayro_syntax::Pdf;
-use hayro::{RenderCache, RenderSettings, render};
+#[path = "pdf_adapter_render.rs"]
+mod render;
 #[path = "pdf_adapter_worker.rs"]
 mod worker;
 
@@ -32,7 +31,10 @@ impl PdfViewerSession {
         validate_pdf_source(&source, limits)?;
         let artifact_lease =
             super::resource_metrics::ArtifactByteLease::acquire(source.bytes.len());
-        let pdf = Pdf::new(source.bytes).map_err(map_load_error)?;
+        let pdf = {
+            let _decode = super::debug_trace::DebugTrace::start("pdf.decode");
+            Pdf::new(source.bytes).map_err(map_load_error)?
+        };
         let outline = super::pdf_outline::PdfOutlineBuilder::build(&pdf);
         let artifact = PdfDocumentBuilder::build(source.identity, source.mime, &pdf);
         check_limit(
@@ -87,7 +89,10 @@ impl PdfViewerSession {
         self.cache.byte_count()
     }
 
-    fn validate_request(&self, request: PdfPageRenderRequest) -> Result<(), PdfViewerError> {
+    pub(super) fn validate_request(
+        &self,
+        request: PdfPageRenderRequest,
+    ) -> Result<(), PdfViewerError> {
         if request.page_index >= self.artifact.page_count {
             return Err(PdfViewerError::PageOutsideDocument {
                 requested: request.page_index,
@@ -112,32 +117,6 @@ impl PdfViewerSession {
             self.limits.max_render_pixels,
         )?;
         Ok(())
-    }
-
-    fn render_uncached(
-        &self,
-        request: PdfPageRenderRequest,
-    ) -> Result<PdfRenderedPage, PdfViewerError> {
-        let page = &self.pdf.pages()[request.page_index];
-        let pixmap = render(
-            page,
-            &RenderCache::new(),
-            &InterpreterSettings::default(),
-            &RenderSettings {
-                x_scale: request.scale,
-                y_scale: request.scale,
-                ..RenderSettings::default()
-            },
-        );
-        let png = pixmap
-            .into_png()
-            .map_err(|_| PdfViewerError::RenderDecode)?;
-        let surface = PdfSurfaceDecoder::decode(&self.artifact, request, &png)?;
-        Ok(PdfRenderedPage {
-            page_index: request.page_index,
-            scale: request.scale,
-            surface,
-        })
     }
 }
 
