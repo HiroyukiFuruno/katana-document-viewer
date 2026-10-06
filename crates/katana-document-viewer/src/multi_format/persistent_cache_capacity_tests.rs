@@ -61,13 +61,45 @@ fn load_reports_capacity_for_a_missing_key_when_the_cache_is_over_capacity() -> 
 }
 
 #[test]
+fn existing_entry_save_checks_reduced_capacity_and_clear_recovers() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let path = root.path().join("cache");
+    let owner_payload = vec![b'o'; 100];
+    let cache = PersistentDocumentCache::new(path.clone(), 256, "env-v1".into())?;
+    cache.save("owner", &owner_payload)?;
+    cache.save("second", b"another")?;
+    let used = cache.used_bytes()?;
+    let reduced = PersistentDocumentCache::new(path.clone(), used - 1, "env-v1".into())?;
+
+    assert!(matches!(
+        reduced.save("owner", b"replacement"),
+        Err(PersistentCacheError::Capacity)
+    ));
+    assert!(matches!(
+        reduced.save("other", b"new-entry"),
+        Err(PersistentCacheError::Capacity)
+    ));
+    let exact = PersistentDocumentCache::new(path, used, "env-v1".into())?;
+    exact.save("owner", b"replacement")?;
+    assert_eq!(Some(owner_payload), exact.load("owner")?);
+
+    exact.clear()?;
+    exact.save("recovered", b"recovered")?;
+    assert_eq!(Some(b"recovered".to_vec()), exact.load("recovered")?);
+    Ok(())
+}
+
+#[test]
 fn save_reuses_regular_files_but_rejects_existing_directories() -> TestResult {
     let root = tempfile::tempdir()?;
     let cache = PersistentDocumentCache::new(root.path().join("cache"), 256, "env-v1".into())?;
     std::fs::write(cache.directory().join("regular"), b"existing")?;
-    std::fs::create_dir(cache.directory().join("directory"))?;
-
     cache.save("regular", b"replacement")?;
+    std::fs::create_dir(cache.directory().join("directory"))?;
+    assert!(matches!(
+        cache.save("regular", b"replacement"),
+        Err(PersistentCacheError::UnsafeDirectory)
+    ));
     assert!(matches!(
         cache.save("directory", b"replacement"),
         Err(PersistentCacheError::UnsafeDirectory)

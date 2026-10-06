@@ -105,16 +105,13 @@ impl PersistentDocumentCache {
         }
         validate_entry_payload(bytes, required)?;
         let destination = self.root.join(key);
-        match destination.symlink_metadata() {
-            Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => {
-                return Ok(());
-            }
-            Ok(_) => return Err(PersistentCacheError::UnsafeDirectory),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error.into()),
-        }
+        let existing = existing_regular_file(&destination)?;
+        let required = if existing { 0 } else { required };
         if self.used_bytes()?.saturating_add(required) > self.max_bytes {
             return Err(PersistentCacheError::Capacity);
+        }
+        if existing {
+            return Ok(());
         }
         let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
         temporary.write_all(MAGIC)?;
@@ -175,4 +172,13 @@ fn validate_entry_payload(bytes: &[u8], required: u64) -> Result<(), PersistentC
         return Err(PersistentCacheError::Capacity);
     }
     Ok(())
+}
+
+fn existing_regular_file(path: &std::path::Path) -> Result<bool, PersistentCacheError> {
+    match path.symlink_metadata() {
+        Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => Ok(true),
+        Ok(_) => Err(PersistentCacheError::UnsafeDirectory),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
 }
