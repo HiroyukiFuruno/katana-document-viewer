@@ -35,7 +35,17 @@ library APIとhost保存方針の責任分離、PDF/Office sessionのdrop/実res
 
 ## 未完停止の再発防止
 
-ユーザー指示でglobal Stop hookを実装・正規のCodex /hooksでreview/trustした。物理台帳のpending/running/failedや根拠不足を検出して自動継続する。10回帰PASS、実CLIでpending終了試行→hook自動継続→done終了の結合試験もPASS。通常回答・明示中断・独立作業完了後の上流公開待ちを区別する。台帳内容の意味的な正しさは主担当が担い、hookを完了の代用にしない。
+ユーザー指示でglobal Stop hookを実装・正規のCodex /hooksでreview/trustした。物理台帳のpending/running/failedや根拠不足を検出して自動継続する。11回帰PASS、実CLIでpending終了試行→hook自動継続→done終了の結合試験もPASS。通常回答・明示中断・独立作業完了後の上流公開待ちを区別する。台帳内容の意味的な正しさは主担当が担い、hookを完了の代用にしない。
+
+## cffa46d5追加レビュー対応
+
+同じsessionの描画では、request検証後に既存の容量制限付きPDF LRUを先に参照する。diskから検証・復元したpageも同LRUへ登録し、Officeも既存PDF sessionへ委譲する。独自の二重LRUは追加しない。renderのhitはmemoryまたはdiskの再利用を示し、disk clear後も開いたsessionのmemoryを保持する。memory容量0では従来のdisk経路を使用する。
+
+実PDFのwarm/clear、disk復元後のclear、memory容量0、実PDF出力から構築したOffice sessionのdisk復元後clearを検証した。cache単体41件PASS。`just VERSION=0.5.13 JOBS=2 release-check` は終了0、全既存検査・semver196・3791関数/31226行100%・package/dry-run/未公開版確認PASS。新しいPDF/Office helperも全関数・行100%。根拠は非公開ログtmp/pr68-live-cache-release-check.log、RTK tee1791275274_just_coverage.log。
+
+検査開始後に別件の容量整理導線を追加したが、上記のruntime source/dependency graphは変更していない。新しい導線は既定40GiB・閾値以下の非削除・自repo範囲・使用中保護・コマンド終了までの排他・ハードリンクの重複除外を持ち、`just build-cache-script-test` 20件PASS。toolchain/global option・空白を含むcheckoutとsubdirectoryの実動作も確認した。全既存ゲートとcoverageの閾値は変更していない。最終commitの通常pre-push/current HEAD review/CIと最終KRR graphの検証は継続する。
+
+cffa46d5 Ubuntu CIのXLSX fallback testは初回失敗・失敗job再実行成功。初回の実error variantは記録されておらず、原因を修正済みとは主張しない。次の失敗時に実errorを示す診断を追加し、期待するEngineFailure/spreadsheet_openの基準は維持する。新guard経由のXLSX実worker契約11件PASS（tmp/pr68-xlsx-spawn-diagnostic-contract.log）。macOS/Windowsと再実行Ubuntuは成功した。各review threadのreply/resolve・fresh確認は結果取得まで未完。
 
 ## 1bdfa63b追加レビュー対応（全体ローカル検証PASS）
 

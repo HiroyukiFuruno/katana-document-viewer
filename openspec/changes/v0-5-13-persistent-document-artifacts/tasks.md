@@ -19,6 +19,8 @@
 
 ## CI回帰対応
 
+- [x] PR68 cffa46d5 P2実装修正: live sessionの既存LRUを先に参照し、disk復元pageも同LRUへ登録する。実filesystem41回帰・全runtime品質工程・3791関数/31226行100%を確認した。thread reply/resolve・最新review/CIは2.2で追跡する。証跡: `just VERSION=0.5.13 JOBS=2 release-check` PASS、file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
+
 - [x] PR68 e7f6cd1c P2実装修正: 変換PDF本体も生バイト保存にし、64MiB payloadを128MiB cache内に保持する。共通payload codecの破損/制約回帰と全品質工程を回収した。review reply/resolve・fresh確認は2.2で追跡する。証跡: `just JOBS=2 coverage` PASS、file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 93bf2452 P2実装修正: 生RGBA保存で有効4096×4096ページを128MiB内に保持し、PDF検証成功後だけ変換artifactをpersistする。実filesystem境界・decode失敗回帰と全品質/100% coverageを確認した。review reply/resolve・fresh確認は2.2で追跡する。証跡: `just VERSION=0.5.13 JOBS=2 release-check` PASS、`evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
@@ -31,6 +33,8 @@
 - [x] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。9d796fe3修正・reply/resolve・fresh確認済み。delegation-exception: `直列のクリティカルパス`。
 
 ## 継続・完了判定の是正
+
+- [/] ユーザー指摘: ビルド生成物は毎回削除せず、約2回分の40GiBを超えたときだけ整理する。通常のjust導線へguardを組み込み、容量境界・所有範囲・使用中保護・実Cargo整理・排他保持を検証した。証跡: `just build-cache-script-test` 20 PASS、file: `docs/build-cache-maintenance.md`。delegation-exception: `直列のクリティカルパス`。
 
 - [ ] ユーザー指摘: 実行可能な修正・検査・結果回収を残したまま進捗報告で停止しない。CI開始や自動化登録は完了ではない。KDV内の残作業を解消し、KRR公開以外に進められる作業がないことを証跡で確認してから待機する。delegation-exception: `直列のクリティカルパス`。
 

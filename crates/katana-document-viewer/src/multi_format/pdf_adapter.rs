@@ -5,6 +5,8 @@ use super::{
 };
 use crate::PdfOutlineItem;
 use hayro::hayro_syntax::Pdf;
+#[path = "pdf_adapter_persistent.rs"]
+mod persistent;
 #[path = "pdf_adapter_render.rs"]
 mod render;
 #[path = "pdf_adapter_worker.rs"]

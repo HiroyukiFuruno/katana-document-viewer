@@ -4,6 +4,8 @@
 
 Office（DOCX/PPTX）は変換PDFと診断情報、PDF/Officeの描画はpageとscaleごとのRGBA artifactを保存する。XLSXは既存spreadsheet sessionを使う。`conversion_cache_hit()` と renderの戻り値 `(page, hit)` で再利用を確認できる。PDFのgeometry/outline取得のdecodeは毎回実行し、`artifact()` / `outline()` から取得できる。変換とrasterを再利用する。cache自体はsourceやlive sessionを保持せず、sessionをdropするとmemoryを解放する。
 
+描画は既存sessionの容量制限付きLRUを先に参照し、memoryにない場合だけdiskを読む。diskから復元したpageも同じLRUへ登録する。renderの `hit` はmemoryまたはdiskの再利用を表し、`clear()` 後も開いたsessionのmemory cacheは保持する。memory容量を0にした場合はdisk経路を使用する。
+
 内容・URI/revision/MIME/format・KDV/schema/engine版・worker実体/設定が変わればmissになる。page/scale/renderer limitsも描画keyに含む。hostは外部font、viewportや描画環境に影響する設定が変わるたびに、空でない `environment_revision` を更新する。
 
 directoryは他用途と共有しない。Unixでは0700で作成/保護し、Windowsのprivate ACLはhostが設定する。ファイルはsource名を含まないSHA256 keyで保存するが、artifactには文書内容が含まれるため、機密入力の保存可否・保存期間・削除UI・disk encryption・バックアップ除外はhostが所有する。hostが永続化を許可しない入力には既存session APIを使う。

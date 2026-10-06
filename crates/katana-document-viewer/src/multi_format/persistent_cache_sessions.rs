@@ -55,6 +55,9 @@ impl PersistentPdfViewerSession {
         request: PdfPageRenderRequest,
     ) -> Result<(PdfRenderedPage, bool), PersistentCacheError> {
         self.session.validate_request(request)?;
+        if let Some(page) = self.session.cached_rendered_page(request) {
+            return Ok((page, true));
+        }
         let key = CacheKey::page(
             &self.key,
             request.page_index,
@@ -62,6 +65,7 @@ impl PersistentPdfViewerSession {
             &format!("{:?}", self.limits),
         );
         if let Some(page) = CachedPage::load(&self.cache, &key, request, self.limits)? {
+            self.session.restore_rendered_page(&page);
             return Ok((page, true));
         }
         let page = self.session.render_page(request)?;
@@ -126,3 +130,7 @@ mod accessor_tests;
 #[cfg(test)]
 #[path = "persistent_cache_page_binary_tests.rs"]
 mod page_binary_tests;
+
+#[cfg(test)]
+#[path = "persistent_cache_live_tests.rs"]
+mod live_tests;

@@ -6,6 +6,9 @@ use super::{
     ViewerDiagnosticSeverity, ViewerQualityProfile,
 };
 
+#[path = "office_static_persistent.rs"]
+mod persistent;
+
 pub struct OfficeStaticViewerSession {
     artifact: OfficeStaticDocumentArtifact,
     pdf: PdfViewerSession,

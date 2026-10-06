@@ -97,6 +97,9 @@ impl PersistentOfficeViewerSession {
     ) -> Result<(PdfRenderedPage, bool), PersistentCacheError> {
         let limits = crate::multi_format::PdfViewerLimits::strict();
         self.session.validate_cached_request(request)?;
+        if let Some(page) = self.session.cached_rendered_item(request) {
+            return Ok((page, true));
+        }
         let key = CacheKey::page(
             &self.key,
             request.page_index,
@@ -104,6 +107,7 @@ impl PersistentOfficeViewerSession {
             &format!("{limits:?}"),
         );
         if let Some(page) = CachedPage::load(&self.cache, &key, request, limits)? {
+            self.session.restore_rendered_item(&page);
             return Ok((page, true));
         }
         let page = self.session.render_item_with_worker(request)?;
