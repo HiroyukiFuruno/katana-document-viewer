@@ -6,6 +6,6 @@
 
 超過した場合は、Cargoの所有識別タグと使用中の生成物がないことを確認して、標準の `cargo clean` を実行する。開始前の整理からコマンド終了まで排他lockを保持する。使用中・所有確認不可・検査エラーの場合は生成物を消さず、理由を返す。別リポジトリやsourceは整理しない。
 
-実装は `scripts/maintenance/cargo-guard` と `guard-build-cache.py`。既存の `CARGO` 設定の明示的な上書きは維持する。設定を上書きしない通常の導線は自動でこのguardを使用する。
+実装は `scripts/maintenance/cargo-guard` と `guard-build-cache.py`。既存の `CARGO` 設定の明示的な上書きは維持する。別checkoutへ移動する任意のKUC検査導線は通常のCargoを使い、KDVの容量guardを適用しない。設定を上書きしない通常の導線は自動でこのguardを使用する。
 
 `just build-cache-script-test` は閾値境界・所有範囲・使用中の保護・Windows検査・実際のCargo整理・コマンド終了までの排他を検証し、既存の `just check` に含める。
