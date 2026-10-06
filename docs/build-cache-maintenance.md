@@ -2,7 +2,7 @@
 
 通常の `just` のbuild/test/lint/coverage/package/publishは、開始前にこのリポジトリのtarget使用容量を確認する。直近の約20GiBのビルドを2回分保持できる目安として、初期閾値は40GiBとする。閾値以下では削除しない。
 
-`KDV_BUILD_CACHE_MAX_GIB` で閾値を変更できる。Unixでは実際の割当容量を計測し、ハードリンクを重複計上しない。`CARGO_TARGET_DIR` の別profileも、このリポジトリ内だけを集計する。
+`KDV_BUILD_CACHE_MAX_GIB` で閾値を変更できる。Unixでは実際の割当容量を計測し、ハードリンクを重複計上しない。`CARGO_TARGET_DIR` とCargoの `--target-dir DIRECTORY` / `--target-dir=DIRECTORY` の別profileも、このリポジトリ内だけを集計する。directory名は任意で、リポジトリ外へのsymlinkは拒否する。
 
 超過した場合は、Cargoの所有識別タグと使用中の生成物がないことを確認して、標準の `cargo clean` を実行する。開始前の整理からコマンド終了まで排他lockを保持する。使用中・所有確認不可・検査エラーの場合は生成物を消さず、理由を返す。別リポジトリやsourceは整理しない。
 

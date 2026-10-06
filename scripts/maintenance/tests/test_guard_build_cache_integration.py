@@ -1,12 +1,14 @@
 import shutil
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
+GUARD = ROOT / "scripts" / "maintenance" / "guard-build-cache.py"
 
 
 def bash_executable():
@@ -25,6 +27,35 @@ def bash_executable():
 
 
 class BuildCacheIntegrationTests(unittest.TestCase):
+    def test_wrapped_cargo_measures_separated_and_equals_target_dirs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "Cargo.toml"
+            manifest.write_text(
+                '[package]\nname="cache-guard-smoke"\nversion="0.0.0"\nedition="2021"\n'
+            )
+            (root / "src").mkdir()
+            (root / "src/main.rs").write_text("fn main() {}\n")
+            for name, option in (("separated", "--target-dir"), ("equals", "--target-dir=")):
+                target = root / f"build-cache-{name}"
+                built = subprocess.run(
+                    ["cargo", "build", "--manifest-path", str(manifest), "--target-dir", str(target)],
+                    cwd=root, capture_output=True, text=True,
+                )
+                self.assertEqual(0, built.returncode, built.stderr)
+                sentinel = target / "sentinel"
+                sentinel.write_text("owned cache\n")
+                (target / "CACHEDIR.TAG").write_text(
+                    "Signature: 8a477f597d28d172789f06886806bc55\n"
+                )
+                target_arg = [option, str(target)] if option == "--target-dir" else [f"{option}{target}"]
+                result = subprocess.run(
+                    [sys.executable, str(GUARD), "--repo-root", str(root), "--max-gib", "0.000000001", "--", "cargo", "build", "--manifest-path", str(manifest), *target_arg],
+                    cwd=root, capture_output=True, text=True,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertFalse(sentinel.exists())
+
     def test_storybook_gate_accepts_guard_and_original_cargo(self):
         for cargo in (None, "cargo"):
             environment = os.environ.copy()
@@ -49,7 +80,7 @@ class BuildCacheIntegrationTests(unittest.TestCase):
             root = Path(directory).resolve()
             scripts = root / "scripts" / "maintenance"
             scripts.mkdir(parents=True)
-            for name in ("cargo-guard", "guard-build-cache.py"):
+            for name in ("cargo-guard", "guard-build-cache.py", "cargo_target_args.py"):
                 shutil.copy2(ROOT / "scripts" / "maintenance" / name, scripts / name)
             recipe = 'set shell := ["bash", "-uc"]\n' + cargo_line + '\nprobe:\n    {{CARGO}} --version\n'
             recipe += "    python3 -c 'from pathlib import Path; print(Path.cwd())'\n"

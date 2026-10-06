@@ -77,3 +77,5 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 公開worker既定の128MiB PDFを保持できるよう、生payload128MiB・metadata1MiB・封筒80byteを分離した。総quotaは実ファイル容量で判定し、上限超過・非framed oversized・checksum破損を拒否する。実filesystemを含むcache単体51件を全coverageで検証した。最初のrelease-checkは物理上限拒否の未通過1行で失敗したため、上限+1byteの回帰を追加し、標準coverageを再実行した。`tmp/pr68-payload-budget-coverage-resume.log` は終了0、3796関数・31274行とも100%。元のrelease-checkを終了0とは扱わない。残りの標準release工程（llvm target clean/version/package/publish dry-run/未公開確認）も終了0で回収した。証跡: `tmp/pr68-payload-budget-release-resume.log`。最終ASTも `tmp/pr68-payload-budget-final-ast.log` で成功。read-only最終レビューで具体的な不具合なし。
 
 容量guardは標準40GiB（約2build分）、閾値以下では整理しない。別checkoutの任意検査は通常Cargoへ分離し、明示CARGO上書きを保持する。Windows文字コードをUTF-8へ固定し、Git Bashを明示した。23件のlocal回帰は成功、最終HEADのWindows実CIは未確認。
+
+追加reviewの任意directory名とCargo `--target-dir`両形式を修正。repo root・外部・外部symlinkの拒否を維持し、test binaryの `--` 以降はtarget optionとして扱わない。実ephemeral Cargoのbuild→閾値超過clean→再buildを両形式で検証。`tmp/pr68-target-dir-guard-tests.log` 27件・`tmp/pr68-target-dir-guard-ast.log` ASTはいずれも終了0。Rust source/dependency graph変更なし。

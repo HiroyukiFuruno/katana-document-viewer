@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
+from cargo_target_args import command_target_dirs
+
 try:
     import fcntl
 except ImportError:
@@ -39,7 +41,7 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
     targets: list[Path] = []
     for candidate in candidates:
         path = candidate.resolve()
-        if root not in path.parents or path.name != "target" and "target" not in path.parts:
+        if root not in path.parents:
             raise ValueError(f"target is outside the repository scope: {candidate}")
         if path.exists() and not path.is_dir():
             raise ValueError(f"target is not a directory: {path}")
@@ -176,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         max_bytes = parse_max_gib(args.max_gib)
         repo_root = args.repo_root.resolve()
-        explicit = list(args.target_dir or ())
+        explicit = [*(args.target_dir or ()), *command_target_dirs(command)]
         cargo_target_dir = os.environ.get("CARGO_TARGET_DIR")
         if cargo_target_dir:
             explicit.append(Path(cargo_target_dir))

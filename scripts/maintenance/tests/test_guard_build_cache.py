@@ -9,6 +9,7 @@ from unittest import mock
 
 
 SCRIPT = Path(__file__).parents[1] / "guard-build-cache.py"
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location("guard_build_cache", SCRIPT)
 guard = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -55,6 +56,13 @@ class GuardBuildCacheTests(unittest.TestCase):
             root = Path(directory)
             with self.assertRaises(ValueError):
                 guard.repo_targets(root, [root.parent / "sibling" / "target"])
+            with self.assertRaises(ValueError):
+                guard.repo_targets(root, [root])
+            with tempfile.TemporaryDirectory() as outside:
+                link = root / "external-link"
+                link.symlink_to(Path(outside), target_is_directory=True)
+                with self.assertRaises(ValueError):
+                    guard.repo_targets(root, [link])
 
     def test_invalid_threshold_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -102,6 +110,9 @@ class GuardBuildCacheTests(unittest.TestCase):
             child = parent / "nested" / "target"
             child.mkdir(parents=True)
             self.assertEqual([parent.resolve()], guard.repo_targets(root, [child, parent]))
+            custom = root / "build-cache"
+            custom.mkdir()
+            self.assertIn(custom.resolve(), guard.repo_targets(root, [custom]))
 
     def test_probe_errors_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -164,7 +175,7 @@ class GuardBuildCacheTests(unittest.TestCase):
             root = Path(directory)
             target = owned_target(root)
             child_code = (
-                "import importlib.util,sys; from pathlib import Path; "
+                "import importlib.util,sys; from pathlib import Path; sys.path.insert(0,str(Path(sys.argv[1]).parent)); "
                 "s=importlib.util.spec_from_file_location('guard',sys.argv[1]); "
                 "g=importlib.util.module_from_spec(s); s.loader.exec_module(g); "
                 "g.guard(Path(sys.argv[2]),[Path(sys.argv[2])/'target'],"
