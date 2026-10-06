@@ -69,3 +69,5 @@ cffa46d5 Ubuntu CIのXLSX fallback testは初回失敗・失敗job再実行成�
 RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ統合。変換metadata内のPDF混入を拒否し、現行worker出力上限・cache entry上限・PDF decode後persistを維持する。64MiB payloadのcache往復とprefix/長さ/metadata破損回帰を追加した。payload回帰は保存形式の境界検証であり、64MiBの実文書decodeを主張しない。実worker/PDF/DOCX/PPTXの契約は既存統合回帰で確認する。静的再レビューに新たな欠陥なし。検証結果・全品質/coverage・review reply/resolve・fresh確認は回収まで未完。
 
 追加後cache単体37件とAST PASS。単体ログtmp/pr68-conversion-binary-unit.log（非公開）。公開APIのrestored_conversion_cannot_exceed_worker_output_limitは生PDFの長さを書き換え、checksum/key bindingを再計算する形へ更新し、実workerを使うerror contract5件PASS。semver196項目・全check・全coverage（3787関数/31196行100%）・version/package/dry-run/未公開版確認が同sourceでPASS。中断前後の工程を混同せず、上記各ログの結果を回収した。追加sourceのcommit/push・thread reply/resolve・fresh current HEAD review/CIは継続する。
+
+容量guard導入後の通常pushで、Storybook静的検査のliteral Cargo認識が失敗した。既知の` scripts/maintenance/cargo-guard `実行だけを既存Cargo表記へ正規化し、必須引数・selectorを維持した。`just build-cache-script-test` 21 PASS（実default guardとCARGO=cargoの受理、未知wrapper拒否）、`just ast-lint` PASS。runtime sourceは全release-check成功時から変更なし。最新push・review・CIは継続回収する。

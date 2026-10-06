@@ -10,6 +10,23 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class BuildCacheIntegrationTests(unittest.TestCase):
+    def test_storybook_gate_accepts_guard_and_original_cargo(self):
+        for cargo in (None, "cargo"):
+            environment = os.environ.copy()
+            environment.pop("JUST", None)
+            environment.pop("CARGO", None)
+            if cargo is not None:
+                environment["CARGO"] = cargo
+            result = subprocess.run(["bash", "scripts/check-storybook-entrypoint.sh"],
+                                    cwd=ROOT, env=environment, capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("storybook-entrypoint-check: ok", result.stdout)
+        environment["CARGO"] = "unrecognized-wrapper"
+        result = subprocess.run(["bash", "scripts/check-storybook-entrypoint.sh"],
+                                cwd=ROOT, env=environment, capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("boundary evidence gate", result.stderr)
+
     def test_default_cargo_wrapper_runs_in_checkout_with_spaces(self):
         cargo_line = next(line for line in (ROOT / "justfile").read_text().splitlines()
                           if line.startswith("CARGO :="))
