@@ -9,7 +9,7 @@ KDV SHALL provide opt-in公開契約によってOffice変換PDFとPDF/Office描�
 - **AND** PDF geometry/outlineのdecodeを省いたと主張しない
 
 ### Requirement: 無効化と機密情報
-KDV SHALL source内容/revision/MIME/format、KDV/schema/engine版、worker実体/config、host environment revision、page/scale/renderer limitsを再利用判定に含める。host SHALL外部font/viewport等の環境変更に合わせてrevisionを更新し、機密入力の保存可否・保存期間を所有する。
+KDV SHALL source内容/revision/MIME/format、KDV/schema版、静的リンクされた描画engineを含む実host imageの指紋、worker実体/config、host environment revision、page/scale/renderer limitsを再利用判定に含める。同じKDV版のdownstream再buildでも実imageが変われば旧artifactを再利用しない。host SHALL外部font/viewport/config・外部dynamic module等のimage外の環境変更に合わせてrevisionを更新し、機密入力の保存可否・保存期間を所有する。
 
 #### Scenario: 内容または設定の変更
 - **WHEN** 再利用判定の対象が変わる

@@ -2,6 +2,10 @@ use super::PersistentDocumentCache;
 use crate::multi_format::{BinaryDocumentSource, OfficeDocumentSource, OfficeWorkerConfig};
 use sha2::{Digest, Sha256};
 use std::io::Read;
+use std::path::Path;
+use std::sync::OnceLock;
+
+static ENGINE_REVISION: OnceLock<String> = OnceLock::new();
 
 pub(super) struct CacheKey;
 
@@ -34,7 +38,16 @@ impl CacheKey {
         source: &OfficeDocumentSource,
         config: &OfficeWorkerConfig,
     ) -> Result<String, std::io::Error> {
-        let mut file = std::fs::File::open(&config.executable)?;
+        let settings = format!(
+            "{:?}:{config:?}:{}",
+            (&source.identity, source.format, &source.mime),
+            Self::executable_digest(&config.executable)?
+        );
+        Ok(Self::document(cache, &source.bytes, &settings))
+    }
+
+    pub(super) fn executable_digest(path: &Path) -> Result<String, std::io::Error> {
+        let mut file = std::fs::File::open(path)?;
         let mut digest = Sha256::new();
         let mut buffer = [0_u8; 65536];
         loop {
@@ -44,18 +57,24 @@ impl CacheKey {
             }
             digest.update(&buffer[..count]);
         }
-        let settings = format!(
-            "{:?}:{config:?}:{}",
-            (&source.identity, source.format, &source.mime),
-            Self::hex(&digest.finalize())
-        );
-        Ok(Self::document(cache, &source.bytes, &settings))
+        Ok(Self::hex(&digest.finalize()))
+    }
+
+    pub(super) fn engine_revision() -> Result<String, std::io::Error> {
+        if let Some(revision) = ENGINE_REVISION.get() {
+            return Ok(revision.clone());
+        }
+        // downstreamで再解決された描画依存も、実際にリンクされたimageから識別する。
+        let revision = Self::executable_digest(&std::env::current_exe()?)?;
+        let _ = ENGINE_REVISION.set(revision.clone());
+        Ok(revision)
     }
 
     fn document(cache: &PersistentDocumentCache, bytes: &[u8], settings: &str) -> String {
         let metadata = format!(
-            "kdv-artifact-v1:{}:office2pdf-0.8.1:hayro-0.7.1:{}:{settings}",
+            "kdv-artifact-v2:{}:{}:{}:{settings}",
             env!("CARGO_PKG_VERSION"),
+            cache.engine_revision,
             cache.environment_revision,
         );
         let mut digest = Sha256::new();

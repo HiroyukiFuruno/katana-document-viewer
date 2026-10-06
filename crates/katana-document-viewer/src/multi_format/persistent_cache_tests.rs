@@ -171,5 +171,9 @@ fn metadata_io_failure_is_reported() -> TestResult {
         cache.load(&invalid_file_name),
         Err(PersistentCacheError::Io(_))
     ));
+    assert!(matches!(
+        cache.save(&invalid_file_name, b"payload"),
+        Err(PersistentCacheError::Io(_))
+    ));
     Ok(())
 }

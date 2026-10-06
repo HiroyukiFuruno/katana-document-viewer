@@ -33,6 +33,7 @@ pub struct PersistentDocumentCache {
     root: PathBuf,
     max_bytes: u64,
     environment_revision: String,
+    engine_revision: String,
 }
 
 #[cfg(test)]
@@ -43,8 +44,13 @@ mod tests;
 #[path = "persistent_cache_capacity_tests.rs"]
 mod capacity_tests;
 
+#[cfg(test)]
+#[path = "persistent_cache_engine_tests.rs"]
+mod engine_tests;
+
 impl PersistentDocumentCache {
-    /// environment_revisionはhost側のfont・変換/描画設定が変わるたびに更新する。
+    /// 実行imageの指紋はprocess内で共有し、静的リンクされた描画依存の更新を識別する。
+    /// environment_revisionはfont・設定・外部dynamic moduleの変更時にhostが更新する。
     pub fn new(
         root: PathBuf,
         max_bytes: u64,
@@ -60,6 +66,7 @@ impl PersistentDocumentCache {
             root,
             max_bytes,
             environment_revision,
+            engine_revision: key::CacheKey::engine_revision()?,
         };
         cache.prepare()?;
         Ok(cache)

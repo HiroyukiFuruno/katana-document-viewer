@@ -59,3 +59,44 @@ fn load_reports_capacity_for_a_missing_key_when_the_cache_is_over_capacity() -> 
     ));
     Ok(())
 }
+
+#[test]
+fn save_reuses_regular_files_but_rejects_existing_directories() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let cache = PersistentDocumentCache::new(root.path().join("cache"), 256, "env-v1".into())?;
+    std::fs::write(cache.directory().join("regular"), b"existing")?;
+    std::fs::create_dir(cache.directory().join("directory"))?;
+
+    cache.save("regular", b"replacement")?;
+    assert!(matches!(
+        cache.save("directory", b"replacement"),
+        Err(PersistentCacheError::UnsafeDirectory)
+    ));
+    assert_eq!(
+        b"existing".as_slice(),
+        std::fs::read(cache.directory().join("regular"))?.as_slice()
+    );
+    assert!(cache.directory().join("directory").is_dir());
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn save_rejects_an_existing_unix_symlink() -> TestResult {
+    use std::os::unix::fs::symlink;
+
+    let root = tempfile::tempdir()?;
+    let cache = PersistentDocumentCache::new(root.path().join("cache"), 256, "env-v1".into())?;
+    let target = cache.directory().join("target");
+    let link = cache.directory().join("link");
+    std::fs::write(&target, b"existing")?;
+    symlink(&target, &link)?;
+
+    assert!(matches!(
+        cache.save("link", b"replacement"),
+        Err(PersistentCacheError::UnsafeDirectory)
+    ));
+    assert_eq!(target, std::fs::read_link(link)?);
+    assert_eq!(b"existing".as_slice(), std::fs::read(target)?.as_slice());
+    Ok(())
+}

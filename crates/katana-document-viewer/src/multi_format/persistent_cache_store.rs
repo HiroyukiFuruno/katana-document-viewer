@@ -86,8 +86,13 @@ impl PersistentDocumentCache {
         let _lock = self.lock()?;
         let required = (bytes.len() as u64).saturating_add(HEADER_BYTES);
         let destination = self.root.join(key);
-        if destination.try_exists()? {
-            return Ok(());
+        match destination.symlink_metadata() {
+            Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => {
+                return Ok(());
+            }
+            Ok(_) => return Err(PersistentCacheError::UnsafeDirectory),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
         }
         if required > MAX_ARTIFACT_BYTES
             || self.used_bytes()?.saturating_add(required) > self.max_bytes

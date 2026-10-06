@@ -2,9 +2,9 @@
 
 ## 結論
 
-現公開KRR 0.4.23のsource/graphでrelease-checkが終了コード0でPASS。容量検査順序と欠損キー回帰の最新修正後、全体coverageは3777関数/31097行とも100%、未カバー0。package検証・publish dry-run・未公開版確認もPASS。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
+現公開KRR 0.4.23のsource/graphでrelease-checkが終了コード0でPASS。保存先の種類検証と実host imageによる無効化の最新修正後、全体coverageは3779関数/31111行とも100%、未カバー0。package検証・publish dry-run・未公開版確認もPASS。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
 
-ローカル全体ログ: RTK tee 1791257941_just_VER_8102d9.log、coverage 1791257847_just_coverage.log。最新sourceのmacOS検証であり、Linuxの最新HEAD CI成功は別途確認する。
+ローカル全体ログ: RTK tee 1791262069_just_VER_8102d9.log、coverage 1791261990_just_coverage.log。最新sourceのmacOS検証であり、Linuxの最新HEAD CI成功は別途確認する。
 
 ## 指摘と判断
 
@@ -36,3 +36,10 @@ library APIとhost保存方針の責任分離、PDF/Office sessionのdrop/実res
 ## 未完停止の再発防止
 
 ユーザー指示でglobal Stop hookを実装・正規のCodex /hooksでreview/trustした。物理台帳のpending/running/failedや根拠不足を検出して自動継続する。10回帰PASS、実CLIでpending終了試行→hook自動継続→done終了の結合試験もPASS。通常回答・明示中断・独立作業完了後の上流公開待ちを区別する。台帳内容の意味的な正しさは主担当が担い、hookを完了の代用にしない。
+
+## 1bdfa63b追加レビュー対応（全体ローカル検証PASS）
+
+- P2 destination種類: saveの既存directory/symlink成功を実filesystem2回帰でRED確認。symlink_metadataでregular fileだけを再利用し、不正種類はUnsafeDirectory、metadata失敗はIoへ修正した。directory/symlinkのGREEN、通常既存fileの内容保持、長すぎるfile名のIo回帰を確認。
+- P2実engine依存: 固定hayro/office2pdf文字列を撤去し、実際に静的リンクされたhost executableのSHA256をprocess内で共有してmetadata v2へ束縛する。同一KDV版・environmentでもimageが変われば旧artifactはmiss。外部dynamic module/font/configはhost environment_revisionの対象として明記。型識別子やconsumer lock探索には依存しない。
+- cache単体31件、AST、実PDF/DOCX/PPTXの独立process restart/invalidation/容量/破損/clear回帰がPASS。匿名fixture9processのcache初期化（実image hash含む）は0.0371–0.0384秒。restart初期化+初回frameはPDF約0.092秒、DOCX約0.135秒、PPTX約0.133秒。DOCX cold最大約1.447秒。入力取得は各初回frame計測内、初期化費用を別途足した値であり、従来の初期化除外値と混同しない。
+- 計測根拠: tmp/pr68-engine-process-timing.log（非公開作業ログ）。全体release-check終了0、3779関数/31111行100%、key/store自身も全関数・行100%、package/dry-run/未公開版確認PASS。再レビューでP0/P1追加なし。current HEAD review・CIと各thread reply/resolveは未完で継続する。

@@ -15,7 +15,12 @@ pub fn run() -> TestResult {
     let revision = std::env::var("KDV_CACHE_REVISION")?;
     let expected_hit = std::env::var("KDV_CACHE_EXPECT_HIT")? == "true";
     let format = std::env::var("KDV_CACHE_FORMAT")?;
+    let cache_start = Instant::now();
     let cache = PersistentDocumentCache::new(root, 128 * 1024 * 1024, "font-config-v1".into())?;
+    println!(
+        "KDV_CACHE_INITIALIZE format={format} elapsed_seconds={}",
+        cache_start.elapsed().as_secs_f64()
+    );
     for (mode, hit) in [("process_open", expected_hit), ("warm_reopen", true)] {
         let start = Instant::now();
         let acquired = Instant::now();

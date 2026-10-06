@@ -19,6 +19,9 @@
 
 ## CI回帰対応
 
+- [x] PR68 1bdfa63b P2実装修正: saveの既存directory/symlinkをUnsafeDirectoryで拒否し、実filesystem RED/GREENと全品質ゲートを確認した。各thread reply/resolve・fresh確認は2.2で追跡する。delegation-exception: `直列のクリティカルパス`。
+- [x] PR68 1bdfa63b P2実装修正: 実host image SHA256をkeyへ束縛し、描画依存のdownstream再buildで無効化する。回帰・実process性能・全品質ゲートを確認した。各thread reply/resolve・fresh確認は2.2で追跡する。delegation-exception: `直列のクリティカルパス`。
+
 - [ ] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、100% coverageをCIで再確認する。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。9d796fe3修正・reply/resolve・fresh確認済み。delegation-exception: `直列のクリティカルパス`。
