@@ -2,9 +2,9 @@
 
 ## 結論
 
-現公開KRR 0.4.23のsource/graphでrelease-checkが終了コード0でPASS。生RGBA保存・PDF検証後persistを含む最新修正後、全体coverageは3784関数/31177行とも100%、未カバー0。package検証・publish dry-run・未公開版確認もPASS。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
+現公開KRR 0.4.23の最新source/graphでrelease-checkの全工程を回収してPASS。RGBAと変換PDFの生バイト保存・PDF検証後persistを含む修正後、全体coverageは3787関数/31196行とも100%、未カバー0。全体検査はcoverage中に中断されたため、同sourceを維持してcoverageと残りの工程を再実行し、個別の終了0を確認した。KRR新版の公開取り込み・同一最終graphのrelease-check・current HEAD review・公開は未完。
 
-ローカル全体ログ: tmp/pr68-binary-validation-release-check.log、RTK tee 1791265370_just_coverage.log。最新sourceのmacOS検証であり、Linuxの最新HEAD CI成功は別途確認する。
+ローカル全体ログ: tmp/pr68-conversion-binary-release-check-retry.log（semver/check PASS）、tmp/pr68-conversion-binary-coverage-resume.log（coverage PASS）、tmp/pr68-conversion-binary-package.log、tmp/pr68-conversion-binary-publish-dry-run.log（各終了0）。最新sourceのmacOS検証であり、Linuxの最新HEAD CI成功は別途確認する。
 
 ## 指摘と判断
 
@@ -51,3 +51,11 @@ library APIとhost保存方針の責任分離、PDF/Office sessionのdrop/実res
 - P2 RGBA保存容量: 生RGBAと長さ付きJSON metadataへ変更。4096×4096白ページ67,108,864bytesを128MiB cacheで保存・読込できる実filesystem回帰と、短いprefix/長さoverflow/metadata欠損・不正/metadata内RGBA混入/既存surface制約の回帰を確認した。JSON旧形式へ依存した検証も新形式で本来の安全性検査を通るよう更新した。
 - P2 PDF検証前persist: conversion取得からdisk保存を分離し、既存OfficeStaticViewerSessionのdecode/制約検証に成功してから保存する。実PDFで保存・hit、invalid PDFでsession失敗かつartifact欠損を検証した。変換を代替するmock workerは追加していない。
 - cache単体35件とAST PASS。全release-check終了0、3784関数/31177行100%、page codec自身も3関数/42行100%。根拠は非公開作業ログtmp/pr68-binary-validation-release-check.logとRTK tee1791265370_just_coverage.log。同sourceで全テスト・score/semver/strict lint・package/dry-run/未公開版確認PASS。静的再レビューに追加欠陥なし。current HEAD review/CI・各thread reply/resolveは結果回収まで完了扱いしない。
+
+上記2件はe7f6cd1cでreply/resolveし、fresh取得で5件とも解決済み。最新レビューで変換PDF本体のJSON数値配列にも容量膨張が残ることを検出した。
+
+## e7f6cd1c追加レビュー対応（全体ローカル検証PASS）
+
+RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ統合。変換metadata内のPDF混入を拒否し、現行worker出力上限・cache entry上限・PDF decode後persistを維持する。64MiB payloadのcache往復とprefix/長さ/metadata破損回帰を追加した。payload回帰は保存形式の境界検証であり、64MiBの実文書decodeを主張しない。実worker/PDF/DOCX/PPTXの契約は既存統合回帰で確認する。静的再レビューに新たな欠陥なし。検証結果・全品質/coverage・review reply/resolve・fresh確認は回収まで未完。
+
+追加後cache単体37件とAST PASS。単体ログtmp/pr68-conversion-binary-unit.log（非公開）。公開APIのrestored_conversion_cannot_exceed_worker_output_limitは生PDFの長さを書き換え、checksum/key bindingを再計算する形へ更新し、実workerを使うerror contract5件PASS。semver196項目・全check・全coverage（3787関数/31196行100%）・version/package/dry-run/未公開版確認が同sourceでPASS。中断前後の工程を混同せず、上記各ログの結果を回収した。追加sourceのcommit/push・thread reply/resolve・fresh current HEAD review/CIは継続する。

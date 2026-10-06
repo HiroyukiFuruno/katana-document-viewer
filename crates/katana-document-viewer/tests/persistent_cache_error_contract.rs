@@ -90,13 +90,12 @@ fn restored_conversion_cannot_exceed_worker_output_limit() -> TestResult {
 fn enlarge_conversion(cache: &PersistentDocumentCache, length: usize) -> TestResult {
     let path = conversion_path(cache)?;
     let bytes = std::fs::read(&path)?;
-    let mut artifact: serde_json::Value = serde_json::from_slice(&bytes[72..])?;
-    let pdf = artifact
-        .get_mut("pdf")
-        .and_then(serde_json::Value::as_array_mut)
-        .ok_or("conversion PDF missing")?;
-    pdf.resize(length, serde_json::Value::from(0));
-    write_bound_payload(&path, &bytes[..8], &serde_json::to_vec(&artifact)?)
+    let mut payload = bytes[72..].to_vec();
+    let metadata_len = usize::try_from(u64::from_le_bytes(payload[..8].try_into()?))?;
+    let metadata: serde_json::Value = serde_json::from_slice(&payload[8..8 + metadata_len])?;
+    assert_eq!(metadata["pdf"], serde_json::json!([]));
+    payload.resize(8 + metadata_len + length, 0);
+    write_bound_payload(&path, &bytes[..8], &payload)
 }
 
 fn conversion_path(

@@ -8,7 +8,7 @@
 
 `PersistentOfficeViewerSession` / `PersistentPdfViewerSession` は既存sessionを包み、元のsource/ページ/描画制約をcache hit時にも検査する。PDFはgeometry/outline確定のため再decodeするが、変換・rasterを抑制できる。close/dropでsession内memoryを解放し、disk artifactだけをhostが保持する。
 
-描画artifactは長さ付きJSON metadata（RGBA空）と生RGBAを分けて保持し、JSON数値配列の膨張によって制約内の4096×4096ページを拒否しない。長さ・metadata・RGBA形状の破損検査と128MiBのentry上限は維持する。Office変換artifactはPDF decodeとページ制約の検証が成功してから保存し、失敗した出力を後続のcache hitへ残さない。
+描画artifactは長さ付きJSON metadata（RGBA空）と生RGBAを分けて保持し、JSON数値配列の膨張によって制約内の4096×4096ページを拒否しない。Office変換PDFも同じpayload codecでPDF空のmetadataと生PDFへ分ける。長さ・metadata・RGBA形状の破損検査と128MiBのentry上限は維持する。Office変換artifactはPDF decodeとページ制約の検証が成功してから保存し、失敗した出力を後続のcache hitへ残さない。
 
 ## 計測
 

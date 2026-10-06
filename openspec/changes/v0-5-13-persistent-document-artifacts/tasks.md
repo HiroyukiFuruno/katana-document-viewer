@@ -19,6 +19,8 @@
 
 ## CI回帰対応
 
+- [x] PR68 e7f6cd1c P2実装修正: 変換PDF本体も生バイト保存にし、64MiB payloadを128MiB cache内に保持する。共通payload codecの破損/制約回帰と全品質工程を回収した。review reply/resolve・fresh確認は2.2で追跡する。証跡: `just JOBS=2 coverage` PASS、file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
+
 - [x] PR68 93bf2452 P2実装修正: 生RGBA保存で有効4096×4096ページを128MiB内に保持し、PDF検証成功後だけ変換artifactをpersistする。実filesystem境界・decode失敗回帰と全品質/100% coverageを確認した。review reply/resolve・fresh確認は2.2で追跡する。証跡: `just VERSION=0.5.13 JOBS=2 release-check` PASS、`evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 1bdfa63b P2実装修正: saveの既存directory/symlinkをUnsafeDirectoryで拒否し、実filesystem RED/GREENと全品質ゲートを確認した。各thread reply/resolve・fresh確認は2.2で追跡する。delegation-exception: `直列のクリティカルパス`。

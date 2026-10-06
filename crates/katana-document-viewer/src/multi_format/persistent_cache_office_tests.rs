@@ -63,16 +63,16 @@ fn cached_conversion_exceeding_output_limit_is_rejected() -> Result<(), Box<dyn 
     let mut config = OfficeWorkerConfig::new(std::env::current_exe()?);
     config.max_output_bytes = 1;
     let key = CacheKey::office(&cache, &source, &config)?;
-    let artifact = ConversionArtifact {
+    let output = crate::multi_format::office_worker_parent::OfficeWorkerOutput {
         pdf: vec![0, 1],
         warnings: Vec::new(),
-        diagnostics: Vec::new(),
+        preflight_diagnostics: Vec::new(),
     };
-    let bytes = serde_json::to_vec(&artifact)?;
+    let bytes = super::ConversionArtifact::encode(&output)?;
     cache.save(&key, &bytes)?;
 
     assert!(matches!(
-        ConversionArtifact::output(&cache, &key, &source, &config),
+        super::ConversionArtifact::output(&cache, &key, &source, &config),
         Err(PersistentCacheError::Capacity)
     ));
     Ok(())
@@ -87,7 +87,7 @@ fn malformed_cached_conversion_is_reported_as_corrupt() -> Result<(), Box<dyn st
     cache.save(&key, b"not-json")?;
 
     assert!(matches!(
-        ConversionArtifact::output(&cache, &key, &source, &config),
+        super::ConversionArtifact::output(&cache, &key, &source, &config),
         Err(PersistentCacheError::Corrupt)
     ));
     Ok(())

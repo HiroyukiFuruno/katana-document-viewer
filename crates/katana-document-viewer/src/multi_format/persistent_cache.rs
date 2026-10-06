@@ -3,6 +3,8 @@ use thiserror::Error;
 
 #[path = "persistent_cache_key.rs"]
 mod key;
+#[path = "persistent_cache_payload_codec.rs"]
+mod payload_codec;
 #[path = "persistent_cache_sessions.rs"]
 mod sessions;
 #[path = "persistent_cache_store.rs"]

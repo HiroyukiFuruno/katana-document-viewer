@@ -1,7 +1,7 @@
 use super::{CachedPage, PersistentOfficeViewerSession};
 use crate::multi_format::office_worker_parent::{OfficeWorkerOutput, OfficeWorkerRunner};
 use crate::multi_format::persistent_cache::{
-    PersistentCacheError, PersistentDocumentCache, key::CacheKey,
+    PersistentCacheError, PersistentDocumentCache, key::CacheKey, payload_codec::PayloadCodec,
 };
 use crate::multi_format::{
     OfficeDocumentSource, OfficeStaticDocumentArtifact, OfficeStaticViewerSession,
@@ -122,8 +122,7 @@ impl ConversionArtifact {
         if let Some(bytes) = cache.load(key)? {
             crate::multi_format::OfficePackagePreflight::inspect(source, config.preflight_limits)
                 .map_err(crate::multi_format::OfficeWorkerError::from)?;
-            let artifact: Self =
-                serde_json::from_slice(&bytes).map_err(|_| PersistentCacheError::Corrupt)?;
+            let artifact = Self::decode(&bytes)?;
             if artifact.pdf.len() as u64 > config.max_output_bytes {
                 return Err(PersistentCacheError::Capacity);
             }
@@ -134,12 +133,23 @@ impl ConversionArtifact {
     }
 
     fn encode(output: &OfficeWorkerOutput) -> Result<Vec<u8>, PersistentCacheError> {
-        serde_json::to_vec(&ConversionArtifactRef {
-            pdf: &output.pdf,
-            warnings: &output.warnings,
-            diagnostics: &output.preflight_diagnostics,
-        })
-        .map_err(|_| PersistentCacheError::Corrupt)
+        PayloadCodec::encode(
+            &ConversionArtifactRef {
+                pdf: &[],
+                warnings: &output.warnings,
+                diagnostics: &output.preflight_diagnostics,
+            },
+            &output.pdf,
+        )
+    }
+
+    fn decode(bytes: &[u8]) -> Result<Self, PersistentCacheError> {
+        let (mut artifact, pdf): (Self, _) = PayloadCodec::decode(bytes)?;
+        if !artifact.pdf.is_empty() {
+            return Err(PersistentCacheError::Corrupt);
+        }
+        artifact.pdf = pdf.to_vec();
+        Ok(artifact)
     }
 
     fn into_output(self) -> OfficeWorkerOutput {
@@ -154,3 +164,7 @@ impl ConversionArtifact {
 #[cfg(test)]
 #[path = "persistent_cache_office_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "persistent_cache_conversion_binary_tests.rs"]
+mod conversion_binary_tests;
