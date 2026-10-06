@@ -79,3 +79,5 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 容量guardは標準40GiB（約2build分）、閾値以下では整理しない。別checkoutの任意検査は通常Cargoへ分離し、明示CARGO上書きを保持する。Windows文字コードをUTF-8へ固定し、Git Bashを明示した。23件のlocal回帰は成功、最終HEADのWindows実CIは未確認。
 
 追加reviewの任意directory名とCargo `--target-dir`両形式を修正。repo root・外部・外部symlinkの拒否を維持し、test binaryの `--` 以降はtarget optionとして扱わない。実ephemeral Cargoのbuild→閾値超過clean→再buildを両形式で検証。`tmp/pr68-target-dir-guard-tests.log` 27件・`tmp/pr68-target-dir-guard-ast.log` ASTはいずれも終了0。Rust source/dependency graph変更なし。
+
+任意名targetを許可する安全レビューで、source/.gitにCargo tagがある場合の誤整理リスクを検出した。Git管理領域・tracked sourceを含むtarget・crate manifest・nongit crateのsrcを拒否する境界を追加。実Git tracked source拒否と、tagged nongit srcのwrapper拒否/源ファイル保持を確認。標準justのpatternに新helper回帰を含め、`tmp/pr68-source-ownership-tests.log`32件と`tmp/pr68-source-ownership-final-ast.log`はいずれも終了0。Rustsource/graphは変更なし。

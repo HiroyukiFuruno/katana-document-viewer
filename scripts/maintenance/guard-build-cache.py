@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Iterable
 
 from cargo_target_args import command_target_dirs
+from target_ownership import reject_source_target
 
 try:
     import fcntl
@@ -45,6 +46,7 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
             raise ValueError(f"target is outside the repository scope: {candidate}")
         if path.exists() and not path.is_dir():
             raise ValueError(f"target is not a directory: {path}")
+        reject_source_target(root, path)
         targets.append(path)
     unique: list[Path] = []
     for path in sorted(set(targets), key=lambda item: (len(item.parts), str(item))):

@@ -27,6 +27,26 @@ def bash_executable():
 
 
 class BuildCacheIntegrationTests(unittest.TestCase):
+    def test_nongit_source_target_is_rejected_before_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Cargo.toml").write_text(
+                '[package]\nname="source-guard-smoke"\nversion="0.0.0"\nedition="2021"\n'
+            )
+            source = root / "src"
+            source.mkdir()
+            sentinel = source / "source.rs"
+            sentinel.write_text("fn main() {}\n")
+            (source / "CACHEDIR.TAG").write_text(
+                "Signature: 8a477f597d28d172789f06886806bc55\n"
+            )
+            result = subprocess.run(
+                [sys.executable, str(GUARD), "--repo-root", str(root), "--target-dir", str(source), "--", "cargo", "build"],
+                cwd=root, capture_output=True, text=True,
+            )
+            self.assertEqual(2, result.returncode)
+            self.assertTrue(sentinel.exists())
+
     def test_wrapped_cargo_measures_separated_and_equals_target_dirs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -80,7 +100,7 @@ class BuildCacheIntegrationTests(unittest.TestCase):
             root = Path(directory).resolve()
             scripts = root / "scripts" / "maintenance"
             scripts.mkdir(parents=True)
-            for name in ("cargo-guard", "guard-build-cache.py", "cargo_target_args.py"):
+            for name in ("cargo-guard", "guard-build-cache.py", "cargo_target_args.py", "target_ownership.py"):
                 shutil.copy2(ROOT / "scripts" / "maintenance" / name, scripts / name)
             recipe = 'set shell := ["bash", "-uc"]\n' + cargo_line + '\nprobe:\n    {{CARGO}} --version\n'
             recipe += "    python3 -c 'from pathlib import Path; print(Path.cwd())'\n"
