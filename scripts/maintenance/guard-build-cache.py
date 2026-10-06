@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable
 
 from cargo_target_args import command_target_dirs
-from target_ownership import reject_source_target
+from target_ownership import CACHEDIR_TAG, prepare_targets, reject_source_target
 
 try:
     import fcntl
@@ -21,7 +21,6 @@ except ImportError:
     fcntl = None
     import msvcrt
 
-CACHEDIR_TAG = "Signature: 8a477f597d28d172789f06886806bc55"
 DEFAULT_MAX_GIB = 40.0
 
 
@@ -140,6 +139,7 @@ def guard(repo_root: Path, targets: list[Path], command: list[str], max_bytes: i
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as lock:
         acquire_lock(lock)
+        prepare_targets(repo_root, targets)
         seen: set[tuple[int, int | str]] = set()
         total = sum(target_bytes(target, seen) for target in targets)
         if total > max_bytes:

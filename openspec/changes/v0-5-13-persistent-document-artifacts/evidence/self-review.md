@@ -100,3 +100,9 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 - 最終source/graphの `just VERSION=0.5.13 JOBS=2 release-check` は終了0。既存全lint/AST/test/score/semver196項目、3800関数・31292行100%、version/package/publish dry-run/未公開版確認がPASS。証跡: `tmp/pr68-nested-quota-release-check.log`、RTK tee1791295423_just_coverage.log。公開KRR0.4.23での準備検査であり、最終KRR graphは別途検証する。
 
 fe1c349bの3OS CI37469059929は成功（PATH worker解決を含む直前source）。今回の2件修正後のcurrent HEAD review・各thread reply/resolve・3OS CIは結果回収まで未完で継続する。
+
+## 32d1d909の追加レビュー・CI対応
+
+Linuxで実行中imageのatomic置換後も旧processから指紋を読めるよう、/proc/self/exeから同じ実行imageを取得する。更新後pathへのfallbackはしない。他OSの取得経路と明示IOerrorは維持。実行binaryのhardlinkを起動し、そのpathをatomic置換する独立子process回帰を追加した。macOSのcache単体55件とfmtは終了0。Linux実回帰は次のexact HEAD CIで回収するまで未完。
+
+全release-check14641は終了0、3800関数/31293行100%、全既存品質/semver196/package/publish dry-run/未公開確認PASS（tmp/pr68-running-image-release-check.log、RTK tee1791301114_just_coverage.log）。その実行後半にPython/CIのみ追加修正: Ubuntu32d CIのcoverage開始時、復元targetに所有タグがなくguardが終了2。Cargo既知issue12441の既存directoryタグ未生成に一致するため、新規/空のsource-free targetだけを初期化し、CIではcache復元前に実行する。非空の未知directoryは所有扱いしない。新標準37回帰とAST終了0（tmp/pr68-empty-target-final-tests.log / tmp/pr68-running-image-empty-target-ast.log）。Python最新差分は通常pushの全checkと次の3OS CIで再確認する。元32d CIはfailureであり成功と扱わない。
