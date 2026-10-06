@@ -13,7 +13,7 @@ class ExternalCargoTests(unittest.TestCase):
         if cargo is not None:
             environment["CARGO"] = cargo
         return subprocess.run(["just", "--dry-run", recipe], cwd=ROOT,
-                              env=environment, capture_output=True, text=True, check=True).stderr
+                              env=environment, capture_output=True, text=True, encoding="utf-8", check=True).stderr
 
     def test_external_recipes_keep_cargo_reachable_after_cd(self):
         recipes = ("storybook-coordinate-contract-check-core", "storybook-hover-contract-check-core",

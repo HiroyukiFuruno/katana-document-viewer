@@ -9,6 +9,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def bash_executable():
+    # WindowsのWSL起動用bashではなく、既存CIと同じGit Bashを使う。
+    if os.name == "nt":
+        for variable in ("ProgramFiles", "ProgramFiles(x86)"):
+            directory = os.environ.get(variable)
+            if directory:
+                candidate = Path(directory) / "Git" / "bin" / "bash.exe"
+                if candidate.is_file():
+                    return str(candidate)
+    executable = shutil.which("bash")
+    if executable is None:
+        raise FileNotFoundError("bash executable is required")
+    return executable
+
+
 class BuildCacheIntegrationTests(unittest.TestCase):
     def test_storybook_gate_accepts_guard_and_original_cargo(self):
         for cargo in (None, "cargo"):
@@ -17,18 +32,18 @@ class BuildCacheIntegrationTests(unittest.TestCase):
             environment.pop("CARGO", None)
             if cargo is not None:
                 environment["CARGO"] = cargo
-            result = subprocess.run(["bash", "scripts/check-storybook-entrypoint.sh"],
-                                    cwd=ROOT, env=environment, capture_output=True, text=True)
-            self.assertEqual(0, result.returncode, result.stderr)
+            result = subprocess.run([bash_executable(), "scripts/check-storybook-entrypoint.sh"],
+                                    cwd=ROOT, env=environment, capture_output=True, text=True, encoding="utf-8")
+            self.assertEqual(0, result.returncode, result.stderr + result.stdout)
             self.assertIn("storybook-entrypoint-check: ok", result.stdout)
         environment["CARGO"] = "unrecognized-wrapper"
-        result = subprocess.run(["bash", "scripts/check-storybook-entrypoint.sh"],
-                                cwd=ROOT, env=environment, capture_output=True, text=True)
+        result = subprocess.run([bash_executable(), "scripts/check-storybook-entrypoint.sh"],
+                                cwd=ROOT, env=environment, capture_output=True, text=True, encoding="utf-8")
         self.assertNotEqual(0, result.returncode)
         self.assertIn("boundary evidence gate", result.stderr)
 
     def test_default_cargo_wrapper_runs_in_checkout_with_spaces(self):
-        cargo_line = next(line for line in (ROOT / "Justfile").read_text().splitlines()
+        cargo_line = next(line for line in (ROOT / "Justfile").read_text(encoding="utf-8").splitlines()
                           if line.startswith("CARGO :="))
         with tempfile.TemporaryDirectory(prefix="cache guard ") as directory:
             root = Path(directory).resolve()
@@ -38,7 +53,7 @@ class BuildCacheIntegrationTests(unittest.TestCase):
                 shutil.copy2(ROOT / "scripts" / "maintenance" / name, scripts / name)
             recipe = 'set shell := ["bash", "-uc"]\n' + cargo_line + '\nprobe:\n    {{CARGO}} --version\n'
             recipe += "    python3 -c 'from pathlib import Path; print(Path.cwd())'\n"
-            (root / "Justfile").write_text(recipe)
+            (root / "Justfile").write_text(recipe, encoding="utf-8")
             environment = os.environ.copy()
             for name in ("CARGO", "CARGO_TARGET_DIR", "KDV_BUILD_CACHE_MAX_GIB"):
                 environment.pop(name, None)
@@ -46,8 +61,8 @@ class BuildCacheIntegrationTests(unittest.TestCase):
             nested.mkdir()
             for cwd in (root, nested):
                 result = subprocess.run(["just", "--justfile", str(root / "Justfile"), "probe"],
-                                        check=False, capture_output=True, text=True, env=environment, cwd=cwd)
-                self.assertEqual(0, result.returncode, result.stderr)
+                                        check=False, capture_output=True, text=True, encoding="utf-8", env=environment, cwd=cwd)
+                self.assertEqual(0, result.returncode, result.stderr + result.stdout)
                 self.assertIn("cargo ", result.stdout)
                 self.assertIn(str(root), result.stdout)
 
