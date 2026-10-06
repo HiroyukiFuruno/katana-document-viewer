@@ -1,5 +1,5 @@
 use super::super::{PersistentCacheError, PersistentDocumentCache, key::CacheKey};
-use super::CachedPage;
+use super::{CachedPage, page_codec::PageCodec};
 use crate::ViewerImageSurface;
 use crate::multi_format::{PdfPageRenderRequest, PdfRenderedPage, PdfViewerLimits};
 use std::fs;
@@ -29,8 +29,7 @@ fn key(index: usize, scale: f32) -> String {
     CacheKey::page("document", index, scale, "strict")
 }
 fn save_json(cache: &PersistentDocumentCache, key: &str, page: &PdfRenderedPage) -> TestResult {
-    cache.save(key, &serde_json::to_vec(page)?)?;
-    Ok(())
+    Ok(cache.save(key, &PageCodec::encode(page)?)?)
 }
 fn assert_corrupt(
     cache: &PersistentDocumentCache,
@@ -188,12 +187,14 @@ fn custom_dimension_and_pixel_limits_are_enforced() -> TestResult {
     Ok(())
 }
 #[test]
-fn saved_artifact_is_real_json_backed_by_cache_key() -> TestResult {
+fn saved_artifact_has_binary_rgba_and_json_metadata_backed_by_cache_key() -> TestResult {
     let (_root, cache) = cache()?;
     let key = key(0, 1.0);
     let value = page(0, 1.0, 1, 1);
     CachedPage::save(&cache, &key, &value)?;
     let bytes = fs::read(cache.directory().join(&key))?;
-    assert!(serde_json::from_slice::<PdfRenderedPage>(&bytes[72..]).is_ok());
+    let bytes = &bytes[72..];
+    let metadata_len = usize::try_from(u64::from_le_bytes(bytes[..8].try_into()?))?;
+    assert!(serde_json::from_slice::<PdfRenderedPage>(&bytes[8..8 + metadata_len]).is_ok());
     Ok(())
 }

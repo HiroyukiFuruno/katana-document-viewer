@@ -19,10 +19,12 @@
 
 ## CI回帰対応
 
+- [x] PR68 93bf2452 P2実装修正: 生RGBA保存で有効4096×4096ページを128MiB内に保持し、PDF検証成功後だけ変換artifactをpersistする。実filesystem境界・decode失敗回帰と全品質/100% coverageを確認した。review reply/resolve・fresh確認は2.2で追跡する。証跡: `just VERSION=0.5.13 JOBS=2 release-check` PASS、`evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
+
 - [x] PR68 1bdfa63b P2実装修正: saveの既存directory/symlinkをUnsafeDirectoryで拒否し、実filesystem RED/GREENと全品質ゲートを確認した。各thread reply/resolve・fresh確認は2.2で追跡する。delegation-exception: `直列のクリティカルパス`。
 - [x] PR68 1bdfa63b P2実装修正: 実host image SHA256をkeyへ束縛し、描画依存のdownstream再buildで無効化する。回帰・実process性能・全品質ゲートを確認した。各thread reply/resolve・fresh確認は2.2で追跡する。delegation-exception: `直列のクリティカルパス`。
 
-- [ ] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、100% coverageをCIで再確認する。delegation-exception: `直列のクリティカルパス`。
+- [x] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、1bdfa63bと93bf2452のUbuntu CI成功で100% coverage復旧を確認した。最終KRR graphは2.1で再検証する。証跡: file: `evidence/self-review.md`、https://github.com/HiroyukiFuruno/katana-document-viewer/actions/runs/37417050580 。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。9d796fe3修正・reply/resolve・fresh確認済み。delegation-exception: `直列のクリティカルパス`。
 

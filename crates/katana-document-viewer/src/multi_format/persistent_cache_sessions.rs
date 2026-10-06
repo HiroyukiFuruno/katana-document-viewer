@@ -7,6 +7,9 @@ use crate::multi_format::{
 #[path = "persistent_cache_office.rs"]
 mod office;
 
+#[path = "persistent_cache_page_codec.rs"]
+mod page_codec;
+
 pub struct PersistentOfficeViewerSession {
     session: OfficeStaticViewerSession,
     cache: PersistentDocumentCache,
@@ -79,8 +82,7 @@ impl CachedPage {
         let Some(bytes) = cache.load(key)? else {
             return Ok(None);
         };
-        let page: PdfRenderedPage =
-            serde_json::from_slice(&bytes).map_err(|_| PersistentCacheError::Corrupt)?;
+        let page = page_codec::PageCodec::decode(&bytes)?;
         let surface = &page.surface;
         let pixels = u64::from(surface.width) * u64::from(surface.height);
         if page.page_index != request.page_index
@@ -104,7 +106,7 @@ impl CachedPage {
         key: &str,
         page: &PdfRenderedPage,
     ) -> Result<(), PersistentCacheError> {
-        let bytes = serde_json::to_vec(page).map_err(|_| PersistentCacheError::Corrupt)?;
+        let bytes = page_codec::PageCodec::encode(page)?;
         cache.save(key, &bytes)
     }
 }
@@ -120,3 +122,7 @@ mod overflow_tests;
 #[cfg(test)]
 #[path = "persistent_cache_accessor_tests.rs"]
 mod accessor_tests;
+
+#[cfg(test)]
+#[path = "persistent_cache_page_binary_tests.rs"]
+mod page_binary_tests;

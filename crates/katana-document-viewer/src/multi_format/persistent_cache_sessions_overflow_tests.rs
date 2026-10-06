@@ -1,5 +1,5 @@
 use super::super::{PersistentCacheError, PersistentDocumentCache, key::CacheKey};
-use super::CachedPage;
+use super::{CachedPage, page_codec::PageCodec};
 use crate::{PdfPageRenderRequest, PdfRenderedPage, PdfViewerLimits, ViewerImageSurface};
 
 #[test]
@@ -9,7 +9,7 @@ fn corrupt_surface_dimensions_cannot_overflow_rgba_length() -> Result<(), Box<dy
     let cache = PersistentDocumentCache::new(root.path().join("cache"), 1024, "one".into())?;
     let page = invalid_page();
     let key = CacheKey::page("overflow", 0, 1.0, "large-limits");
-    cache.save(&key, &serde_json::to_vec(&page)?)?;
+    cache.save(&key, &PageCodec::encode(&page)?)?;
     let mut limits = PdfViewerLimits::strict();
     limits.max_render_pixels = u64::MAX;
     limits.max_render_dimension = u32::MAX;

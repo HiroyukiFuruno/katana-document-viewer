@@ -16,6 +16,13 @@ struct ConversionArtifact {
     diagnostics: Vec<crate::multi_format::ViewerDiagnostic>,
 }
 
+#[derive(Serialize)]
+struct ConversionArtifactRef<'a> {
+    pdf: &'a [u8],
+    warnings: &'a [String],
+    diagnostics: &'a [crate::multi_format::ViewerDiagnostic],
+}
+
 impl PersistentOfficeViewerSession {
     pub fn open(
         source: OfficeDocumentSource,
@@ -34,10 +41,38 @@ impl PersistentOfficeViewerSession {
         let key = CacheKey::office(&cache, &source, &config)?;
         let (output, conversion_cache_hit) =
             ConversionArtifact::output(&cache, &key, &source, &config)?;
+        Self::validated_session(
+            source,
+            config,
+            cache,
+            key,
+            output,
+            conversion_cache_hit,
+            trace,
+        )
+    }
+
+    fn validated_session(
+        source: OfficeDocumentSource,
+        config: OfficeWorkerConfig,
+        cache: PersistentDocumentCache,
+        key: String,
+        output: OfficeWorkerOutput,
+        conversion_cache_hit: bool,
+        trace: Option<crate::multi_format::debug_trace::TraceSession>,
+    ) -> Result<Self, PersistentCacheError> {
+        let pending = if conversion_cache_hit {
+            None
+        } else {
+            Some(ConversionArtifact::encode(&output)?)
+        };
         let conversion_key =
             crate::multi_format::office_conversion_key::OfficeConversionKey::new(&source, &config);
         let session =
             OfficeStaticViewerSession::from_output(source, config, output, conversion_key, trace)?;
+        if let Some(bytes) = pending {
+            cache.save(&key, &bytes)?;
+        }
         Ok(Self {
             session,
             cache,
@@ -95,14 +130,16 @@ impl ConversionArtifact {
             return Ok((artifact.into_output(), true));
         }
         let output = OfficeWorkerRunner::convert(source, config)?;
-        let artifact = Self {
-            pdf: output.pdf,
-            warnings: output.warnings,
-            diagnostics: output.preflight_diagnostics,
-        };
-        let bytes = serde_json::to_vec(&artifact).map_err(|_| PersistentCacheError::Corrupt)?;
-        cache.save(key, &bytes)?;
-        Ok((artifact.into_output(), false))
+        Ok((output, false))
+    }
+
+    fn encode(output: &OfficeWorkerOutput) -> Result<Vec<u8>, PersistentCacheError> {
+        serde_json::to_vec(&ConversionArtifactRef {
+            pdf: &output.pdf,
+            warnings: &output.warnings,
+            diagnostics: &output.preflight_diagnostics,
+        })
+        .map_err(|_| PersistentCacheError::Corrupt)
     }
 
     fn into_output(self) -> OfficeWorkerOutput {
