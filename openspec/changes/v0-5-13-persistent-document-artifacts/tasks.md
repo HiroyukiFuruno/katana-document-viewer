@@ -20,3 +20,5 @@
 ## CI回帰対応
 
 - [ ] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、100% coverageをCIで再確認する。delegation-exception: `直列のクリティカルパス`。
+
+- [ ] PR68 P2: 同directoryを小さい総容量で開き直したloadをCapacityで拒否し、ちょうど上限・clear後復旧を実filesystem回帰で確認する。delegation-exception: `直列のクリティカルパス`。

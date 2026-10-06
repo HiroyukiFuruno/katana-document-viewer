@@ -26,3 +26,7 @@ library APIとhost保存方針の責任分離、PDF/Office sessionのdrop/実res
 ## Ubuntu CIアクセサ回帰
 
 448d6640のmacOS CIはPASS。Ubuntu coverageはOffice conversion_cache_hit/artifactとPDF outlineの3関数・9行不足で失敗した。既存integrationは成功しているが、library単体側も直接実PDFfixtureで値を検証する回帰を追加した。本体実装は変更していない。追加後cache単体24回帰とASTはPASS。Linux100%復旧は次HEAD CIで未確認であり、成功扱いしない。最終KRR graphのfull release-checkも引き続き必要。
+
+## PR68 P2総容量縮小後のload
+
+21b383bf reviewの指摘を採用。既存の総容量契約でありDoD変更はない。実filesystem回帰 load_rejects_a_cache_whose_total_size_exceeds_the_current_capacity は修正前RED（超過loadを受理）・修正後GREEN。loadの排他lock内でused_bytesとmax_bytesを比較し、読込前にCapacityを返す。exact上限のload、clear後miss/再保存/再利用、総容量が大きくても1件128MiB上限の回帰もPASS。cache単体26件/AST PASS。clearは容量縮小後も可能なまま。総量検査はentry数に比例するdirectory scanを伴い、最終graphで既存性能・全品質ゲートを維持する。新HEADのCI/review、reply/resolveは未完。

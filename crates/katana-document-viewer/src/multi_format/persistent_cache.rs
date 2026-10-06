@@ -39,6 +39,10 @@ pub struct PersistentDocumentCache {
 #[path = "persistent_cache_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "persistent_cache_capacity_tests.rs"]
+mod capacity_tests;
+
 impl PersistentDocumentCache {
     /// environment_revisionはhost側のfont・変換/描画設定が変わるたびに更新する。
     pub fn new(

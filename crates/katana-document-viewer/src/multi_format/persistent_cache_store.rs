@@ -41,6 +41,9 @@ impl PersistentDocumentCache {
 
     pub(super) fn load(&self, key: &str) -> Result<Option<Vec<u8>>, PersistentCacheError> {
         let _lock = self.lock()?;
+        if self.used_bytes()? > self.max_bytes {
+            return Err(PersistentCacheError::Capacity);
+        }
         let path = self.root.join(key);
         let metadata = match path.symlink_metadata() {
             Ok(metadata) => metadata,
