@@ -38,7 +38,9 @@ def parse_max_gib(value: str | None = None) -> int:
 
 def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
     root = repo_root.resolve()
-    candidates = [root / "target", *explicit]
+    explicit = list(explicit)
+    default = (root / "target").resolve()
+    candidates = [default, *explicit]
     targets: list[Path] = []
     for candidate in candidates:
         path = candidate.resolve()
@@ -48,10 +50,10 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
             raise ValueError(f"target is not a directory: {path}")
         reject_source_target(root, path)
         targets.append(path)
-    unique: list[Path] = []
-    for path in sorted(set(targets), key=lambda item: (len(item.parts), str(item))):
-        if not any(parent in path.parents for parent in unique):
-            unique.append(path)
+    unique = sorted(set(targets), key=lambda item: (len(item.parts), str(item)))
+    if default not in {path.resolve() for path in explicit} and not owned_target(default):
+        if any(default in path.parents for path in unique):
+            unique.remove(default)
     return unique
 
 
@@ -63,9 +65,10 @@ def owned_target(path: Path) -> bool:
         return False
 
 
-def target_bytes(path: Path) -> int:
+def target_bytes(path: Path, seen: set[tuple[int, int | str]] | None = None) -> int:
     total = 0
-    seen = set()
+    if seen is None:
+        seen = set()
     if not path.exists():
         return 0
     for current, directories, files in os.walk(path, followlinks=False):
@@ -75,8 +78,8 @@ def target_bytes(path: Path) -> int:
             if not item.is_symlink():
                 try:
                     stat = item.stat()
-                    identity = (stat.st_dev, stat.st_ino)
-                    if stat.st_ino and identity in seen:
+                    identity = (stat.st_dev, stat.st_ino or str(item.resolve()))
+                    if identity in seen:
                         continue
                     seen.add(identity)
                     total += stat.st_blocks * 512 if hasattr(stat, "st_blocks") else stat.st_size
@@ -137,7 +140,8 @@ def guard(repo_root: Path, targets: list[Path], command: list[str], max_bytes: i
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as lock:
         acquire_lock(lock)
-        total = sum(target_bytes(target) for target in targets)
+        seen: set[tuple[int, int | str]] = set()
+        total = sum(target_bytes(target, seen) for target in targets)
         if total > max_bytes:
             if any(not owned_target(target) for target in targets if target.exists()):
                 print("build cache ownership tag missing; refusing cleanup", file=sys.stderr)
@@ -147,7 +151,6 @@ def guard(repo_root: Path, targets: list[Path], command: list[str], max_bytes: i
                 return 3
             clean_targets(repo_root, targets)
         return subprocess.run(command, check=False).returncode
-
 
 GUARDED_CARGO_SUBCOMMANDS = {
     "build", "test", "check", "clippy", "run", "bench", "llvm-cov", "package", "publish", "semver-checks"

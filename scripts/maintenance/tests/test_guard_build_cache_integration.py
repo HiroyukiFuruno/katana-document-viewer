@@ -1,3 +1,4 @@
+import importlib.util
 import shutil
 import os
 import subprocess
@@ -9,6 +10,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 GUARD = ROOT / "scripts" / "maintenance" / "guard-build-cache.py"
+sys.path.insert(0, str(GUARD.parent))
+SPEC = importlib.util.spec_from_file_location("guard_build_cache_integration", GUARD)
+guard = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(guard)
 
 
 def bash_executable():
@@ -75,6 +81,49 @@ class BuildCacheIntegrationTests(unittest.TestCase):
                 )
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertFalse(sentinel.exists())
+
+    def test_nested_explicit_target_is_cleaned_without_parent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "Cargo.toml"
+            manifest.write_text('[package]\nname="nested-cache"\nversion="0.0.0"\nedition="2021"\n')
+            (root / "src").mkdir()
+            (root / "src/main.rs").write_text("fn main() {}\n")
+            target = root / "target" / "custom"
+            built = subprocess.run(["cargo", "build", "--manifest-path", str(manifest), "--target-dir", str(target)],
+                                   cwd=root, capture_output=True, text=True)
+            self.assertEqual(0, built.returncode, built.stderr)
+            sentinel = root / "target" / "parent-sentinel"
+            sentinel.write_text("keep\n")
+            self.assertTrue((target / "CACHEDIR.TAG").is_file())
+            self.assertFalse((target.parent / "CACHEDIR.TAG").exists())
+            obsolete = target / "obsolete-artifact"
+            obsolete.write_bytes(b"old")
+            result = subprocess.run([sys.executable, str(GUARD), "--repo-root", str(root), "--max-gib", "0.000000001",
+                                     "--", "cargo", "build", "--manifest-path", str(manifest), "--target-dir", str(target)],
+                                    cwd=root, capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue(sentinel.exists())
+            self.assertFalse(obsolete.exists())
+
+    def test_nested_targets_do_not_double_count_shared_filesystem(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Cargo.toml").write_text('[package]\nname="dedup-cache"\nversion="0.0.0"\nedition="2021"\n')
+            (root / "src").mkdir()
+            (root / "src/main.rs").write_text("fn main() {}\n")
+            parent = root / "target" / "parent"
+            child = parent / "nested"
+            child.mkdir(parents=True)
+            for target in (parent, child):
+                (target / "CACHEDIR.TAG").write_text(guard.CACHEDIR_TAG + "\n")
+            sentinel = parent / "parent-sentinel"
+            sentinel.write_bytes(b"sentinel")
+            (child / "child-artifact").write_bytes(b"artifact")
+            limit = guard.target_bytes(parent)
+            result = guard.guard(root, [parent, child], [sys.executable, "-c", ""], limit)
+            self.assertEqual(0, result)
+            self.assertTrue(sentinel.exists())
 
     def test_storybook_gate_accepts_guard_and_original_cargo(self):
         for cargo in (None, "cargo"):

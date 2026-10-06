@@ -109,7 +109,7 @@ class GuardBuildCacheTests(unittest.TestCase):
             parent = owned_target(root)
             child = parent / "nested" / "target"
             child.mkdir(parents=True)
-            self.assertEqual([parent.resolve()], guard.repo_targets(root, [child, parent]))
+            self.assertEqual([parent.resolve(), child.resolve()], guard.repo_targets(root, [child, parent, child]))
             custom = root / "build-cache"
             custom.mkdir()
             self.assertIn(custom.resolve(), guard.repo_targets(root, [custom]))

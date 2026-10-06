@@ -90,3 +90,13 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 最終source/graphの `just VERSION=0.5.13 JOBS=2 release-check` は終了0。全既存lint/AST/test/score/semver196項目、3799関数・31286行100%、version/package/publish dry-run/未公開版確認がPASS。証跡: `tmp/pr68-path-worker-release-check.log`、RTK tee1791289754_just_coverage.log。PATH単体/実processは `tmp/pr68-path-worker-unit.log` / `tmp/pr68-path-worker-process-correct-profile.log`。read-only自己レビューに具体的な追加欠陥なし。公開KRR0.4.23での準備検査であり、最終KRR graphのリリース証跡とはしない。
 
 容量guard32件は8afdd69aのUbuntu/macOS/Windows全CIで成功した。40GiB（約2build分）を超える場合だけ通常build前に整理する契約を維持。KatanAのmaintenance/coverage導線を読み、専用coverage targetの分離を参考にした。KatanA側に容量閾値の仕組みはなく、KDVで所有範囲・source保護・排他・使用中保護を追加した。
+
+
+## fe1c349b追加レビュー対応（全体ローカル検証PASS）
+
+- ネストしたtarget: Cargoが子だけへ生成した所有タグを維持し、タグがなく明示指定されてもいない既定親は子の整理対象へ統合しない。明示された親や所有タグのある親は個別に検査する。全targetに共有inode集計を適用し、inode 0では実pathを使って同じファイルの二重計上を避ける。実ephemeral Cargoで、子の古いartifact削除・再build成功・親の無関係なファイル保持を確認した。親/子のexact容量でも二重計上により整理しない。標準guard35件PASS: `tmp/pr68-nested-target-final-tests.log`。
+- 既存entryのsave: destination種類判定後に総使用量を検査し、既存entryには追加容量0、新規entryだけ実封筒容量を加算する。異なる容量ownerで総使用量が縮小上限を超える同key再利用を拒否し、exact容量の既存内容保持・clear後復旧を確認した。保存場所に不正directoryがあれば既存regularの再利用もUnsafeDirectoryとする。最初の単体検査はこの安全検査を迂回する旧期待値で1件失敗し、正常状態と不正状態を分けて検証し直した。修正後cache単体55件PASS: `tmp/pr68-save-quota-unit-resume.log`。
+- ASTと自己レビューを確認。補助レビューの「regular再利用はUnsafeにならない」という指摘は、同directory内の不正entryをused_bytesで拒否する実呼出しと上記55回帰を根拠に不採用とした。他に具体的な追加欠陥なし。
+- 最終source/graphの `just VERSION=0.5.13 JOBS=2 release-check` は終了0。既存全lint/AST/test/score/semver196項目、3800関数・31292行100%、version/package/publish dry-run/未公開版確認がPASS。証跡: `tmp/pr68-nested-quota-release-check.log`、RTK tee1791295423_just_coverage.log。公開KRR0.4.23での準備検査であり、最終KRR graphは別途検証する。
+
+fe1c349bの3OS CI37469059929は成功（PATH worker解決を含む直前source）。今回の2件修正後のcurrent HEAD review・各thread reply/resolve・3OS CIは結果回収まで未完で継続する。
