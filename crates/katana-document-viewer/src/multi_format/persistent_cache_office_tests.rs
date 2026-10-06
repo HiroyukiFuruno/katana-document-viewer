@@ -1,9 +1,11 @@
 use super::{ConversionArtifact, PersistentOfficeViewerSession};
+use crate::multi_format::OfficeStaticViewerSession;
 use crate::multi_format::persistent_cache::key::CacheKey;
 use crate::multi_format::{
     OfficeDocumentFormat, OfficeDocumentSource, OfficeWorkerConfig, PersistentCacheError,
     PersistentDocumentCache, ViewerSourceIdentity,
 };
+use std::path::PathBuf;
 
 const DOCX: &[u8] = include_bytes!("../../../../assets/fixtures/multi-format/representative.docx");
 
@@ -86,5 +88,34 @@ fn malformed_cached_conversion_is_reported_as_corrupt() -> Result<(), Box<dyn st
         ConversionArtifact::output(&cache, &key, &source, &config),
         Err(PersistentCacheError::Corrupt)
     ));
+    Ok(())
+}
+
+#[test]
+fn persistent_office_accessors_expose_cached_state_and_artifact()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (_root, cache) = cache()?;
+    let source = source(OfficeDocumentFormat::Docx);
+    let identity = source.identity.clone();
+    let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+    let output = crate::multi_format::office_worker_parent::OfficeWorkerOutput {
+        pdf: include_bytes!("../../../../assets/reference/katana/pdf/sample.pdf").to_vec(),
+        warnings: Vec::new(),
+        preflight_diagnostics: Vec::new(),
+    };
+    let conversion_key =
+        crate::multi_format::office_conversion_key::OfficeConversionKey::new(&source, &config);
+    let session =
+        OfficeStaticViewerSession::from_output(source, config, output, conversion_key, None)?;
+    let persistent = PersistentOfficeViewerSession {
+        session,
+        cache,
+        key: "office-accessors".to_owned(),
+        conversion_cache_hit: true,
+    };
+
+    assert!(persistent.conversion_cache_hit());
+    assert_eq!(identity, persistent.artifact().identity);
+    assert_eq!(13, persistent.artifact().item_count);
     Ok(())
 }

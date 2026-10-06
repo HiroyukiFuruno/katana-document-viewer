@@ -16,3 +16,7 @@
 - [ ] KRR修正版を先に取り込んでからリリースし、先にKDVが終わってもKRRを待つ。delegation-exception: `直列のクリティカルパス`。
 
 禁止: stash/autostash/新worktree/master編集/sibling編集/remote branch削除/no-verify/admin/未公開path-git依存/私有資料公開/ゲート緩和。
+
+## CI回帰対応
+
+- [ ] Ubuntuで不足したOffice cache state/artifact・PDF outlineのlibrary単体回帰を追加し、100% coverageをCIで再確認する。delegation-exception: `直列のクリティカルパス`。

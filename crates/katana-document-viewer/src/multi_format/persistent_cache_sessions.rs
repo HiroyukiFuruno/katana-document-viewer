@@ -116,3 +116,7 @@ mod tests;
 #[cfg(test)]
 #[path = "persistent_cache_sessions_overflow_tests.rs"]
 mod overflow_tests;
+
+#[cfg(test)]
+#[path = "persistent_cache_accessor_tests.rs"]
+mod accessor_tests;
