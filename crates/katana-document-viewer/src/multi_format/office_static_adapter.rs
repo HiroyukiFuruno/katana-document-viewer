@@ -6,6 +6,9 @@ use super::{
     ViewerDiagnosticSeverity, ViewerQualityProfile,
 };
 
+#[path = "office_static_persistent.rs"]
+mod persistent;
+
 pub struct OfficeStaticViewerSession {
     artifact: OfficeStaticDocumentArtifact,
     pdf: PdfViewerSession,
@@ -34,8 +37,19 @@ impl OfficeStaticViewerSession {
         let _open = super::debug_trace::DebugTrace::start("office.session_open");
         let conversion_key =
             super::office_conversion_key::OfficeConversionKey::new(&source, &config);
-        let profile = static_profile(source.format)?;
+        static_profile(source.format)?;
         let output = OfficeWorkerRunner::convert(&source, &config)?;
+        Self::from_output(source, config, output, conversion_key, trace_session)
+    }
+
+    pub(super) fn from_output(
+        source: OfficeDocumentSource,
+        config: OfficeWorkerConfig,
+        output: super::office_worker_parent::OfficeWorkerOutput,
+        conversion_key: super::office_conversion_key::OfficeConversionKey,
+        trace_session: Option<super::debug_trace::TraceSession>,
+    ) -> Result<Self, OfficeWorkerError> {
+        let profile = static_profile(source.format)?;
         let mut diagnostics = profile.diagnostics();
         diagnostics.extend(output.preflight_diagnostics);
         diagnostics.extend(output.warnings.into_iter().map(engine_warning));
@@ -54,6 +68,13 @@ impl OfficeStaticViewerSession {
     #[must_use]
     pub const fn artifact(&self) -> &OfficeStaticDocumentArtifact {
         &self.artifact
+    }
+
+    pub(super) fn validate_cached_request(
+        &self,
+        request: PdfPageRenderRequest,
+    ) -> Result<(), PdfViewerError> {
+        self.pdf.validate_request(request)
     }
 
     #[cfg(test)]

@@ -4,7 +4,8 @@ REPO_ROOT := justfile_directory()
 RTK := env_var_or_default("RTK", `command -v rtk 2> /dev/null || true`)
 RTK_CMD := if RTK == "" { "" } else { RTK + " " }
 JOBS := env_var_or_default("JOBS", "2")
-CARGO := env_var_or_default("CARGO", "cargo")
+CARGO := env_var_or_default("CARGO", "scripts/maintenance/cargo-guard")
+CARGO_EXTERNAL := env_var_or_default("CARGO", "cargo")
 VERSION := env_var_or_default("VERSION", `awk -F '"' '/^version = / { print $2; exit }' Cargo.toml`)
 VERSION_BARE := replace(VERSION, "v", "")
 TAG := "v" + VERSION_BARE
@@ -69,8 +70,11 @@ coverage-missing: coverage-v8-refresh
     DEBUG=true {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
-check: fmt-check lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
+check: fmt-check build-cache-script-test lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
     @echo "checks passed"
+
+build-cache-script-test:
+    python3 -m unittest discover -s scripts/maintenance/tests -p 'test_guard_build_cache*.py'
 
 current-preview-crop-verifier-test:
     python3 -B scripts/feasibility/verify-current-preview-crop.py --self-test
@@ -257,94 +261,94 @@ storybook-content-check-core:
 
 # Check OS color emoji rendering is preserved through KDV -> KUC Storybook
 storybook-emoji-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib emoji -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib emoji -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked emoji -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked emoji -- --test-threads=1
 
 storybook-emoji-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib emoji -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib emoji -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked emoji -- --test-threads=1
 
 storybook-kuc-visual-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked presentation -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked presentation -- --test-threads=1
 
 # Check KUC TreeView/FileTree rendering and sidebar integration
 storybook-treeview-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib tree -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_tests -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_tree -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib tree -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_tests -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_tree -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked file_tree -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked sidebar_file_canvas_click_rebuilds_viewer_scene_for_selected_fixture -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked storybook_window_file_tree_hover_draws_kuc_row_background -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked storybook_window_routes_visible_control_matrix -- --test-threads=1
 
 storybook-treeview-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib tree -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib tree -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked rendered_file_tree_directory_hover_paints_kuc_row_background -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked rendered_file_tree_directory_click_collapses_visible_rows_and_pixels -- --test-threads=1
 
 # Check KUC SettingsList action, hover, and KDV Storybook state roundtrip
 storybook-settings-contract-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib settings -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test settings_list_contract -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test interactive_preset_contract settings_list_fields_expose_control_interactive_preset -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test molecule_models_contract settings_list_filters_resets_and_collapses_with_typed_events -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib generic_toggle_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib settings_section_header_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib settings -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test settings_list_contract -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test interactive_preset_contract settings_list_fields_expose_control_interactive_preset -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test molecule_models_contract settings_list_filters_resets_and_collapses_with_typed_events -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib generic_toggle_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib settings_section_header_hover_draws_kuc_interactive_preset_border -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked settings -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked sidebar_mode_canvas_click_rebuilds_scene_as_slideshow -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked sidebar_theme_canvas_click_rebuilds_scene_as_light -- --test-threads=1
 
 storybook-settings-contract-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib settings -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test settings_list_contract -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test interactive_preset_contract settings_list_fields_expose_control_interactive_preset -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test molecule_models_contract settings_list_filters_resets_and_collapses_with_typed_events -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib settings -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test settings_list_contract -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test interactive_preset_contract settings_list_fields_expose_control_interactive_preset -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test molecule_models_contract settings_list_filters_resets_and_collapses_with_typed_events -- --test-threads=1
 
 # Check KUC/KDV coordinate normalization, rendered hit rects, hover, cursor, and click routing
 storybook-coordinate-contract-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib mouse_point_and_surface_must_share_the_same_coordinate_space -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_hit -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib row_render_and_hit_collector_share_row_layout_contract -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib mouse_point_and_surface_must_share_the_same_coordinate_space -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_hit -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib row_render_and_hit_collector_share_row_layout_contract -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked window_coordinates -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked window_input_uses_kuc_core_mouse_normalizer_for_canvas_space -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked hit_rect_center -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked sidebar_hit_accepts_rendered_toggle_track_bounds_at_retina_scale -- --test-threads=1
 
 storybook-coordinate-contract-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib mouse_point_and_surface_must_share_the_same_coordinate_space -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib mouse_point_and_surface_must_share_the_same_coordinate_space -- --test-threads=1
 
 # Check hover/cursor/highlight contracts through KUC interaction state and KDV Storybook window pixels
 storybook-hover-contract-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib with_hovered_node_id -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib tree_canvas_draws_hover_row_background_from_tree_hovered_id -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib tree_canvas_draws_tree_view_row_hover_border_from_kuc_contract -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib generic_button_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib generic_toggle_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib generic_checkbox_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib settings_toggle_control_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib settings_section_header_hover_draws_kuc_interactive_preset_border -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib generic_text_hover_draws_kuc_hover_background_before_text -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib with_hovered_node_id -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib tree_canvas_draws_hover_row_background_from_tree_hovered_id -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib tree_canvas_draws_tree_view_row_hover_border_from_kuc_contract -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib generic_button_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib generic_toggle_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib generic_checkbox_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib settings_toggle_control_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib settings_section_header_hover_draws_kuc_interactive_preset_border -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib generic_text_hover_draws_kuc_hover_background_before_text -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked hover -- --test-threads=1
 
 storybook-hover-contract-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --lib with_hovered_node_id -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib hover_surface_preserves_viewer_node_geometry_and_semantic_id -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --lib with_hovered_node_id -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib hover_surface_preserves_viewer_node_geometry_and_semantic_id -- --test-threads=1
 
 # Check KDV-owned media controls through KUC host action hit rects
 storybook-media-control-clickability-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_hit -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib ui_tree_canvas_hit -- --test-threads=1
     {{RTK_CMD}}just storybook-media-control-clickability-check-core
 
 storybook-media-control-clickability-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib icon_variant_button_keeps_transparent_base_on_tree_canvas -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_controls_use_katana_icon_preset_by_default -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib every_diagram_control_uses_katana_icon_asset_source -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib katana_stroke_icon_tints_white_stroke_to_requested_color -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_control_icons_can_be_overridden_from_host_config -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib document_viewer -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_controls_keep_katana_min_container_height_for_short_surface -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib icon_variant_button_keeps_transparent_base_on_tree_canvas -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_controls_use_katana_icon_preset_by_default -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib every_diagram_control_uses_katana_icon_asset_source -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib katana_stroke_icon_tints_white_stroke_to_requested_color -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_control_icons_can_be_overridden_from_host_config -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib document_viewer -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_controls_keep_katana_min_container_height_for_short_surface -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked media_control -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked media -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked media_control -- --test-threads=1
@@ -357,12 +361,12 @@ storybook-media-control-clickability-check-core:
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked storybook_window_diagram_controls_survive_continuous_kuc_hit_sequence_without_asset_reload -- --test-threads=1
 
 storybook-media-control-clickability-check-full-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_controls_use_katana_icon_preset_by_default -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib every_diagram_control_uses_katana_icon_asset_source -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib katana_stroke_icon_tints_white_stroke_to_requested_color -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_control_icons_can_be_overridden_from_host_config -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib document_viewer -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib diagram_controls_keep_katana_min_container_height_for_short_surface -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_controls_use_katana_icon_preset_by_default -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib every_diagram_control_uses_katana_icon_asset_source -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib katana_stroke_icon_tints_white_stroke_to_requested_color -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_control_icons_can_be_overridden_from_host_config -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib document_viewer -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib diagram_controls_keep_katana_min_container_height_for_short_surface -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked media_control -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked kuc_default_diagram_control_icons_match_katana_asset_files -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked diagram_control_icons_render_as_katana_glyphs_not_blocky_squares -- --test-threads=1
@@ -378,35 +382,35 @@ storybook-image-control-check:
 
 # Check code blocks render syntax-highlighted body and KDV-owned copy control
 storybook-code-block-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib document_code_block -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib document_code_block -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked planner_uses_export_surface_height_for_multiline_fenced_code -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked media_control_specs_create_host_action_ids -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked code -- --test-threads=1
 
 storybook-code-block-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib document_code_block -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib document_code_block -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked planner_uses_export_surface_height_for_multiline_fenced_code -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked media_control_specs_create_host_action_ids -- --test-threads=1
 
 # Check task checkbox visual contract, KUC hit/action rects, and external state propagation
 storybook-task-checkbox-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib checkbox -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib tree_canvas_renders_context_menu_node_and_returns_item_hit -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib checkbox -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib tree_canvas_renders_context_menu_node_and_returns_item_hit -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked task -- --test-threads=1
 
 storybook-task-checkbox-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib checkbox -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib checkbox -- --test-threads=1
 
 # Check accordion parsing, KUC typed host action, hover, click, and open/close frame changes
 storybook-accordion-check:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test host_action_plan_contract accordion_text_action_exposes_requested_open_without_consumer_inversion -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib accordion -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test host_action_plan_contract accordion_text_action_exposes_requested_open_without_consumer_inversion -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib accordion -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked accordion -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p kdv-storybook --locked accordion -- --test-threads=1
 
 storybook-accordion-check-core:
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core --locked --test host_action_plan_contract accordion_text_action_exposes_requested_open_without_consumer_inversion -- --test-threads=1
-    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO}} test -p katana-ui-core-storybook --locked --lib accordion -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core --locked --test host_action_plan_contract accordion_text_action_exposes_requested_open_without_consumer_inversion -- --test-threads=1
+    cd "{{KUC_ROOT}}" && {{RTK_CMD}}{{CARGO_EXTERNAL}} test -p katana-ui-core-storybook --locked --lib accordion -- --test-threads=1
     {{RTK_CMD}}{{CARGO}} test -p katana-document-viewer --locked accordion -- --test-threads=1
 
 # Check link and footnote commands use rendered KUC text span hits and anchor scroll.

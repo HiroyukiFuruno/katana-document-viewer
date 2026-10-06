@@ -34,6 +34,7 @@ quick-xml = { workspace = true }
 resvg = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 syntect = { workspace = true }
 thiserror = { workspace = true }
 tiny-skia = { workspace = true }
@@ -41,6 +42,7 @@ tracing = { workspace = true }
 skarn-sandbox = { workspace = true }
 tempfile = { workspace = true }
 v8 = { workspace = true }
+which = { workspace = true }
 xmltree = { workspace = true }
 zip = { workspace = true }
 

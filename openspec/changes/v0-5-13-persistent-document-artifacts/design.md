@@ -1,0 +1,17 @@
+# 設計
+
+## 永続artifactの責任
+
+`PersistentDocumentCache` はhostが指定する専用保存先・総容量・environment revisionを受ける。hostは機密入力の保存可否、保存先の所有/アクセス制御、clear/UI方針を決める。KDVはentry単位のチェックサム・容量制限・原子書込・他プロセスとの排他・破損/欠損の明示・clearを提供する。欠損はmiss、破損やI/O/容量超過は型付きerror。暗黙fallbackや安全ゲート緩和は行わない。
+
+内容SHA256、source URI/revision/MIME/format、KDV/schema版、静的リンクされた実host imageの指紋（Linux/Windowsは実executableのSHA256、macOSはdyldが保持するMach-O build UUIDのSHA256）、worker executableのSHA256、worker全config、host environment revisionで変換を無効化する。host imageの指紋はprocess内で再利用し、同じKDV版で描画依存の推移版が変わったdownstream再buildも識別する。renderer limits・page・scaleも描画keyに含む。hostは外部font/viewport/config・外部dynamic module等、host image外の描画環境が変わればenvironment revisionを更新する。決定的Office fontはworker実体のhashで束縛する。cache初期化の実image読込時間もprocess計測へ含める。
+
+`PersistentOfficeViewerSession` / `PersistentPdfViewerSession` は既存sessionを包み、元のsource/ページ/描画制約をcache hit時にも検査する。PDFはgeometry/outline確定のため再decodeするが、変換・rasterを抑制できる。close/dropでsession内memoryを解放し、disk artifactだけをhostが保持する。
+
+描画artifactは長さ付きJSON metadata（RGBA空）と生RGBAを分けて保持し、JSON数値配列の膨張によって制約内の4096×4096ページを拒否しない。Office変換PDFも同じpayload codecでPDF空のmetadataと生PDFへ分ける。長さ・metadata・RGBA形状の破損検査を維持する。本体128MiBとmetadata 1MiBを別々に制限し、prefix 8byteとstore header 72byteも含む有界entry budgetを設ける。総容量は保存物理サイズのまま数え、Officeが許可する128MiB出力を付加情報の分だけ誤って拒否しない。Office変換artifactはPDF decodeとページ制約の検証が成功してから保存し、失敗した出力を後続のcache hitへ残さない。
+
+## 計測
+
+既存DebugTraceを維持し、直接PDFのdecode/raster/encode/frame decodeを独立計測する。独立producer processで取得、open、初回frame、同一process close/reopen、独立restartを区別する。実workerのtraceからconversion/raster再実行の有無を証明する。原本未取得のZIP問題は匿名合法ZIPによる検証と分けて報告する。
+
+macOSでは起動imageのLC_UUIDをロード済みheaderから読み、atomic置換後のpathnameを再openしない。Apple linkerは既定で出力内容hashからUUIDを生成するため、静的描画依存を含む通常の再buildを識別し、ASLRや署名更新に影響されずprocess再起動でも再利用できる。UUID欠損・ゼロ・不正load commandは明示I/O InvalidDataとし、別imageへのfallbackは行わない。custom linkerを使うhostも内容が変わるbuildに固有UUIDを生成する。保存場所は構築時に絶対pathへ固定し、その後のprocess cwd変更に追従させない。
