@@ -81,3 +81,12 @@ RGBAと変換PDFで長さ付きmetadataと生バイトを共通payload codecへ�
 追加reviewの任意directory名とCargo `--target-dir`両形式を修正。repo root・外部・外部symlinkの拒否を維持し、test binaryの `--` 以降はtarget optionとして扱わない。実ephemeral Cargoのbuild→閾値超過clean→再buildを両形式で検証。`tmp/pr68-target-dir-guard-tests.log` 27件・`tmp/pr68-target-dir-guard-ast.log` ASTはいずれも終了0。Rust source/dependency graph変更なし。
 
 任意名targetを許可する安全レビューで、source/.gitにCargo tagがある場合の誤整理リスクを検出した。Git管理領域・tracked sourceを含むtarget・crate manifest・nongit crateのsrcを拒否する境界を追加。実Git tracked source拒否と、tagged nongit srcのwrapper拒否/源ファイル保持を確認。標準justのpatternに新helper回帰を含め、`tmp/pr68-source-ownership-tests.log`32件と`tmp/pr68-source-ownership-final-ast.log`はいずれも終了0。Rustsource/graphは変更なし。
+
+
+## PATH指定Office workerの追加レビュー対応
+
+裸のworker名はwhich 8.0.6で実行可能ファイルへ解決し、明示相対pathはcwdへ束縛する。解決した同一の絶対pathをhashと実worker起動へ渡し、探索失敗はNotFoundとして返す。XLSX Unsupported判定の順序は維持した。既存の絶対path契約に加えて、実DOCX workerのPATH指定cold変換・独立process restart hitを確認した。cache単体54件、実process契約3件（child専用entrypointは親から起動）、ASTがPASS。手動検査の初回はRUSTFLAGS未指定で中断したため、正しい既存profileで再実行した成功ログを根拠にする。
+
+最終source/graphの `just VERSION=0.5.13 JOBS=2 release-check` は終了0。全既存lint/AST/test/score/semver196項目、3799関数・31286行100%、version/package/publish dry-run/未公開版確認がPASS。証跡: `tmp/pr68-path-worker-release-check.log`、RTK tee1791289754_just_coverage.log。PATH単体/実processは `tmp/pr68-path-worker-unit.log` / `tmp/pr68-path-worker-process-correct-profile.log`。read-only自己レビューに具体的な追加欠陥なし。公開KRR0.4.23での準備検査であり、最終KRR graphのリリース証跡とはしない。
+
+容量guard32件は8afdd69aのUbuntu/macOS/Windows全CIで成功した。40GiB（約2build分）を超える場合だけ通常build前に整理する契約を維持。KatanAのmaintenance/coverage導線を読み、専用coverage targetの分離を参考にした。KatanA側に容量閾値の仕組みはなく、KDVで所有範囲・source保護・排他・使用中保護を追加した。

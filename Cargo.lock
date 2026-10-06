@@ -2511,6 +2511,7 @@ dependencies = [
  "toml 1.1.6+spec-1.1.0",
  "tracing",
  "v8",
+ "which 8.0.6",
  "xmltree",
  "zip 8.6.0",
 ]
@@ -5854,7 +5855,7 @@ dependencies = [
  "miniz_oxide 0.8.9",
  "paste",
  "temporal_capi",
- "which",
+ "which 6.0.3",
 ]
 
 [[package]]
@@ -6185,6 +6186,15 @@ dependencies = [
  "home",
  "rustix 0.38.44",
  "winsafe",
+]
+
+[[package]]
+name = "which"
+version = "8.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bae2f2b2b816647a1cab1acc91f5bd20812d53cb344382635ec2181940c8034f"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

@@ -2,12 +2,16 @@ use super::PersistentDocumentCache;
 use crate::multi_format::{BinaryDocumentSource, OfficeDocumentSource, OfficeWorkerConfig};
 use sha2::{Digest, Sha256};
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 static ENGINE_REVISION: OnceLock<String> = OnceLock::new();
 
 pub(super) struct CacheKey;
+
+#[cfg(test)]
+#[path = "persistent_cache_key_tests.rs"]
+mod tests;
 
 impl CacheKey {
     pub(super) fn digest(bytes: &[u8]) -> String {
@@ -41,9 +45,19 @@ impl CacheKey {
         let settings = format!(
             "{:?}:{config:?}:{}",
             (&source.identity, source.format, &source.mime),
-            Self::executable_digest(&config.executable)?
+            Self::executable_digest(&Self::resolve_executable(&config.executable)?)?
         );
         Ok(Self::document(cache, &source.bytes, &settings))
+    }
+
+    pub(super) fn resolve_executable(path: &Path) -> Result<PathBuf, std::io::Error> {
+        if path.is_absolute() {
+            return Ok(path.to_path_buf());
+        }
+        if path.components().count() > 1 {
+            return std::env::current_dir().map(|directory| directory.join(path));
+        }
+        which::which(path).map_err(|error| std::io::Error::new(std::io::ErrorKind::NotFound, error))
     }
 
     pub(super) fn executable_digest(path: &Path) -> Result<String, std::io::Error> {

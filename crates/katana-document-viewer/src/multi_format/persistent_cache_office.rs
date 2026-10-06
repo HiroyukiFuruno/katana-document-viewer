@@ -26,7 +26,7 @@ struct ConversionArtifactRef<'a> {
 impl PersistentOfficeViewerSession {
     pub fn open(
         source: OfficeDocumentSource,
-        config: OfficeWorkerConfig,
+        mut config: OfficeWorkerConfig,
         cache: PersistentDocumentCache,
     ) -> Result<Self, PersistentCacheError> {
         if source.format == crate::multi_format::OfficeDocumentFormat::Xlsx {
@@ -34,6 +34,7 @@ impl PersistentOfficeViewerSession {
                 crate::multi_format::OfficeWorkerError::UnsupportedFormat(source.format).into(),
             );
         }
+        config.executable = CacheKey::resolve_executable(&config.executable)?;
         let trace =
             crate::multi_format::office_worker_parent::trace::start_trace_session(&source.identity);
         let _scope = trace.map(crate::multi_format::debug_trace::DebugTrace::session);

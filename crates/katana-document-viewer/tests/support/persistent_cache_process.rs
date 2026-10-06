@@ -9,6 +9,7 @@ use std::time::Instant;
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 const PDF: &[u8] = include_bytes!("../../../../assets/reference/katana/pdf/sample.pdf");
 const EXTERNAL_INPUT_ENV: &str = "KDV_CACHE_INPUT";
+const WORKER_NAME_ENV: &str = "KDV_CACHE_WORKER_NAME";
 
 pub fn run() -> TestResult {
     let root = PathBuf::from(std::env::var("KDV_CACHE_ROOT")?);
@@ -107,7 +108,10 @@ fn office_step(
     cache: PersistentDocumentCache,
     hit: bool,
 ) -> TestResult {
-    let config = OfficeWorkerConfig::new(PathBuf::from(env!("CARGO_BIN_EXE_kdv-office-worker")));
+    let executable = std::env::var_os(WORKER_NAME_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_kdv-office-worker")));
+    let config = OfficeWorkerConfig::new(executable);
     let mut session = PersistentOfficeViewerSession::open(source, config, cache)?;
     assert_eq!(hit, session.conversion_cache_hit());
     assert!(session.artifact().item_count > 0);
