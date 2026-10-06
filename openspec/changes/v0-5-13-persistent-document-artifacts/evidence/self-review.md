@@ -106,3 +106,11 @@ fe1c349bの3OS CI37469059929は成功（PATH worker解決を含む直前source�
 Linuxで実行中imageのatomic置換後も旧processから指紋を読めるよう、/proc/self/exeから同じ実行imageを取得する。更新後pathへのfallbackはしない。他OSの取得経路と明示IOerrorは維持。実行binaryのhardlinkを起動し、そのpathをatomic置換する独立子process回帰を追加した。macOSのcache単体55件とfmtは終了0。Linux実回帰は次のexact HEAD CIで回収するまで未完。
 
 全release-check14641は終了0、3800関数/31293行100%、全既存品質/semver196/package/publish dry-run/未公開確認PASS（tmp/pr68-running-image-release-check.log、RTK tee1791301114_just_coverage.log）。その実行後半にPython/CIのみ追加修正: Ubuntu32d CIのcoverage開始時、復元targetに所有タグがなくguardが終了2。Cargo既知issue12441の既存directoryタグ未生成に一致するため、新規/空のsource-free targetだけを初期化し、CIではcache復元前に実行する。非空の未知directoryは所有扱いしない。新標準37回帰とAST終了0（tmp/pr68-empty-target-final-tests.log / tmp/pr68-running-image-empty-target-ast.log）。Python最新差分は通常pushの全checkと次の3OS CIで再確認する。元32d CIはfailureであり成功と扱わない。
+
+## 239a0757追加レビュー対応（macOS実回帰PASS）
+
+- Macimage: dyldのロード済み起動Mach-OからLC_UUIDを読みSHA256指紋にする。Apple linkerは既定で出力内容hashからUUIDを生成し、静的描画依存を含む再buildを識別する。ASLR/path置換に依存せず、別imageへのfallbackなし。UUID欠損・ゼロ・不正load commandはIo InvalidData。SDK公開C ABIのopaque headerから64bit load commandsを読む。libcの古いMachヘッダ型はdeprecatedでstrict警告になったため使わず、依存追加・allowは行わない。
+- root: 構築時のstd::path::absoluteへ固定する。独立子processでcwdを変更し、load/save/clearが元rootへ作用し、移動先の同名directoryの無関係なregular fileを保持することを確認。
+- 実binaryをコピーして起動後にatomic置換するMac/Linux回帰。nativeMac単体58 PASS、子専用2 entrypointは親から実起動し成功を確認。final tmp/pr68-mac-image-root-final-tests.log EXIT0。Windowsのcanonical path prefixを考慮し、テスト比較はabsolute属性とcanonicalized physical directoryの一致を確認する。最初のnative58 PASS後、full gate終了後にこのtest-only比較を整えて再検証した。
+- full68512 release-check EXIT0: 全品質/semver196/3805関数31333行100%/package/publish dry-run/未公開確認。tmp/pr68-mac-image-root-release-check.log / RTK tee1791305860_just_coverage.log。この後の変更は上記test-only比較で、production source/graph/coverage対象は不変。最新test/fmt/ASTと通常push全check、次のexact3OSで追跡する。
+- 239a0757 CI37494294516全3OS SUCCESS。容量37件すべて成功、UbuntuでLinux atomic置換回帰がworkspace/coverage両方で成功（3808関数31313行100%）。Linuxthread4196940044へreply4198304556/resolve、fresh18threadの未対応はMac4197800571とrelative root4197800580の2件のみ。Mac/rootの最終HEADは公開・freshreview/CI回収まで未完。

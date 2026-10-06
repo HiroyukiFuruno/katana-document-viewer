@@ -4,7 +4,7 @@
 
 `PersistentDocumentCache` はhostが指定する専用保存先・総容量・environment revisionを受ける。hostは機密入力の保存可否、保存先の所有/アクセス制御、clear/UI方針を決める。KDVはentry単位のチェックサム・容量制限・原子書込・他プロセスとの排他・破損/欠損の明示・clearを提供する。欠損はmiss、破損やI/O/容量超過は型付きerror。暗黙fallbackや安全ゲート緩和は行わない。
 
-内容SHA256、source URI/revision/MIME/format、KDV/schema版、静的リンクされた実host executableのSHA256、worker executableのSHA256、worker全config、host environment revisionで変換を無効化する。host imageのSHA256はprocess内で再利用し、同じKDV版で描画依存の推移版が変わったdownstream再buildも識別する。renderer limits・page・scaleも描画keyに含む。hostは外部font/viewport/config・外部dynamic module等、host image外の描画環境が変わればenvironment revisionを更新する。決定的Office fontはworker実体のhashで束縛する。cache初期化の実image読込時間もprocess計測へ含める。
+内容SHA256、source URI/revision/MIME/format、KDV/schema版、静的リンクされた実host imageの指紋（Linux/Windowsは実executableのSHA256、macOSはdyldが保持するMach-O build UUIDのSHA256）、worker executableのSHA256、worker全config、host environment revisionで変換を無効化する。host imageの指紋はprocess内で再利用し、同じKDV版で描画依存の推移版が変わったdownstream再buildも識別する。renderer limits・page・scaleも描画keyに含む。hostは外部font/viewport/config・外部dynamic module等、host image外の描画環境が変わればenvironment revisionを更新する。決定的Office fontはworker実体のhashで束縛する。cache初期化の実image読込時間もprocess計測へ含める。
 
 `PersistentOfficeViewerSession` / `PersistentPdfViewerSession` は既存sessionを包み、元のsource/ページ/描画制約をcache hit時にも検査する。PDFはgeometry/outline確定のため再decodeするが、変換・rasterを抑制できる。close/dropでsession内memoryを解放し、disk artifactだけをhostが保持する。
 
@@ -13,3 +13,5 @@
 ## 計測
 
 既存DebugTraceを維持し、直接PDFのdecode/raster/encode/frame decodeを独立計測する。独立producer processで取得、open、初回frame、同一process close/reopen、独立restartを区別する。実workerのtraceからconversion/raster再実行の有無を証明する。原本未取得のZIP問題は匿名合法ZIPによる検証と分けて報告する。
+
+macOSでは起動imageのLC_UUIDをロード済みheaderから読み、atomic置換後のpathnameを再openしない。Apple linkerは既定で出力内容hashからUUIDを生成するため、静的描画依存を含む通常の再buildを識別し、ASLRや署名更新に影響されずprocess再起動でも再利用できる。UUID欠損・ゼロ・不正load commandは明示I/O InvalidDataとし、別imageへのfallbackは行わない。custom linkerを使うhostも内容が変わるbuildに固有UUIDを生成する。保存場所は構築時に絶対pathへ固定し、その後のprocess cwd変更に追従させない。

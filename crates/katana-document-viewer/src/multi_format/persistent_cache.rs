@@ -54,6 +54,10 @@ mod budget_tests;
 #[path = "persistent_cache_engine_tests.rs"]
 mod engine_tests;
 
+#[cfg(test)]
+#[path = "persistent_cache_root_tests.rs"]
+mod root_tests;
+
 impl PersistentDocumentCache {
     /// 実行imageの指紋はprocess内で共有し、静的リンクされた描画依存の更新を識別する。
     /// environment_revisionはfont・設定・外部dynamic moduleの変更時にhostが更新する。
@@ -69,7 +73,7 @@ impl PersistentDocumentCache {
             return Err(PersistentCacheError::InvalidEnvironmentRevision);
         }
         let cache = Self {
-            root,
+            root: std::path::absolute(root)?,
             max_bytes,
             environment_revision,
             engine_revision: key::CacheKey::engine_revision()?,
