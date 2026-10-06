@@ -79,7 +79,11 @@ impl CacheKey {
             return Ok(revision.clone());
         }
         // downstreamで再解決された描画依存も、実際にリンクされたimageから識別する。
-        let revision = Self::executable_digest(&std::env::current_exe()?)?;
+        #[cfg(target_os = "linux")]
+        let image = Path::new("/proc/self/exe").to_path_buf();
+        #[cfg(not(target_os = "linux"))]
+        let image = std::env::current_exe()?;
+        let revision = Self::executable_digest(&image)?;
         let _ = ENGINE_REVISION.set(revision.clone());
         Ok(revision)
     }
