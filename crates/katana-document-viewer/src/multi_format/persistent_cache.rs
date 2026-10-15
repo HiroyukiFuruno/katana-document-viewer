@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+#[path = "persistent_cache_directory.rs"]
+mod directory;
 #[path = "persistent_cache_key.rs"]
 mod key;
 #[path = "persistent_cache_payload_codec.rs"]
@@ -11,6 +13,8 @@ mod root_identity;
 mod sessions;
 #[path = "persistent_cache_store.rs"]
 mod store;
+#[path = "persistent_cache_temporary.rs"]
+mod temporary;
 pub use sessions::{PersistentOfficeViewerSession, PersistentPdfViewerSession};
 
 #[derive(Debug, Error)]

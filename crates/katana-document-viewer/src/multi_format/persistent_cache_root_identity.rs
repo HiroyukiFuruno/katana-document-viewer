@@ -2,7 +2,10 @@ use super::PersistentCacheError;
 use std::{fs::File, path::Path, sync::Arc};
 
 #[derive(Debug, Clone)]
-pub(super) struct DirectoryIdentity(Arc<File>);
+pub(super) struct DirectoryIdentity {
+    file: Arc<File>,
+    directory: Arc<cap_std::fs::Dir>,
+}
 
 impl DirectoryIdentity {
     pub(super) fn new(root: &Path) -> Result<Self, PersistentCacheError> {
@@ -10,12 +13,21 @@ impl DirectoryIdentity {
         if !metadata.is_dir() || metadata.file_type().is_symlink() {
             return Err(PersistentCacheError::UnsafeDirectory);
         }
-        Ok(Self(Arc::new(open_directory(root)?)))
+        let directory = cap_std::fs::Dir::open_ambient_dir(root, cap_std::ambient_authority())?;
+        let file = directory.try_clone()?.into_std_file();
+        Ok(Self {
+            file: Arc::new(file),
+            directory: Arc::new(directory),
+        })
+    }
+
+    pub(super) fn directory(&self) -> &cap_std::fs::Dir {
+        &self.directory
     }
 
     pub(super) fn validate(&self, root: &Path) -> Result<(), PersistentCacheError> {
         let current = Self::new(root)?;
-        if identity(&self.0)? != identity(&current.0)? {
+        if identity(&self.file)? != identity(&current.file)? {
             return Err(PersistentCacheError::UnsafeDirectory);
         }
         Ok(())
@@ -23,25 +35,10 @@ impl DirectoryIdentity {
 }
 
 #[cfg(unix)]
-fn open_directory(root: &Path) -> std::io::Result<File> {
-    File::open(root)
-}
-
-#[cfg(unix)]
 fn identity(file: &File) -> std::io::Result<(u64, u64)> {
     use std::os::unix::fs::MetadataExt;
     let metadata = file.metadata()?;
     Ok((metadata.dev(), metadata.ino()))
-}
-
-#[cfg(windows)]
-fn open_directory(root: &Path) -> std::io::Result<File> {
-    use std::os::windows::fs::OpenOptionsExt;
-    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_BACKUP_SEMANTICS;
-    std::fs::OpenOptions::new()
-        .read(true)
-        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
-        .open(root)
 }
 
 #[cfg(windows)]

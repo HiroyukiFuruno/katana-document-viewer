@@ -12,3 +12,7 @@ PATH worker解決には公開registryのwhich8.0.6を直接採用（MSRV1.70はw
 ## 2026-10-15 zip 9と公開前先行検査
 
 ユーザー実行の依存更新でzip9.0.2と推移25件を採用。ZipFile::nameのResult<Cow<str>>を既存のarchive/engineエラーへ伝播し、production2箇所・fixture5箇所を移行した。安全制約・公開API・期待値・ゲート変更なし。更新graphでcheckとrelease-checkがともにEXIT0。3805関数/31335行100%、semver196 PASS、package951files/publish dry-run/未公開確認成功。macOS package linkerにcompact unwindのサイズ警告あり。公開KRRはRelease/registryとも0.4.23で、最終リリースは修正版公開後に取込・再検査する。
+
+## root競合対策のcapability依存
+
+公開registry cap-std4.0.3を追加し、cap-primitives/fs-set-times/io-extras/io-lifetimes/ipnet/maybe-owned/rustix-linux-procfs/winx/ambient-authorityの追加lock11件を確認。既存依存の無関係更新は行わず、Dir相対I/OとWindows no-delete-shareを使用する。Windows実体比較は既にgraph内のwindows-sys0.61.2を直接指定し128bit FILE_ID_INFOを使用。通常check・semver196・3823関数31449行100%・package/publishdryrunで採用を確認。公開KRRは再確認でも0.4.23、修正版待ちは維持。

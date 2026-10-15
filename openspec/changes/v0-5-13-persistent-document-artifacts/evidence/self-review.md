@@ -132,3 +132,13 @@ thread4285094776: PDF disk保存失敗時にlive LRUを破棄し元のerrorを�
 thread4285688056: 構築時のdirectory handleをArcで保持し、操作前・lock取得後にpathnameの非symlink性と実体を照合する。Unixはdev/inode、WindowsはFILE_ID_INFOのvolumeと128bit IDを使用し、保持handleにより旧inodeの再利用も避ける。別directory・symlinkへの置換をload/save/used_bytes/clearすべてUnsafeDirectoryで拒否し、無関係ファイルと元entryを保持、元directory復元後は再利用する実filesystem回帰を追加した。Windows API/feature/rename共有は独立静的レビューでも確認。レビュー提案の「saved identity + 各操作で検証」を採用した。操作途中にhost自身がnamespaceを並行置換するTOCTOUまで原子的に防ぐdir-handle相対I/Oは今回実装しておらず、その保証は主張しない（host所有の専用directory契約）。
 
 cache62件/AST成功。全release-check99551 EXIT0、3813関数31390行100%、semver196PASS、package955files15.2MiB/publishdryrun/unpublished成功。ログtmp/pr68-root-identity-release-check.log、coverage原文RTK tee1792084010_just_coverage.log。KRR0.4.23準備graphであり最終取込後の検査は別。修正公開後にthread返信/resolve・fresh review/3OS CI/preflightを回収する。
+
+## root操作中の置換に対するDir相対I/O
+
+thread4286251959: 51a534a2の直前identity検証だけでは操作中のroot置換を防げないため、cap-std4.0.3の保持Dirへ全load/save/lock/used_bytes/clearを固定した。Unixでlock取得後にrootをrename・別directoryへ置換し、同じlocked処理の読込/保存/列挙/clearが元実体だけへ作用して無関係keepを保持する決定的な実回帰を追加。WindowsのDirはFILE_SHARE_DELETEなしで開くためrename自体を拒否し、cache継続利用を確認する回帰を追加。元root復元とpublic入口のUnsafeDirectory拒否も維持する。
+
+一時名生成だけtempfile Builderを使い、実作成はDir相対create_new・Unix0600。write/sync後に同Dirのhard_linkで既存先を上書きせず公開、file close後にDir相対cleanupする。既存先への公開失敗で内容とentry数が不変、readonly lock/Unix readonly directoryでI/O errorかつ内容不変・残骸なしを確認。staticレビューは実I/Oのambient pathname残存なし、Windows share/cleanup・可視性整合を確認。初回ambient capability取得より前のhost側namespace選択はconstructorの入力取得であり、構築後のroot差替えに追従する処理は残さない。
+
+全通常check・semver196はtmp/pr68-anchored-directory-release-check-final.logで成功。最初のcoverageは新I/O error2行未到達で停止し、production/graphを変更せず上記の実権限回帰だけを追加した。cache65件EXIT0(tmp/pr68-anchored-permissions-tests.log)、AST74286 EXIT0、厳格just coverage68445 EXIT0で3823関数31449行100%に復旧(tmp/pr68-anchored-directory-coverage-final.log)。残りのrelease-verify工程を同じproduction/graphで再開し、package957files15.2MiB、publishdryrun、未公開確認43881 EXIT0(tmp/pr68-anchored-directory-publish-precheck.log)。ゲート/除外/閾値の変更なし。最新testsを含む通常pushの全checkとfreshreview/3OS CIは次工程で回収する。
+
+途中の共有空き9.8GiBに対し、通常テスト完了後のown justを工程境界で一時停止し子processなしを確認、KDVの使用済みdev生成物だけcargo cleanして34.3GiB回収、空き41GiBで同processを再開した。他repo/source編集なし、通常40GiB閾値は不変。tmp/pr68-disk-pressure-clean.log。
