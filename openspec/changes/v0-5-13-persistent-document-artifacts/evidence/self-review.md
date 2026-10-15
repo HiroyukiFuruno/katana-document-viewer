@@ -122,3 +122,7 @@ PR68 thread4283771319: prepare後canonicalizeし構築時の物理rootへ固定�
 ## live worker無効化 / Cargo -C
 
 thread4284455689: memory hitより前にworkerSHA256を照合し、変更時はPdfPageCacheを破棄してresource metricsも解放。描画missでは検証・保存が終わるまでrevision未確定として、失敗した描画を次回LRUで誤採用しない。実同session旧→新→rollbackを2件の実worker回帰で検証、cache59件/AST成功。thread4284455700: Cargo -C/attached指定を解釈し相対CLI/env targetを変更後cwdへ結合、所有範囲検査は維持。42件成功、モックは単体テスト専用、実Cargo統合テスト維持。統合後release-check99145 EXIT0、3809関数31360行100%、semver196 PASS、package952files/publishdryrun/unpublished成功。ログtmp/pr68-live-cargo-c-release-check.log / RTK tee1792077201_just_coverage.log。KRR取込後の最終検査を代用しない。
+
+## PDF保存失敗再試行 / Office変換中worker更新
+
+thread4285094776: PDF disk保存失敗時にlive LRUを破棄し元のerrorを返す。容量1byte不足で同session2回Capacity、clear後missで保存しrestart hitとなる実filesystem回帰を追加。thread4285094789: 変換出力取得後（cache hit/miss両方）にworker依存キーを再計算し、開始時と異なれば保存/返却前にIoエラー。実worker変更後のrollbackも旧keyを汚染しない回帰を追加。実worker3件/キャッシュ60件成功。ASTのfile200行制限に合わせretry専用テストmoduleへ分離しAST成功。全release-check57473 EXIT0、3809関数31365行100%、semver196PASS、package953files/publishdryrun/unpublished成功。ログtmp/pr68-retry-conversion-release-check.log、coverage原文RTK tee1792080591_just_coverage.log。KRR0.4.23準備graphであり最終取込後の検査は別。

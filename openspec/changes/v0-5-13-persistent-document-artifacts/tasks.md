@@ -45,3 +45,5 @@
 - [x] PR68 P2のroot祖先symlink固定と描画worker指紋結合を実装する。rootはprepare後canonicalize、workerは描画時SHA256をpage keyへ含め前後変更時は保存拒否。実worker更新/rollback2件とcache単体59件成功。全ゲート・reply/resolve・fresh確認は2.2で追跡。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68の追加P2: worker更新時にlive LRUを破棄し、memory hit前にも指紋を照合する。実同session更新/rollback2件・cache59件・AST成功。Cargo-C後の相対target/env解釈は42回帰成功。全品質/currentreview/replyresolveは2.2で追跡。delegation-exception: `直列のクリティカルパス`。
+
+- [x] PR68 P2: PDF保存失敗のlive hit化を防ぎ、容量確保後の同session再保存とrestart hitを実回帰する。Office変換完了後もworker依存キーを再確認し、変換中変更/rollback時の誤hitを拒否する。実worker3件・cache60件成功、ASTファイル分割と全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。

@@ -23,6 +23,8 @@ fn replace_worker(path: &Path, revision: &str, mutate_during_render: bool) -> Te
     let binary = env!("CARGO_BIN_EXE_kdv-office-worker");
     let mutation = if mutate_during_render {
         "if [ \"$2\" = pdf-raster ]; then printf '\\n# changed during raster\\n' >> \"$0\"; fi\n"
+    } else if revision == "conversion-changing" {
+        "if [ \"$2\" = docx ]; then printf '\\n# changed during conversion\\n' >> \"$0\"; fi\n"
     } else {
         ""
     };
@@ -31,6 +33,27 @@ fn replace_worker(path: &Path, revision: &str, mutate_during_render: bool) -> Te
     std::fs::write(&replacement, script)?;
     std::fs::set_permissions(&replacement, std::fs::Permissions::from_mode(0o700))?;
     std::fs::rename(replacement, path)?;
+    Ok(())
+}
+
+#[test]
+fn worker_change_during_conversion_is_not_persisted_for_rollback() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let worker = root.path().join("worker");
+    let cache = PersistentDocumentCache::new(root.path().join("cache"), 128 << 20, "env".into())?;
+    let config = OfficeWorkerConfig::new(worker.clone());
+    for _ in 0..2 {
+        replace_worker(&worker, "conversion-changing", false)?;
+        assert!(matches!(
+            PersistentOfficeViewerSession::open(source(), config.clone(), cache.clone()),
+            Err(PersistentCacheError::Io(_))
+        ));
+    }
+    for entry in std::fs::read_dir(cache.directory())? {
+        assert_eq!(".lock", entry?.file_name());
+    }
+    replace_worker(&worker, "stable", false)?;
+    assert!(!PersistentOfficeViewerSession::open(source(), config, cache)?.conversion_cache_hit());
     Ok(())
 }
 

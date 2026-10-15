@@ -140,17 +140,21 @@ impl ConversionArtifact {
         source: &OfficeDocumentSource,
         config: &OfficeWorkerConfig,
     ) -> Result<(OfficeWorkerOutput, bool), PersistentCacheError> {
-        if let Some(bytes) = cache.load(key)? {
+        let output = if let Some(bytes) = cache.load(key)? {
             crate::multi_format::OfficePackagePreflight::inspect(source, config.preflight_limits)
                 .map_err(crate::multi_format::OfficeWorkerError::from)?;
             let artifact = Self::decode(&bytes)?;
             if artifact.pdf.len() as u64 > config.max_output_bytes {
                 return Err(PersistentCacheError::Capacity);
             }
-            return Ok((artifact.into_output(), true));
+            (artifact.into_output(), true)
+        } else {
+            (OfficeWorkerRunner::convert(source, config)?, false)
+        };
+        if key != CacheKey::office(cache, source, config)? {
+            return Err(std::io::Error::other("office worker changed during conversion").into());
         }
-        let output = OfficeWorkerRunner::convert(source, config)?;
-        Ok((output, false))
+        Ok(output)
     }
 
     fn encode(output: &OfficeWorkerOutput) -> Result<Vec<u8>, PersistentCacheError> {

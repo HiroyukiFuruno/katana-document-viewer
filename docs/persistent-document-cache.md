@@ -17,3 +17,5 @@ KDVは本体128MiB・metadata 1MiBの上限を強制し、prefix 8byteとheader 
 書込中のprocess強制終了で残ったtemporary fileも容量に含む。容量不足時にはhostが `clear()` を実行して残存fileも除去できる。内容を自動削除するevictionや、hostの許可なしの再変換は行わない。
 
 独立プロセス回帰は `persistent_cache_contract`。実workerを使ったPDF/DOCX/PPTXのcold、同一process close/reopen、独立process restart、およびrevision変更時missを検証し、restartのconversion/raster再実行がないことをtraceで確認する。元のsource/preflight/ページ/描画制約はhit時にも適用する。
+
+Office変換も出力取得後にworkerを含むキーを再計算し、開始時と異なる場合は変換結果の保存・cache hit返却をI/Oエラーで拒否する。PDFページの永続保存が失敗した場合はlive LRUからも破棄し、同sessionでの再試行に保存処理と型付きエラーを適用する。空き容量確保後は再試行で保存できる。
