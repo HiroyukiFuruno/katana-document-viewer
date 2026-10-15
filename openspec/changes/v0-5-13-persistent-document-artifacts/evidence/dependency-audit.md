@@ -8,3 +8,7 @@
 - `cargo outdated --workspace --aggressive --depth 1 --exit-code 0` もAll dependencies are up to date。現在の公開direct major候補はなく、推移graphはworkspace updateで更新候補0件。最終KRR版公開後にlock graphを再評価する。
 
 PATH worker解決には公開registryのwhich8.0.6を直接採用（MSRV1.70はworkspace1.95.0以下）。既存V8 buildのwhich6.0.3はそのままで、lockの追加はwhich8.0.6の1packageだけ。他dependencyの更新なし。bare executableだけ実体へ解決し、同じ絶対pathをhashとspawnへ束縛する。直接file hashの既存契約を保持する。最終graphの全品質ゲートで採用可否を判定する。
+
+## 2026-10-15 zip 9と公開前先行検査
+
+ユーザー実行の依存更新でzip9.0.2と推移25件を採用。ZipFile::nameのResult<Cow<str>>を既存のarchive/engineエラーへ伝播し、production2箇所・fixture5箇所を移行した。安全制約・公開API・期待値・ゲート変更なし。更新graphでcheckとrelease-checkがともにEXIT0。3805関数/31335行100%、semver196 PASS、package951files/publish dry-run/未公開確認成功。macOS package linkerにcompact unwindのサイズ警告あり。公開KRRはRelease/registryとも0.4.23で、最終リリースは修正版公開後に取込・再検査する。

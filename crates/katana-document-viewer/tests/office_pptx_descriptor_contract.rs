@@ -24,7 +24,7 @@ fn streaming_pptx(compression: zip::CompressionMethod) -> TestResult<OfficeDocum
     let mut writer = zip::ZipWriter::new_stream(Vec::new());
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes)?;
         writer.start_file(

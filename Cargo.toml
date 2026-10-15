@@ -23,7 +23,7 @@ tracing = "0.1"
 quick-xml = "0.42"
 rappct = "=0.13.3"
 rlimit = "0.11"
-zip = { version = "8.6", default-features = false, features = ["deflate"] }
+zip = { version = "9.0", default-features = false, features = ["deflate"] }
 katana-markdown-model = "0.2.3"
 katana-render-runtime = "0.4.23"
 katana-ui-core = { version = "=0.4.1", features = ["raster-host"] }

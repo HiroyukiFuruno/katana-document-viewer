@@ -40,7 +40,7 @@ fn title_pptx(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
     );
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes)?;
         if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") {
