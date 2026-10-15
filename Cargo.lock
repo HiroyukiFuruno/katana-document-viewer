@@ -2512,6 +2512,7 @@ dependencies = [
  "tracing",
  "v8",
  "which 8.0.6",
+ "windows-sys 0.61.2",
  "xmltree",
  "zip 9.0.2",
 ]

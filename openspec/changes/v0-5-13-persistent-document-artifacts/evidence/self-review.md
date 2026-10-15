@@ -126,3 +126,9 @@ thread4284455689: memory hitより前にworkerSHA256を照合し、変更時はP
 ## PDF保存失敗再試行 / Office変換中worker更新
 
 thread4285094776: PDF disk保存失敗時にlive LRUを破棄し元のerrorを返す。容量1byte不足で同session2回Capacity、clear後missで保存しrestart hitとなる実filesystem回帰を追加。thread4285094789: 変換出力取得後（cache hit/miss両方）にworker依存キーを再計算し、開始時と異なれば保存/返却前にIoエラー。実worker変更後のrollbackも旧keyを汚染しない回帰を追加。実worker3件/キャッシュ60件成功。ASTのfile200行制限に合わせretry専用テストmoduleへ分離しAST成功。全release-check57473 EXIT0、3809関数31365行100%、semver196PASS、package953files/publishdryrun/unpublished成功。ログtmp/pr68-retry-conversion-release-check.log、coverage原文RTK tee1792080591_just_coverage.log。KRR0.4.23準備graphであり最終取込後の検査は別。
+
+## root実体の置換検出
+
+thread4285688056: 構築時のdirectory handleをArcで保持し、操作前・lock取得後にpathnameの非symlink性と実体を照合する。Unixはdev/inode、WindowsはFILE_ID_INFOのvolumeと128bit IDを使用し、保持handleにより旧inodeの再利用も避ける。別directory・symlinkへの置換をload/save/used_bytes/clearすべてUnsafeDirectoryで拒否し、無関係ファイルと元entryを保持、元directory復元後は再利用する実filesystem回帰を追加した。Windows API/feature/rename共有は独立静的レビューでも確認。レビュー提案の「saved identity + 各操作で検証」を採用した。操作途中にhost自身がnamespaceを並行置換するTOCTOUまで原子的に防ぐdir-handle相対I/Oは今回実装しておらず、その保証は主張しない（host所有の専用directory契約）。
+
+cache62件/AST成功。全release-check99551 EXIT0、3813関数31390行100%、semver196PASS、package955files15.2MiB/publishdryrun/unpublished成功。ログtmp/pr68-root-identity-release-check.log、coverage原文RTK tee1792084010_just_coverage.log。KRR0.4.23準備graphであり最終取込後の検査は別。修正公開後にthread返信/resolve・fresh review/3OS CI/preflightを回収する。

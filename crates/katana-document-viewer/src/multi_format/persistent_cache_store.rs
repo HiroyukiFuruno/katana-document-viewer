@@ -11,21 +11,22 @@ const MAX_ARTIFACT_BYTES: u64 = super::payload_codec::MAX_PAYLOAD_BYTES as u64
     + HEADER_BYTES;
 
 impl PersistentDocumentCache {
-    pub(super) fn prepare(&self) -> Result<(), PersistentCacheError> {
-        std::fs::create_dir_all(&self.root)?;
-        let metadata = std::fs::symlink_metadata(&self.root)?;
+    pub(super) fn prepare(root: &std::path::Path) -> Result<(), PersistentCacheError> {
+        std::fs::create_dir_all(root)?;
+        let metadata = std::fs::symlink_metadata(root)?;
         if !metadata.is_dir() || metadata.file_type().is_symlink() {
             return Err(PersistentCacheError::UnsafeDirectory);
         }
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&self.root, std::fs::Permissions::from_mode(0o700))?;
+            std::fs::set_permissions(root, std::fs::Permissions::from_mode(0o700))?;
         }
         Ok(())
     }
 
     fn lock(&self) -> Result<File, PersistentCacheError> {
+        self.root_identity.validate(&self.root)?;
         let path = self.root.join(".lock");
         if path
             .symlink_metadata()
@@ -40,6 +41,7 @@ impl PersistentDocumentCache {
             .write(true)
             .open(path)?;
         file.lock()?;
+        self.root_identity.validate(&self.root)?;
         Ok(file)
     }
 
@@ -125,6 +127,7 @@ impl PersistentDocumentCache {
     }
 
     pub fn used_bytes(&self) -> Result<u64, PersistentCacheError> {
+        self.root_identity.validate(&self.root)?;
         let mut bytes = 0_u64;
         for entry in std::fs::read_dir(&self.root)? {
             let entry = entry?;

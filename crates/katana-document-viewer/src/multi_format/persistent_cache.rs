@@ -5,6 +5,8 @@ use thiserror::Error;
 mod key;
 #[path = "persistent_cache_payload_codec.rs"]
 mod payload_codec;
+#[path = "persistent_cache_root_identity.rs"]
+mod root_identity;
 #[path = "persistent_cache_sessions.rs"]
 mod sessions;
 #[path = "persistent_cache_store.rs"]
@@ -33,6 +35,7 @@ pub enum PersistentCacheError {
 #[derive(Debug, Clone)]
 pub struct PersistentDocumentCache {
     root: PathBuf,
+    root_identity: root_identity::DirectoryIdentity,
     max_bytes: u64,
     environment_revision: String,
     engine_revision: String,
@@ -58,6 +61,10 @@ mod engine_tests;
 #[path = "persistent_cache_root_tests.rs"]
 mod root_tests;
 
+#[cfg(test)]
+#[path = "persistent_cache_root_identity_tests.rs"]
+mod root_identity_tests;
+
 impl PersistentDocumentCache {
     /// 実行imageの指紋はprocess内で共有し、静的リンクされた描画依存の更新を識別する。
     /// environment_revisionはfont・設定・外部dynamic moduleの変更時にhostが更新する。
@@ -72,15 +79,17 @@ impl PersistentDocumentCache {
         if environment_revision.is_empty() {
             return Err(PersistentCacheError::InvalidEnvironmentRevision);
         }
-        let mut cache = Self {
-            root: std::path::absolute(root)?,
+        let root = std::path::absolute(root)?;
+        Self::prepare(&root)?;
+        let root = std::fs::canonicalize(root)?;
+        let root_identity = root_identity::DirectoryIdentity::new(&root)?;
+        Ok(Self {
+            root,
+            root_identity,
             max_bytes,
             environment_revision,
             engine_revision: key::CacheKey::engine_revision()?,
-        };
-        cache.prepare()?;
-        cache.root = std::fs::canonicalize(&cache.root)?;
-        Ok(cache)
+        })
     }
 
     #[must_use]

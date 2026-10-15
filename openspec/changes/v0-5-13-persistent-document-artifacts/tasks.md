@@ -47,3 +47,5 @@
 - [x] PR68の追加P2: worker更新時にlive LRUを破棄し、memory hit前にも指紋を照合する。実同session更新/rollback2件・cache59件・AST成功。Cargo-C後の相対target/env解釈は42回帰成功。全品質/currentreview/replyresolveは2.2で追跡。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 P2: PDF保存失敗のlive hit化を防ぎ、容量確保後の同session再保存とrestart hitを実回帰する。Office変換完了後もworker依存キーを再確認し、変換中変更/rollback時の誤hitを拒否する。実worker3件・cache60件成功、ASTファイル分割と全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。
+
+- [x] PR68 P2: root構築時のdirectory handleを保持し、各操作前とlock取得後に実体を照合する。別directory/symlink置換を拒否し、原本復元後の再利用を実filesystem回帰で確認。cache62件・AST成功、全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。
