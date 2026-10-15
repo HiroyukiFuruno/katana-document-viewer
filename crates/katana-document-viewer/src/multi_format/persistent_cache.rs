@@ -72,13 +72,14 @@ impl PersistentDocumentCache {
         if environment_revision.is_empty() {
             return Err(PersistentCacheError::InvalidEnvironmentRevision);
         }
-        let cache = Self {
+        let mut cache = Self {
             root: std::path::absolute(root)?,
             max_bytes,
             environment_revision,
             engine_revision: key::CacheKey::engine_revision()?,
         };
         cache.prepare()?;
+        cache.root = std::fs::canonicalize(&cache.root)?;
         Ok(cache)
     }
 
