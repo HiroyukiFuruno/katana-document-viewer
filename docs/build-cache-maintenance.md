@@ -13,3 +13,5 @@
 実装は `scripts/maintenance/cargo-guard` と `guard-build-cache.py`。既存の `CARGO` 設定の明示的な上書きは維持する。別checkoutへ移動する任意のKUC検査導線は通常のCargoを使い、KDVの容量guardを適用しない。設定を上書きしない通常の導線は自動でこのguardを使用する。
 
 `just build-cache-script-test` は閾値境界・所有範囲・使用中の保護・Windows検査・実際のCargo整理・コマンド終了までの排他を検証し、既存の `just check` に含める。
+
+Cargoの `-C DIRECTORY` / `-CDIRECTORY` がある場合、相対 `--target-dir` と `CARGO_TARGET_DIR` は変更後のCargo作業場所を基準に計測する。解決後もこのrepo内の所有範囲検査を維持し、repo外のtargetは拒否する。

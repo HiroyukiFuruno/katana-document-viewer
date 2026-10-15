@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-from cargo_target_args import command_target_dirs
+from cargo_target_args import command_directory, command_target_dirs
 from target_ownership import CACHEDIR_TAG, prepare_targets, reject_source_target
 
 try:
@@ -183,10 +183,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         max_bytes = parse_max_gib(args.max_gib)
         repo_root = args.repo_root.resolve()
+        cargo_directory = command_directory(command)
         explicit = [*(args.target_dir or ()), *command_target_dirs(command)]
         cargo_target_dir = os.environ.get("CARGO_TARGET_DIR")
         if cargo_target_dir:
-            explicit.append(Path(cargo_target_dir))
+            explicit.append((cargo_directory / cargo_target_dir).resolve())
         targets = repo_targets(repo_root, explicit)
         if not should_guard(command):
             return subprocess.run(command, check=False).returncode
