@@ -51,3 +51,5 @@
 - [x] PR68 P2: root構築時のdirectory handleを保持し、各操作前とlock取得後に実体を照合する。別directory/symlink置換を拒否し、原本復元後の再利用を実filesystem回帰で確認。cache62件・AST成功、全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68追加P2: 検証後のroot並行置換にも備え、cap-stdの保持Dir相対へ全cache I/O・temp atomic公開・cleanupを移行。lock取得後の置換を決定的に再現し、元directoryのみを操作する回帰を追加。限定cache62件/AST成功、追加noclobber回帰と全ゲート/返信解決は2.2で継続。証跡: file: `tmp/pr68-anchored-cache-tests-final.log`、`tmp/pr68-anchored-cache-ast.log`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] PR68 P2: public used_bytesも同じ.lockを取得し、保存中temp/hardlinkの二重計測や消失entryの参照を防ぐ。実OSlock保持中のreader待機・temp削除/解放後stable値を回帰し、cache66件/AST成功。証跡: file: `tmp/pr68-used-bytes-lock-tests-final.log`。全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。

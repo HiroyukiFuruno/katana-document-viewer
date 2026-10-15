@@ -69,6 +69,10 @@ mod root_tests;
 #[path = "persistent_cache_root_identity_tests.rs"]
 mod root_identity_tests;
 
+#[cfg(test)]
+#[path = "persistent_cache_usage_lock_tests.rs"]
+mod usage_lock_tests;
+
 impl PersistentDocumentCache {
     /// 実行imageの指紋はprocess内で共有し、静的リンクされた描画依存の更新を識別する。
     /// environment_revisionはfont・設定・外部dynamic moduleの変更時にhostが更新する。

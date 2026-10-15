@@ -2,7 +2,7 @@ use super::{PersistentCacheError, PersistentDocumentCache};
 
 impl PersistentDocumentCache {
     pub fn used_bytes(&self) -> Result<u64, PersistentCacheError> {
-        self.root_identity.validate(&self.root)?;
+        let _lock = self.lock()?;
         self.used_bytes_locked()
     }
 

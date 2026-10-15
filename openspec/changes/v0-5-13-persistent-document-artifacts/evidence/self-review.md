@@ -142,3 +142,9 @@ thread4286251959: 51a534a2の直前identity検証だけでは操作中のroot置
 全通常check・semver196はtmp/pr68-anchored-directory-release-check-final.logで成功。最初のcoverageは新I/O error2行未到達で停止し、production/graphを変更せず上記の実権限回帰だけを追加した。cache65件EXIT0(tmp/pr68-anchored-permissions-tests.log)、AST74286 EXIT0、厳格just coverage68445 EXIT0で3823関数31449行100%に復旧(tmp/pr68-anchored-directory-coverage-final.log)。残りのrelease-verify工程を同じproduction/graphで再開し、package957files15.2MiB、publishdryrun、未公開確認43881 EXIT0(tmp/pr68-anchored-directory-publish-precheck.log)。ゲート/除外/閾値の変更なし。最新testsを含む通常pushの全checkとfreshreview/3OS CIは次工程で回収する。
 
 途中の共有空き9.8GiBに対し、通常テスト完了後のown justを工程境界で一時停止し子processなしを確認、KDVの使用済みdev生成物だけcargo cleanして34.3GiB回収、空き41GiBで同processを再開した。他repo/source編集なし、通常40GiB閾値は不変。tmp/pr68-disk-pressure-clean.log。
+
+## 使用容量のinterprocess snapshot
+
+thread4286986682: public used_bytesもload/save/clearと同じ.lockを取得してからused_bytes_lockedへ委譲する。内部locked処理は再取得せずdeadlockを避ける。親の実OSlock保持中に一時ファイルと公開hardlinkを作り、独立handleのreaderが容量計測を返さず待つことをchannelの期限付き受信で確認。一時名削除・lock解放後にstable容量となり、reader join後にTempDirを解放する実filesystem回帰を追加した。初回test alias/expectのcompile/AST失敗はgeneric Result/明示error処理へ修正し、最終cache66件43368 EXIT0・AST71442 EXIT0を根拠とする。
+
+全release-check15994 EXIT0、3823関数31449行100%、semver196PASS、package958files15.2MiB/publishdryrun/unpublished成功。ログtmp/pr68-used-bytes-lock-release-check.log、coverage原文RTK tee1792091503_just_coverage.log。除外・閾値・契約の変更なし。current HEAD公開後の返信/resolve・freshreview/3OS CI/preflightは結果回収まで未完。KRR0.4.23準備graphであり最終取込後の再検査は別。
