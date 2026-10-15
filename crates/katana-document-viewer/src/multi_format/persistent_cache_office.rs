@@ -101,17 +101,22 @@ impl PersistentOfficeViewerSession {
         if let Some(page) = self.session.cached_rendered_item(request) {
             return Ok((page, true));
         }
+        let worker = self.session.raster_worker_executable();
+        let revision = CacheKey::executable_digest(worker)?;
         let key = CacheKey::page(
             &self.key,
             request.page_index,
             request.scale,
-            &format!("{limits:?}"),
+            &format!("{limits:?}:{revision}"),
         );
         if let Some(page) = CachedPage::load(&self.cache, &key, request, limits)? {
             self.session.restore_rendered_item(&page);
             return Ok((page, true));
         }
         let page = self.session.render_item_with_worker(request)?;
+        if revision != CacheKey::executable_digest(self.session.raster_worker_executable())? {
+            return Err(std::io::Error::other("raster worker changed during rendering").into());
+        }
         CachedPage::save(&self.cache, &key, &page)?;
         Ok((page, false))
     }

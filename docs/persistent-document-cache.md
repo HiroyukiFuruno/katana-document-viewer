@@ -6,11 +6,11 @@ Office（DOCX/PPTX）は変換PDFと診断情報、PDF/Officeの描画はpageと
 
 描画は既存sessionの容量制限付きLRUを先に参照し、memoryにない場合だけdiskを読む。diskから復元したpageも同じLRUへ登録する。renderの `hit` はmemoryまたはdiskの再利用を表し、`clear()` 後も開いたsessionのmemory cacheは保持する。memory容量を0にした場合はdisk経路を使用する。
 
-内容・URI/revision/MIME/format・KDV/schema/engine版・worker実体/設定が変わればmissになる。page/scale/renderer limitsも描画keyに含む。hostは外部font、viewportや描画環境に影響する設定が変わるたびに、空でない `environment_revision` を更新する。
+内容・URI/revision/MIME/format・KDV/schema/engine版・worker実体/設定が変わればmissになる。page/scale/renderer limitsも描画keyに含む。Officeのdisk page keyには描画時のworker実体SHA256も含め、描画前後の指紋が異なる場合はI/Oエラーを返し保存しない。hostは外部font、viewportや描画環境に影響する設定が変わるたびに、空でない `environment_revision` を更新する。
 
 directoryは他用途と共有しない。Unixでは0700で作成/保護し、Windowsのprivate ACLはhostが設定する。ファイルはsource名を含まないSHA256 keyで保存するが、artifactには文書内容が含まれるため、機密入力の保存可否・保存期間・削除UI・disk encryption・バックアップ除外はhostが所有する。hostが永続化を許可しない入力には既存session APIを使う。
 
-保存先は構築時の絶対pathへ固定する。構築後にprocessのcwdを変更してもload/save/clearの対象は変わらない。macOSのengine指紋は、dyldの起動imageにあるMach-O build UUIDをSHA256で識別する。通常のApple linkerは出力内容からUUIDを生成するため、描画依存を含む再buildで旧artifactを無効化し、起動中のatomic更新後も旧processは元の指紋を保持する。custom linkerも変更されたbuildに固有UUIDを生成する必要がある。UUID欠損・ゼロ・不正metadataは明示I/O InvalidDataとして返す。Linuxは/proc/self/exeから実行中imageを読み、worker実体のSHA256は全platformで維持する。
+保存先は構築時に作成・検査してcanonicalizeした物理絶対pathへ固定する。構築後のprocess cwd変更や祖先symlinkの付け替えでもload/save/clearの対象は変わらない。最終要素のsymlinkは拒否する。macOSのengine指紋は、dyldの起動imageにあるMach-O build UUIDをSHA256で識別する。通常のApple linkerは出力内容からUUIDを生成するため、描画依存を含む再buildで旧artifactを無効化し、起動中のatomic更新後も旧processは元の指紋を保持する。custom linkerも変更されたbuildに固有UUIDを生成する必要がある。UUID欠損・ゼロ・不正metadataは明示I/O InvalidDataとして返す。Linuxは/proc/self/exeから実行中imageを読み、worker実体のSHA256は全platformで維持する。
 
 KDVは本体128MiB・metadata 1MiBの上限を強制し、prefix 8byteとheader 72byteを別に確保する。総容量上限には付加情報も含む物理保存サイズを数えるため、128MiBの本体にはその付加情報分の容量も必要となる。他プロセスと排他し、同じdirectory内のtemporary fileから原子書込する。欠損はmiss、破損/checksum不一致・容量超過・I/O失敗は `PersistentCacheError` として返す。破損時のclear/retry方針はhostが明示的に決める。暗黙の再変換は行わない。`clear()` は同時利用と排他してartifactを削除し、既に開いたsessionは有効なままとする。
 

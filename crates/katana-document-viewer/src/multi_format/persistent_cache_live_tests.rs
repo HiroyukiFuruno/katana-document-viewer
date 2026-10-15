@@ -5,7 +5,6 @@ use crate::multi_format::{
     OfficeWorkerConfig, PdfPageRenderRequest, PdfViewerLimits, PersistentDocumentCache,
     ViewerSourceIdentity,
 };
-use std::path::PathBuf;
 
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 
@@ -87,14 +86,18 @@ fn office_disk_page_hit_survives_disk_clear_without_worker() -> TestResult {
     )?;
     let request = PdfPageRenderRequest::new(0, 1.0);
     let source = office_source();
-    let config = OfficeWorkerConfig::new(PathBuf::from("worker"));
+    let config = OfficeWorkerConfig::new(std::env::current_exe()?);
     let mut session = office_session(&cache, &source, &config)?;
-    let page = office_page(source, config, request)?;
+    let page = office_page(source, config.clone(), request)?;
     let key = CacheKey::page(
         "office-live",
         0,
         1.0,
-        &format!("{:?}", PdfViewerLimits::strict()),
+        &format!(
+            "{:?}:{}",
+            PdfViewerLimits::strict(),
+            CacheKey::executable_digest(&config.executable)?
+        ),
     );
     CachedPage::save(&cache, &key, &page)?;
     assert!(session.render_item(request)?.1);

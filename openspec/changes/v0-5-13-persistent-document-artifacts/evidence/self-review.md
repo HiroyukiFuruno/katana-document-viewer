@@ -114,3 +114,7 @@ Linuxで実行中imageのatomic置換後も旧processから指紋を読めるよ
 - 実binaryをコピーして起動後にatomic置換するMac/Linux回帰。nativeMac単体58 PASS、子専用2 entrypointは親から実起動し成功を確認。final tmp/pr68-mac-image-root-final-tests.log EXIT0。Windowsのcanonical path prefixを考慮し、テスト比較はabsolute属性とcanonicalized physical directoryの一致を確認する。最初のnative58 PASS後、full gate終了後にこのtest-only比較を整えて再検証した。
 - full68512 release-check EXIT0: 全品質/semver196/3805関数31333行100%/package/publish dry-run/未公開確認。tmp/pr68-mac-image-root-release-check.log / RTK tee1791305860_just_coverage.log。この後の変更は上記test-only比較で、production source/graph/coverage対象は不変。最新test/fmt/ASTと通常push全check、次のexact3OSで追跡する。
 - 239a0757 CI37494294516全3OS SUCCESS。容量37件すべて成功、UbuntuでLinux atomic置換回帰がworkspace/coverage両方で成功（3808関数31313行100%）。Linuxthread4196940044へreply4198304556/resolve、fresh18threadの未対応はMac4197800571とrelative root4197800580の2件のみ。Mac/rootの最終HEADは公開・freshreview/CI回収まで未完。
+
+## 2026-10-15 root祖先symlinkと動的worker版
+
+PR68 thread4283771319: prepare後canonicalizeし構築時の物理rootへ固定。祖先symlink付替え後もload/save/clear対象と無関係ファイル保持を実Unix回帰。最終要素symlink拒否は維持。thread4283771339: Office page keyへ描画時workerSHA256を追加、描画前後に変更を検出するとI/Oエラーで保存拒否。実workerを起動するwrapperをatomic置換し更新/rollback時miss、安定版restart hit、描画中変更時の保存なしを検証。キャッシュ単体59 PASS（子専用2ignoreは親から実起動）、新実worker回帰2PASS。rootテスト行数AST失敗はhelper抽出で修正し、全release-check92549 EXIT0、3806関数31344行100%、semver196 PASS、package952files/publish dry-run/未公開確認成功。ログtmp/pr68-root-worker-release-check-final.log、coverage原文RTK tee1792073898_just_coverage.log。KRR0.4.23準備graphであり最終KRR再検査は別。

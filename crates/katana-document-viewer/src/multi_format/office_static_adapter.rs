@@ -106,6 +106,10 @@ impl OfficeStaticViewerSession {
             .map(super::debug_trace::DebugTrace::session)
     }
 
+    pub(super) fn raster_worker_executable(&self) -> &std::path::Path {
+        &self.worker_config.executable
+    }
+
     pub(super) fn render_item_with_worker(
         &mut self,
         request: PdfPageRenderRequest,
