@@ -6,7 +6,7 @@ Office（DOCX/PPTX）は変換PDFと診断情報、PDF/Officeの描画はpageと
 
 描画は既存sessionの容量制限付きLRUを先に参照し、memoryにない場合だけdiskを読む。diskから復元したpageも同じLRUへ登録する。renderの `hit` はmemoryまたはdiskの再利用を表し、`clear()` 後も開いたsessionのmemory cacheは保持する。memory容量を0にした場合はdisk経路を使用する。
 
-内容・URI/revision/MIME/format・KDV/schema/engine版・worker実体/設定が変わればmissになる。page/scale/renderer limitsも描画keyに含む。Officeのdisk page keyには描画時のworker実体SHA256も含め、描画前後の指紋が異なる場合はI/Oエラーを返し保存しない。hostは外部font、viewportや描画環境に影響する設定が変わるたびに、空でない `environment_revision` を更新する。
+内容・URI/revision/MIME/format・KDV/schema/engine版・worker実体/設定が変わればmissになる。page/scale/renderer limitsも描画keyに含む。Officeはmemory hit前にもworker実体SHA256を確認し、変更時にlive LRUを破棄する。disk page keyにも描画時のworker実体SHA256を含め、描画前後の指紋が異なる場合はI/Oエラーを返し保存しない。hostは外部font、viewportや描画環境に影響する設定が変わるたびに、空でない `environment_revision` を更新する。
 
 directoryは他用途と共有しない。Unixでは0700で作成/保護し、Windowsのprivate ACLはhostが設定する。ファイルはsource名を含まないSHA256 keyで保存するが、artifactには文書内容が含まれるため、機密入力の保存可否・保存期間・削除UI・disk encryption・バックアップ除外はhostが所有する。hostが永続化を許可しない入力には既存session APIを使う。
 

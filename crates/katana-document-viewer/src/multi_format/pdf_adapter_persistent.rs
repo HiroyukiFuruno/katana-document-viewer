@@ -1,6 +1,11 @@
 use super::{PdfPageRenderRequest, PdfRenderedPage, PdfViewerSession};
+use crate::multi_format::pdf_render_cache::PdfPageCache;
 
 impl PdfViewerSession {
+    pub(in crate::multi_format) fn clear_rendered_pages(&mut self) {
+        self.cache = PdfPageCache::new();
+    }
+
     pub(in crate::multi_format) fn cached_rendered_page(
         &mut self,
         request: PdfPageRenderRequest,

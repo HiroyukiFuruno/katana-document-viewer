@@ -43,3 +43,5 @@
 - [x] 2026-10-14 依存更新後もKRRを待たずcoverage・semver・公開前検査を先行実施する。`just VERSION=0.5.13 JOBS=2 release-check` EXIT0、3805関数/31335行100%、semver196 PASS、package/publish dry-run/未公開確認成功。証跡: `tmp/dependency-release-precheck-20261014.log`、`tmp/release-continuation.md`。最終KRR取込後の2.1検査を代用しない。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 P2のroot祖先symlink固定と描画worker指紋結合を実装する。rootはprepare後canonicalize、workerは描画時SHA256をpage keyへ含め前後変更時は保存拒否。実worker更新/rollback2件とcache単体59件成功。全ゲート・reply/resolve・fresh確認は2.2で追跡。delegation-exception: `直列のクリティカルパス`。
+
+- [x] PR68の追加P2: worker更新時にlive LRUを破棄し、memory hit前にも指紋を照合する。実同session更新/rollback2件・cache59件・AST成功。Cargo-C後の相対target/env解釈は42回帰成功。全品質/currentreview/replyresolveは2.2で追跡。delegation-exception: `直列のクリティカルパス`。

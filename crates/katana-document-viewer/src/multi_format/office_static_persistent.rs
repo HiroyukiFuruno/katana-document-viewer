@@ -1,6 +1,10 @@
 use super::{OfficeStaticViewerSession, PdfPageRenderRequest, PdfRenderedPage};
 
 impl OfficeStaticViewerSession {
+    pub(in crate::multi_format) fn clear_rendered_items(&mut self) {
+        self.pdf.clear_rendered_pages();
+    }
+
     pub(in crate::multi_format) fn cached_rendered_item(
         &mut self,
         request: PdfPageRenderRequest,

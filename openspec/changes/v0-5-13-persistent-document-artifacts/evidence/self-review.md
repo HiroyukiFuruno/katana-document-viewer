@@ -118,3 +118,7 @@ Linuxで実行中imageのatomic置換後も旧processから指紋を読めるよ
 ## 2026-10-15 root祖先symlinkと動的worker版
 
 PR68 thread4283771319: prepare後canonicalizeし構築時の物理rootへ固定。祖先symlink付替え後もload/save/clear対象と無関係ファイル保持を実Unix回帰。最終要素symlink拒否は維持。thread4283771339: Office page keyへ描画時workerSHA256を追加、描画前後に変更を検出するとI/Oエラーで保存拒否。実workerを起動するwrapperをatomic置換し更新/rollback時miss、安定版restart hit、描画中変更時の保存なしを検証。キャッシュ単体59 PASS（子専用2ignoreは親から実起動）、新実worker回帰2PASS。rootテスト行数AST失敗はhelper抽出で修正し、全release-check92549 EXIT0、3806関数31344行100%、semver196 PASS、package952files/publish dry-run/未公開確認成功。ログtmp/pr68-root-worker-release-check-final.log、coverage原文RTK tee1792073898_just_coverage.log。KRR0.4.23準備graphであり最終KRR再検査は別。
+
+## live worker無効化 / Cargo -C
+
+thread4284455689: memory hitより前にworkerSHA256を照合し、変更時はPdfPageCacheを破棄してresource metricsも解放。描画missでは検証・保存が終わるまでrevision未確定として、失敗した描画を次回LRUで誤採用しない。実同session旧→新→rollbackを2件の実worker回帰で検証、cache59件/AST成功。thread4284455700: Cargo -C/attached指定を解釈し相対CLI/env targetを変更後cwdへ結合、所有範囲検査は維持。42件成功、モックは単体テスト専用、実Cargo統合テスト維持。統合後release-check99145 EXIT0、3809関数31360行100%、semver196 PASS、package952files/publishdryrun/unpublished成功。ログtmp/pr68-live-cargo-c-release-check.log / RTK tee1792077201_just_coverage.log。KRR取込後の最終検査を代用しない。

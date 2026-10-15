@@ -110,6 +110,7 @@ fn persistent_office_accessors_expose_cached_state_and_artifact()
         cache,
         key: "office-accessors".to_owned(),
         conversion_cache_hit: true,
+        raster_worker_revision: None,
     };
 
     assert!(persistent.conversion_cache_hit());

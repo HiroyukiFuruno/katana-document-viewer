@@ -79,6 +79,7 @@ impl PersistentOfficeViewerSession {
             cache,
             key,
             conversion_cache_hit,
+            raster_worker_revision: None,
         })
     }
 
@@ -98,11 +99,10 @@ impl PersistentOfficeViewerSession {
     ) -> Result<(PdfRenderedPage, bool), PersistentCacheError> {
         let limits = crate::multi_format::PdfViewerLimits::strict();
         self.session.validate_cached_request(request)?;
+        let revision = self.raster_revision()?;
         if let Some(page) = self.session.cached_rendered_item(request) {
             return Ok((page, true));
         }
-        let worker = self.session.raster_worker_executable();
-        let revision = CacheKey::executable_digest(worker)?;
         let key = CacheKey::page(
             &self.key,
             request.page_index,
@@ -113,12 +113,23 @@ impl PersistentOfficeViewerSession {
             self.session.restore_rendered_item(&page);
             return Ok((page, true));
         }
+        self.raster_worker_revision = None;
         let page = self.session.render_item_with_worker(request)?;
         if revision != CacheKey::executable_digest(self.session.raster_worker_executable())? {
             return Err(std::io::Error::other("raster worker changed during rendering").into());
         }
         CachedPage::save(&self.cache, &key, &page)?;
+        self.raster_worker_revision = Some(revision);
         Ok((page, false))
+    }
+
+    fn raster_revision(&mut self) -> Result<String, PersistentCacheError> {
+        let revision = CacheKey::executable_digest(self.session.raster_worker_executable())?;
+        if self.raster_worker_revision.as_deref() != Some(revision.as_str()) {
+            self.session.clear_rendered_items();
+            self.raster_worker_revision = Some(revision.clone());
+        }
+        Ok(revision)
     }
 }
 

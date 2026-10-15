@@ -15,6 +15,7 @@ pub struct PersistentOfficeViewerSession {
     cache: PersistentDocumentCache,
     key: String,
     conversion_cache_hit: bool,
+    raster_worker_revision: Option<String>,
 }
 
 pub struct PersistentPdfViewerSession {

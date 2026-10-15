@@ -129,6 +129,7 @@ fn office_session(
         cache: cache.clone(),
         key: "office-live".into(),
         conversion_cache_hit: true,
+        raster_worker_revision: None,
     })
 }
 

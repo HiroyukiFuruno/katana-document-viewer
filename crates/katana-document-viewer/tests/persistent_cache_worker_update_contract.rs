@@ -43,14 +43,17 @@ fn raster_cache_is_not_reused_under_rolled_back_worker_identity() -> TestResult 
     let config = OfficeWorkerConfig::new(worker.clone());
     let mut original =
         PersistentOfficeViewerSession::open(source(), config.clone(), cache.clone())?;
-    replace_worker(&worker, "new", false)?;
     let request = PdfPageRenderRequest::new(0, 0.5);
     assert!(!original.render_item(request)?.1);
+    assert!(original.render_item(request)?.1);
+    cache.clear()?;
+    replace_worker(&worker, "new", false)?;
+    assert!(!original.render_item(request)?.1);
     replace_worker(&worker, "old", false)?;
+    assert!(!original.render_item(request)?.1);
     let mut rolled_back =
         PersistentOfficeViewerSession::open(source(), config.clone(), cache.clone())?;
-    assert!(rolled_back.conversion_cache_hit());
-    assert!(!rolled_back.render_item(request)?.1);
+    assert!(rolled_back.render_item(request)?.1);
     let mut restarted = PersistentOfficeViewerSession::open(source(), config, cache)?;
     assert!(restarted.render_item(request)?.1);
     Ok(())
