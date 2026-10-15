@@ -10,6 +10,11 @@ expanded_recipe="$("$just_bin" --dry-run storybook 2>&1)"
 score_recipe="$("$just_bin" --dry-run storybook-score-check 2>&1)"
 storybook_check_recipe="$("$just_bin" --dry-run storybook-check 2>&1)"
 
+# 同じCargo実行を包む容量guardだけ正規化し、既存の必須引数検査を維持する。
+expanded_recipe="${expanded_recipe//scripts\/maintenance\/cargo-guard /cargo }"
+score_recipe="${score_recipe//scripts\/maintenance\/cargo-guard /cargo }"
+storybook_check_recipe="${storybook_check_recipe//scripts\/maintenance\/cargo-guard /cargo }"
+
 require_recipe_contains() {
   local recipe_name="$1"
   local recipe="$2"

@@ -43,6 +43,7 @@ mod pdf_raster_worker_protocol;
 mod pdf_raster_worker_reader;
 mod pdf_render_cache;
 mod pdf_surface;
+mod persistent_cache;
 mod resource_metrics;
 mod source;
 mod spreadsheet_artifact;
@@ -116,6 +117,10 @@ pub use office_worker_entrypoint::OfficeWorkerEntrypoint;
 pub use office_worker_parent::{OfficeWorkerConfig, OfficeWorkerError};
 pub use pdf_adapter::PdfViewerSession;
 pub use pdf_error::PdfViewerError;
+pub use persistent_cache::{
+    PersistentCacheError, PersistentDocumentCache, PersistentOfficeViewerSession,
+    PersistentPdfViewerSession,
+};
 pub use resource_metrics::DocumentResourceSnapshot;
 pub use source::{
     BinaryDocumentSource, OfficeDocumentFormat, OfficeDocumentSource, ViewerSource,

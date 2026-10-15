@@ -37,6 +37,9 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt
 
+      - name: Initialize owned build directory before cache restore
+        run: python3 scripts/maintenance/prepare_build_target.py
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:

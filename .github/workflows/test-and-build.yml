@@ -65,6 +65,9 @@ jobs:
           toolchain: stable
           components: clippy, rustfmt, llvm-tools-preview
 
+      - name: Initialize owned build directory before cache restore
+        run: python3 scripts/maintenance/prepare_build_target.py
+
       - name: Cache Rust build outputs
         uses: Swatinem/rust-cache@v2
         with:
@@ -104,6 +107,9 @@ jobs:
 
       - name: Run subagent/Spark harness check
         run: just check-subagent-harness
+
+      - name: Verify build cache capacity guard
+        run: just build-cache-script-test
 
       - name: Check types
         run: cargo check --workspace --locked

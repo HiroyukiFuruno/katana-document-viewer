@@ -121,13 +121,13 @@ fn missing_spreadsheet_worker_is_a_typed_failure_without_in_process_fallback() -
 #[test]
 fn compatible_office_worker_fallback_preserves_spreadsheet_open_failures() -> TestResult {
     let (_directory, config) = external_worker_config()?;
-    assert!(matches!(
-        SpreadsheetViewerSession::open(preflight_valid_invalid_xlsx()?, config),
-        Err(OfficeWorkerError::EngineFailure {
-            ref stage,
-            ..
-        }) if stage == "spreadsheet_open"
-    ));
+    match SpreadsheetViewerSession::open(preflight_valid_invalid_xlsx()?, config) {
+        Err(OfficeWorkerError::EngineFailure { stage, message }) => {
+            assert_eq!("spreadsheet_open", stage, "message={message}");
+        }
+        Err(error) => return Err(format!("unexpected worker error: {error:?}").into()),
+        Ok(_) => return Err("invalid workbook unexpectedly opened".into()),
+    }
     Ok(())
 }
 
