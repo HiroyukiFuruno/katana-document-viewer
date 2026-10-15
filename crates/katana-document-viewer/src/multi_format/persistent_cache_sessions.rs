@@ -70,7 +70,10 @@ impl PersistentPdfViewerSession {
             return Ok((page, true));
         }
         let page = self.session.render_page(request)?;
-        CachedPage::save(&self.cache, &key, &page)?;
+        if let Err(error) = CachedPage::save(&self.cache, &key, &page) {
+            self.session.clear_rendered_pages();
+            return Err(error);
+        }
         Ok((page, false))
     }
 }
@@ -135,3 +138,7 @@ mod page_binary_tests;
 #[cfg(test)]
 #[path = "persistent_cache_live_tests.rs"]
 mod live_tests;
+
+#[cfg(test)]
+#[path = "persistent_cache_retry_tests.rs"]
+mod retry_tests;
