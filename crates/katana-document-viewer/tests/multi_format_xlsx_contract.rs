@@ -4,7 +4,7 @@ use katana_document_viewer::{
     SpreadsheetViewerSession, SpreadsheetWorkerEntrypoint, ViewerDiagnosticCode, ViewerFeature,
     ViewerFeatureStatus, ViewerSourceIdentity,
 };
-use std::io::{Cursor, Write};
+use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use zip::write::SimpleFileOptions;
@@ -26,6 +26,77 @@ fn fixture(name: &str) -> TestResult<OfficeDocumentSource> {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         std::fs::read(path)?,
     ))
+}
+
+fn fixture_with_worksheet_xml(
+    worksheet: &[u8],
+    identity: &str,
+) -> TestResult<OfficeDocumentSource> {
+    let mut source = fixture("representative.xlsx")?;
+    source.bytes = replace_fixture_worksheet(std::mem::take(&mut source.bytes), worksheet)?;
+    source.identity = ViewerSourceIdentity::new(
+        format!("file:///fixtures/{identity}.xlsx"),
+        format!("sha256:{identity}"),
+    );
+    Ok(source)
+}
+
+fn replace_fixture_worksheet(bytes: Vec<u8>, worksheet: &[u8]) -> TestResult<Vec<u8>> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
+    let mut output = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    let mut replaced = false;
+    for index in 0..archive.len() {
+        replace_fixture_entry(&mut archive, index, worksheet, &mut output, &mut replaced)?;
+    }
+    if !replaced {
+        return Err("representative worksheet entry is missing".into());
+    }
+    Ok(output.finish()?.into_inner())
+}
+
+fn replace_fixture_entry(
+    archive: &mut zip::ZipArchive<Cursor<Vec<u8>>>,
+    index: usize,
+    worksheet: &[u8],
+    output: &mut zip::ZipWriter<Cursor<Vec<u8>>>,
+    replaced: &mut bool,
+) -> TestResult {
+    let mut entry = archive.by_index(index)?;
+    let name = entry.name()?.into_owned();
+    let options = SimpleFileOptions::default().compression_method(entry.compression());
+    if entry.is_dir() {
+        output.add_directory(name, options)?;
+        return Ok(());
+    }
+    let mut content = Vec::new();
+    entry.read_to_end(&mut content)?;
+    if name == "xl/worksheets/sheet1.xml" {
+        content = worksheet.to_vec();
+        *replaced = true;
+    }
+    output.start_file(name, options)?;
+    output.write_all(&content)?;
+    Ok(())
+}
+
+fn assert_worker_rejects_worksheet_xml(
+    worksheet: &[u8],
+    identity: &str,
+    expected_message: &str,
+) -> TestResult {
+    let source = fixture_with_worksheet_xml(worksheet, identity)?;
+    match SpreadsheetViewerSession::open(source, worker_config()) {
+        Err(OfficeWorkerError::EngineFailure { stage, message }) => {
+            assert_eq!("spreadsheet_open", stage, "message={message}");
+            assert!(
+                message.contains(expected_message),
+                "expected {expected_message:?} in {message:?}"
+            );
+        }
+        Err(error) => return Err(format!("unexpected worker error: {error:?}").into()),
+        Ok(_) => return Err("malformed worksheet unexpectedly opened".into()),
+    }
+    Ok(())
 }
 
 fn worker_config() -> OfficeWorkerConfig {
@@ -141,6 +212,24 @@ fn compatible_office_worker_fallback_opens_and_materializes_a_valid_workbook() -
 }
 
 #[test]
+fn dedicated_worker_rejects_malformed_worksheet_xml_from_a_real_xlsx() -> TestResult {
+    assert_worker_rejects_worksheet_xml(
+        b"<worksheet><sheetData attr='unterminated></worksheet>",
+        "malformed-worksheet-xml",
+        "attribute value not closed",
+    )
+}
+
+#[test]
+fn dedicated_worker_rejects_a_malformed_merge_reference_from_a_real_xlsx() -> TestResult {
+    assert_worker_rejects_worksheet_xml(
+        br#"<worksheet><mergeCells><mergeCell ref="A1"/></mergeCells></worksheet>"#,
+        "malformed-merge-reference",
+        "invalid merged-cell range `A1`",
+    )
+}
+
+#[test]
 fn dedicated_worker_rejects_malformed_filter_catalog_inputs() -> TestResult {
     let cases = [
         b"not a ZIP".to_vec(),
@@ -153,27 +242,75 @@ fn dedicated_worker_rejects_malformed_filter_catalog_inputs() -> TestResult {
             Some(b"<Relationships/>"),
             None,
         )?,
+        spreadsheet_worker_package(
+            Some(
+                br#"<workbook xmlns:r="urn:r"><sheets><sheet name="Data" r:id="r1"/></sheets></workbook>"#,
+            ),
+            None,
+            None,
+        )?,
+        spreadsheet_worker_package(
+            Some(
+                br#"<workbook xmlns:r="urn:r"><sheets><sheet name="Data" r:id="r1"/></sheets></workbook>"#,
+            ),
+            Some(b"<"),
+            None,
+        )?,
+        fixture_with_worksheet_xml(
+            b"<worksheet><sheetData attr='unterminated></worksheet>",
+            "direct-malformed-worksheet",
+        )?
+        .bytes,
+        fixture_with_worksheet_xml(
+            br#"<worksheet><mergeCells><mergeCell ref="A1"/></mergeCells></worksheet>"#,
+            "direct-malformed-merge",
+        )?
+        .bytes,
+        fixture_with_worksheet_xml(
+            br#"<worksheet><autoFilter ref="A1:C4"><filterColumn colId="0"/></autoFilter><mergeCells><mergeCell ref="A1"/></mergeCells></worksheet>"#,
+            "direct-empty-filter-column-invalid-merge",
+        )?
+        .bytes,
+        spreadsheet_worker_package(
+            Some(
+                br#"<workbook xmlns:r="urn:r"><sheets><sheet name="Data" r:id="r1"/></sheets></workbook>"#,
+            ),
+            Some(
+                br#"<Relationships><Relationship Id="r1" Target="worksheets/sheet1.xml"/></Relationships>"#,
+            ),
+            None,
+        )?,
     ];
     for bytes in cases {
-        let workspace = tempfile::tempdir()?;
-        std::fs::write(workspace.path().join("input.office"), bytes)?;
-        let mut command = Command::new(env!("CARGO_BIN_EXE_kdv-spreadsheet-worker"));
-        command.arg("--spreadsheet").arg(workspace.path()).args([
-            "1073741824",
-            "30",
-            "256",
-            "25000000",
-            "4096",
-        ]);
-        #[cfg(coverage)]
-        let coverage_profile = direct_worker_coverage_profile(&mut command, workspace.path());
-        let status = command.status()?;
-        #[cfg(coverage)]
-        if let Some((workspace_profile, report_profile)) = coverage_profile {
-            std::fs::copy(workspace_profile, report_profile)?;
+        for executable in [
+            env!("CARGO_BIN_EXE_kdv-spreadsheet-worker"),
+            env!("CARGO_BIN_EXE_kdv-office-worker"),
+        ] {
+            assert_invalid_workbook_worker(&bytes, executable)?;
         }
-        assert_eq!(Some(70), status.code());
     }
+    Ok(())
+}
+
+fn assert_invalid_workbook_worker(bytes: &[u8], executable: &str) -> TestResult {
+    let workspace = tempfile::tempdir()?;
+    std::fs::write(workspace.path().join("input.office"), bytes)?;
+    let mut command = Command::new(executable);
+    command.arg("--spreadsheet").arg(workspace.path()).args([
+        "1073741824",
+        "30",
+        "256",
+        "25000000",
+        "4096",
+    ]);
+    #[cfg(coverage)]
+    let coverage_profile = direct_worker_coverage_profile(&mut command, workspace.path());
+    let status = command.status()?;
+    #[cfg(coverage)]
+    if let Some((workspace_profile, report_profile)) = coverage_profile {
+        std::fs::copy(workspace_profile, report_profile)?;
+    }
+    assert_eq!(Some(70), status.code(), "worker={executable}");
     Ok(())
 }
 

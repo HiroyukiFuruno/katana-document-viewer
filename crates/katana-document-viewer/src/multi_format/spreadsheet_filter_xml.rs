@@ -1,9 +1,9 @@
-use super::SpreadsheetAutoFilterArtifact;
 use super::spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSupport};
-use super::spreadsheet_filter_xml_parser::parse_worksheet;
+use super::spreadsheet_filter_xml_parser::{ParsedWorksheetMetadata, parse_worksheet};
 use super::spreadsheet_streaming_xml::{
     WorkbookSheet, parse_relationships, parse_workbook_sheets, read_zip_entry,
 };
+use super::{SpreadsheetAutoFilterArtifact, SpreadsheetMergedCellArtifact};
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 use zip::ZipArchive;
@@ -12,11 +12,18 @@ const METADATA_ENTRY_LIMIT: u64 = 16 * 1024 * 1024;
 
 pub(super) struct SpreadsheetFilterCatalog;
 
+pub(super) struct SpreadsheetWorksheetMetadata {
+    pub(super) name: String,
+    pub(super) auto_filter: Option<SpreadsheetAutoFilterArtifact>,
+    pub(super) merged_cells: Vec<SpreadsheetMergedCellArtifact>,
+}
+
 impl SpreadsheetFilterCatalog {
     pub(super) fn read(
         bytes: &[u8],
         max_sheets: usize,
-    ) -> Result<Vec<Option<SpreadsheetAutoFilterArtifact>>, SpreadsheetEngineError> {
+        capture_merged_cells: bool,
+    ) -> Result<Vec<SpreadsheetWorksheetMetadata>, SpreadsheetEngineError> {
         let mut archive = match ZipArchive::new(Cursor::new(bytes)) {
             Ok(archive) => archive,
             Err(error) => return Err(SpreadsheetEngineError::Import(error.to_string())),
@@ -32,7 +39,7 @@ impl SpreadsheetFilterCatalog {
         let targets = parse_relationships(&relationships)?;
         sheets
             .iter()
-            .map(|sheet| Self::read_sheet(&mut archive, sheet, &targets))
+            .map(|sheet| Self::read_sheet(&mut archive, sheet, &targets, capture_merged_cells))
             .collect()
     }
 
@@ -40,13 +47,22 @@ impl SpreadsheetFilterCatalog {
         archive: &mut ZipArchive<Cursor<&[u8]>>,
         sheet: &WorkbookSheet,
         targets: &HashMap<String, String>,
-    ) -> Result<Option<SpreadsheetAutoFilterArtifact>, SpreadsheetEngineError> {
+        capture_merged_cells: bool,
+    ) -> Result<SpreadsheetWorksheetMetadata, SpreadsheetEngineError> {
         let path = worksheet_path(sheet, targets)?;
         let entry = match archive.by_name(&path) {
             Ok(entry) => entry,
             Err(error) => return Err(SpreadsheetEngineError::Import(error.to_string())),
         };
-        parse_worksheet(BufReader::new(entry))
+        let ParsedWorksheetMetadata {
+            auto_filter,
+            merged_cells,
+        } = parse_worksheet(BufReader::new(entry), capture_merged_cells)?;
+        Ok(SpreadsheetWorksheetMetadata {
+            name: sheet.name.clone(),
+            auto_filter,
+            merged_cells,
+        })
     }
 }
 

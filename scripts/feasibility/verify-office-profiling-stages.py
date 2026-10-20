@@ -47,7 +47,7 @@ REQUIRED_STAGES = {
     "crates/katana-document-viewer/src/multi_format/spreadsheet_worker_open.rs": (
         "spreadsheet.package_parse",
     ),
-    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine.rs": (
+    "crates/katana-document-viewer/src/multi_format/spreadsheet_engine_session.rs": (
         "spreadsheet.filter_catalog",
         "spreadsheet.streaming_detection",
         "spreadsheet.sheet_artifacts",

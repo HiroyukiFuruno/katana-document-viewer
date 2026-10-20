@@ -58,6 +58,10 @@ mod spreadsheet_filter_engine;
 #[cfg(test)]
 mod spreadsheet_filter_test_support;
 mod spreadsheet_filter_xml;
+#[cfg(test)]
+mod spreadsheet_filter_xml_edge_tests;
+mod spreadsheet_filter_xml_filter;
+mod spreadsheet_filter_xml_merge;
 mod spreadsheet_filter_xml_parser;
 #[cfg(test)]
 mod spreadsheet_filter_xml_tests;

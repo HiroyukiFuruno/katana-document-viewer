@@ -53,3 +53,16 @@
 - [x] PR68追加P2: 検証後のroot並行置換にも備え、cap-stdの保持Dir相対へ全cache I/O・temp atomic公開・cleanupを移行。lock取得後の置換を決定的に再現し、元directoryのみを操作する回帰を追加。限定cache62件/AST成功、追加noclobber回帰と全ゲート/返信解決は2.2で継続。証跡: file: `tmp/pr68-anchored-cache-tests-final.log`、`tmp/pr68-anchored-cache-ast.log`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 P2: public used_bytesも同じ.lockを取得し、保存中temp/hardlinkの二重計測や消失entryの参照を防ぐ。実OSlock保持中のreader待機・temp削除/解放後stable値を回帰し、cache66件/AST成功。証跡: file: `tmp/pr68-used-bytes-lock-tests-final.log`。全ゲート/返信解決は2.2で継続。delegation-exception: `直列のクリティカルパス`。
+
+
+## 2026-10-20 公開エンジン0.9系の先行準備
+
+- [x] 公開IronCalc0.9.0/office2pdf0.9.1とZIP9.0.5へ先行移行し、結合セルの不正範囲拒否・1x1/重複geometry・streaming・metadata整合性を維持する。主担当が委譲した実装/実ZIP回帰と独立レビューを統合した。証跡: file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
+- [x] 実ZIPの空filterColumn経路を回帰で補い、現行source/graphをRust1.99.1の標準coverageで検証する。70732 EXIT0、3839関数/31593行100%、未カバー0。証跡: file: `tmp/kdv-upstream09-canonical-coverage-complete.log`。delegation-exception: `直列のクリティカルパス`。
+- [x] 配布パッケージの先行検査を回収する。98034 EXIT0、962files、配布package build/publish dry-run/0.5.13未公開確認成功。これは最後のtest-only回帰追加前のRust1.97.1互換性証跡であり、最終HEADのCI/package検査は別途回収する。証跡: file: `tmp/kdv-upstream09-publish-precheck-final.log`。delegation-exception: `直列のクリティカルパス`。
+- [x] 認証済みAPIで上流5PRの全レビュー/threads/CIと公式registry/Releaseを再確認する。2026-10-20T09:24:21Z、新しいactionable findingなし。IronCalc#1565は承認・マージ済みだが、公式ZIP修正版/KRR新版は未公開。証跡: file: `tmp/upstream-20261020-latest-final-audit.json`。delegation-exception: `直列のクリティカルパス`。
+- [x] 現行sourceの全通常検査を回収する。10774のfmt/容量guard42/strict Clippy/AST/境界・入口成功後、容量復旧した6955が終了0。workspace2352、Storybook646と分離1件、Office/V8/harness/crop検査成功。source/graph18件のhash不変。証跡: file: `tmp/kdv-upstream09-normal-check-resumed-final.log`。delegation-exception: `直列のクリティカルパス`。
+- [ ] 通常commit/push、最新HEAD Codex review/全指摘回収・reply/resolve、3 OS CI/既存release-preflightの全release-checkを完了する。最新HEADのsemver/coverage/package/publish dry-runも既存CIで回収し、最終公開前の2.1/2.2を代用しない。delegation-exception: `直列のクリティカルパス`。
+- [ ] 公式ZIP修正版が公開され次第registry依存として取り込み、#69の旧ZIP graphが解消したことを確認して全再検査する。KRR修正版の取込/最終公開は1.3/2.1–2.3で継続する。delegation-exception: `直列のクリティカルパス`。
+
+上流のoffice2pdf/owner forksへの編集は、親Issue2323を根拠にした今回限りの明示許可と外部編集許可の範囲に限る。現公開0.9系にも旧ZIP依存が残るため、現状をKRRだけの待機と扱わない。

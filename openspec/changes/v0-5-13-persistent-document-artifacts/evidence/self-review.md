@@ -148,3 +148,48 @@ thread4286251959: 51a534a2の直前identity検証だけでは操作中のroot置
 thread4286986682: public used_bytesもload/save/clearと同じ.lockを取得してからused_bytes_lockedへ委譲する。内部locked処理は再取得せずdeadlockを避ける。親の実OSlock保持中に一時ファイルと公開hardlinkを作り、独立handleのreaderが容量計測を返さず待つことをchannelの期限付き受信で確認。一時名削除・lock解放後にstable容量となり、reader join後にTempDirを解放する実filesystem回帰を追加した。初回test alias/expectのcompile/AST失敗はgeneric Result/明示error処理へ修正し、最終cache66件43368 EXIT0・AST71442 EXIT0を根拠とする。
 
 全release-check15994 EXIT0、3823関数31449行100%、semver196PASS、package958files15.2MiB/publishdryrun/unpublished成功。ログtmp/pr68-used-bytes-lock-release-check.log、coverage原文RTK tee1792091503_just_coverage.log。除外・閾値・契約の変更なし。current HEAD公開後の返信/resolve・freshreview/3OS CI/preflightは結果回収まで未完。KRR0.4.23準備graphであり最終取込後の再検査は別。
+
+## 2026-10-20 IronCalc0.9入力互換性と責務分割
+
+公開済みIronCalc0.9.0/office2pdf0.9.1への先行移行で、結合セルの型変更に加え、不正・1x1・重複範囲を上流が省略する差異を検出した。実XLSXの不正ref回帰は修正前に失敗を確認した。既存XML passでmodel経路だけraw範囲を検証し、従来のエラーとgeometryを維持する。streamingでは取得しない。シート名/件数を実modelと照合してからgeometryをmoveし、builderでも件数を照合する。filterもtakeで移動するため不要な複製を増やさない。
+
+既存AST規約に沿ってsession生成・XML filter/merge処理をprivate moduleへ分離した。公開API、入力期待値、品質閾値、coverage除外は変更しない。主担当と独立レビューで所有権・streaming・深さ/名前/件数・エラー経路を確認し、未対応のactionable findingはない。allocation懸念は不要clone除去後に旧0.8のraw文字列保持と比較し、今回固有の退行でないとして撤回した。
+
+途中の全検査44211はClippy条件式、5625はAST行数で停止したため、最終成功の証拠にしない。等価な条件式整理と責務分割後のASTは成功。容量整理と重なった限定検査3286も失敗として回収し、再実行する。最終sourceの限定回帰・全release-check・current HEADレビュー/CIの結果は実際の完了後に追記する。旧KRR0.4.23/旧ZIPを含むgraphの準備検査であり、公式修正版取得後の最終再検査を代用しない。
+
+
+### 2026-10-20 現行sourceの先行検査
+
+private session/filter/merge分割後、通常checkのRust/Storybook/AST/strict lint、semver196項目、残るprofiling/performance/fidelity/monitor/V8/harness検査は成功した。計測verifierの参照先を新session moduleへ修正し、release契約・計測self-test/検査も成功。実ZIP/実workerの不正worksheet・結合ref・欠損relationshipsと、属性値の不正/欠落・blank trueの回帰を追加し、canonical coverage全テストは成功した。
+
+ただしcoverage20832は終了コード1で、3839関数100%、31593行中1行未カバーのため、全品質ゲート成功とは扱わない。元ログは `tmp/kdv-upstream09-coverage-attribute-edges-final.log`。閾値・除外・商用処理をテスト都合で変更せず、計測根拠の診断を継続する。独立した最終差分レビューでactionable findingはなかった。パッケージ検査・公開HEADの通常検査/review/CIは別途、実結果を回収する。
+
+
+パッケージの先行検査98034は終了コード0。Rust1.97.1でversion検査、package962 files/15.2MiB(圧縮7.3MiB)、配布packageのbuild、publish dry-run、v0.5.13未公開確認が成功した。`tmp/kdv-upstream09-publish-precheck-final.log`を根拠とする。macOS linkerのcompact-unwind関連warningは残るが、検査終了コードは0。
+
+調査でローカルstable aliasがRust1.97.1/LLVM22.1.6のままと判明し、公式rustup checkは現行stable1.99.1への更新有りを示した。CIのstableと揃えるため、既存の1.99.1(LLVM23.1.1)を検査processだけに指定して再検証する。global defaultの変更、商用処理のcoverage都合変更、閾値緩和は行わない。
+
+
+### 最終coverageの回収
+
+1.99.1でも集計不足が続いたため、保存したprofdata/binaryからLLVMの関数別report/show-instantiationsを取得した。未カバーはfinishの構造式ではなく、`parse_worksheet`の空filterColumnを完了する32行目で、ZIPのBufReader経路だけ未実行だった。Cursor経路の既存テストだけでは不足していた。compiler不具合という推測は採用しない。
+
+実representative ZIPから空filterColumnを読む肯定回帰と、両workerバイナリで同経路を通って不正merge refを拒否する回帰を追加した。補助93210は終了コード0。続くRust1.99.1の標準 `just JOBS=2 coverage` 70732も終了コード0で、3839関数/31593行100%、未カバー0となった。`tmp/kdv-upstream09-canonical-coverage-complete.log`を根拠とし、商用処理・閾値・除外は変更していない。
+
+複数mergeCellsで空になる従来挙動は、公式IronCalc0.8.3のimport/worksheets.rsのload_merge_cellsが直下mergeCellsの件数1の場合だけrefを収集する実装で再確認した。新parserも同じ挙動を維持する。最新HEADの全通常検査/review/CIは次段階で実結果を回収する。
+
+
+### 通常検査の容量復旧とworkspace結果
+
+Rust1.99.1の通常検査10774はfmt・容量guard42回帰・strict Clippy・AST・境界/入口検査まで成功したが、workspace testのlink時に容量不足で終了101となった。private既存clean-allを直列で再実行した27435は終了0、空き49GiBへ回復し、source/graph18ファイルのhash不変を確認した。検査対象・閾値を変えず、incremental cacheを無効にしjobs1で失敗段階以降を再実行している。
+
+再実行6955のworkspace段階は28スイート、2352成功・失敗0・既存ignored8で完了した。Storybookと後続script gateは現在実行中で、全通常検査成功とはまだ扱わない。証跡は `tmp/kdv-upstream09-normal-check-resumed-final.log`。並行して別repoのbuildが終了した後、全Cargo cwdとlsofで未使用を確認したKUC cacheのみ既存just cleanで整理し、95657終了0、空き24GiBを確保した。ソースや過去測定証跡は削除していない。
+
+Storybook本体は646成功・失敗0・既存ignored23/filtered24で終了した（実行803.59秒）。6955は既存recipeで分離するmouse1件と後続script gateが未完であり、全検査成功とは扱わない。分離実行は依存から再buildしている。08:22頃の共有成果物消失報告もあるため、原因をKDVのcleanと断定しない。主担当の最後のclean95657は07:31:14Z終了、KDVlogにclean/Removedなし。KDVのDoDや品質基準は変えない。
+
+
+### 全通常検査の回収結果
+
+6955は実終了コード0。workspace28suite/2352成功、Storybook646成功と分離mouse1成功、release-target/scorecard/descriptor/profiling/performance/fidelity/monitor/V8 singletonリンク契約/subagent harness/crop28回帰が成功した。10774で成功済みのfmt/容量guard42/strict Clippy/AST/入口・境界と合わせて、現行sourceの全通常gateを回収した。18件のsource/graph SHA256不変を再確認した。単一invocationの全check終了0は通常push hookで別途回収する。
+
+既存release-preflight workflowはrelease PRの最新HEADでacceptance artifacts後に完全release-checkを実行し、契約/semver/通常gate/coverage/package/publish dry-run/未公開確認まで含む。残る重複したローカル配布buildを増やさず、この最新HEADのCI実終了も回収する。品質・除外・閾値を省略しない。
