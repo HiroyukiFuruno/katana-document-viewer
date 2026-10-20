@@ -57,6 +57,7 @@
 
 ## 2026-10-20 公開エンジン0.9系の先行準備
 
+- [x] KatanAの保護方針を参考に、clean/sweepも既存guardと同じlock・所有範囲・使用中検査を通す。sweepの失敗隠蔽を除去し、macOS lsofが検出行と終了1を返す場合も使用中として拒否する。実OS lock/open-file回帰と実Cargo fixtureを含む標準script suite48件成功、独立レビューの失敗伝播指摘を修正。通常の40GiB超過時のみ自動cleanする方針は維持する。証跡: file: `tmp/kdv-maintenance-full-script-check.log`。最新HEADの全品質ゲートは通常push hook/CIで回収する。delegation-exception: `直列のクリティカルパス`。
 - [x] 公開IronCalc0.9.0/office2pdf0.9.1とZIP9.0.5へ先行移行し、結合セルの不正範囲拒否・1x1/重複geometry・streaming・metadata整合性を維持する。主担当が委譲した実装/実ZIP回帰と独立レビューを統合した。証跡: file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。
 - [x] 実ZIPの空filterColumn経路を回帰で補い、現行source/graphをRust1.99.1の標準coverageで検証する。70732 EXIT0、3839関数/31593行100%、未カバー0。証跡: file: `tmp/kdv-upstream09-canonical-coverage-complete.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] 配布パッケージの先行検査を回収する。98034 EXIT0、962files、配布package build/publish dry-run/0.5.13未公開確認成功。これは最後のtest-only回帰追加前のRust1.97.1互換性証跡であり、最終HEADのCI/package検査は別途回収する。証跡: file: `tmp/kdv-upstream09-publish-precheck-final.log`。delegation-exception: `直列のクリティカルパス`。

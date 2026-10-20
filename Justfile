@@ -635,10 +635,10 @@ release-governance-check:
 
 # Sweep old build artifacts locally
 sweep:
-    @{{RTK_CMD}}cargo sweep --time 7 || true
+    @{{RTK_CMD}}{{CARGO}} sweep --time 7
 
 # Remove build artifacts
-clean: sweep
+clean:
     {{RTK_CMD}}{{CARGO}} clean
 
 # Update dependency crates safely

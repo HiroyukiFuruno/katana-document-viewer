@@ -193,3 +193,7 @@ Storybook本体は646成功・失敗0・既存ignored23/filtered24で終了し�
 6955は実終了コード0。workspace28suite/2352成功、Storybook646成功と分離mouse1成功、release-target/scorecard/descriptor/profiling/performance/fidelity/monitor/V8 singletonリンク契約/subagent harness/crop28回帰が成功した。10774で成功済みのfmt/容量guard42/strict Clippy/AST/入口・境界と合わせて、現行sourceの全通常gateを回収した。18件のsource/graph SHA256不変を再確認した。単一invocationの全check終了0は通常push hookで別途回収する。
 
 既存release-preflight workflowはrelease PRの最新HEADでacceptance artifacts後に完全release-checkを実行し、契約/semver/通常gate/coverage/package/publish dry-run/未公開確認まで含む。残る重複したローカル配布buildを増やさず、この最新HEADのCI実終了も回収する。品質・除外・閾値を省略しない。
+
+### clean/sweepの使用中保護
+
+KatanAのclean保護を参考に、KDVの明示clean/sweepを既存build guardの同一lockへ統合した。実行中なら非blockingで拒否し、所有・使用中検査の失敗も非0で返す。独立レビューで判明したsweepの `|| true` による失敗隠蔽を除去し、cleanの不要なsweep前提も外した。通常buildの40GiB閾値は維持する。実OSのopen-file回帰は、macOS lsofが検出行を出力しつつ終了1を返す場合を発見したため、出力があれば使用中と判断するよう修正した。実OS lock/open-file回帰とWindows未知errno単体検査を含むPython25件が成功した（`tmp/kdv-maintenance-python-checks.log`）。Rustのソース・依存graphは変更していない。その後、実Cargo fixtureを含む標準 `just build-cache-script-test` が48件成功・実終了0となった（`tmp/kdv-maintenance-full-script-check.log`）。最新HEADの全品質ゲートは通常push hook/CIで引き続き回収する。

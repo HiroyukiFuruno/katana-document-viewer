@@ -99,7 +99,7 @@ def active_build(targets: list[Path]) -> bool:
             if not target.exists():
                 continue
             probe = subprocess.run(["lsof", "+D", str(target)], check=False, capture_output=True, text=True)
-            if probe.returncode == 0 and probe.stdout.strip():
+            if probe.stdout.strip():
                 return True
             if probe.returncode not in (0, 1) or probe.stderr.strip():
                 return True
@@ -134,22 +134,48 @@ def acquire_lock(lock) -> None:
                 raise
 
 
-def guard(repo_root: Path, targets: list[Path], command: list[str], max_bytes: int) -> int:
+def try_acquire_lock(lock) -> bool:
+    try:
+        if fcntl is not None:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            lock.seek(0, os.SEEK_END)
+            if lock.tell() == 0:
+                lock.write("0")
+                lock.flush()
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        return True
+    except OSError as error:
+        if error.errno in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+            return False
+        raise
+
+
+def guard(
+    repo_root: Path, targets: list[Path], command: list[str], max_bytes: int,
+    *, maintenance: bool = False,
+) -> int:
     lock_path = repo_root / "tmp" / "maintenance" / "build-cache.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as lock:
-        acquire_lock(lock)
+        if maintenance:
+            if not try_acquire_lock(lock):
+                print("guarded cargo command is active; refusing maintenance", file=sys.stderr)
+                return 3
+        else:
+            acquire_lock(lock)
         prepare_targets(repo_root, targets)
         seen: set[tuple[int, int | str]] = set()
-        total = sum(target_bytes(target, seen) for target in targets)
-        if total > max_bytes:
+        if maintenance or sum(target_bytes(target, seen) for target in targets) > max_bytes:
             if any(not owned_target(target) for target in targets if target.exists()):
                 print("build cache ownership tag missing; refusing cleanup", file=sys.stderr)
                 return 2
             if active_build(targets):
                 print("active cargo build detected; refusing cleanup", file=sys.stderr)
                 return 3
-            clean_targets(repo_root, targets)
+            if not maintenance:
+                clean_targets(repo_root, targets)
         return subprocess.run(command, check=False).returncode
 
 GUARDED_CARGO_SUBCOMMANDS = {
@@ -157,7 +183,7 @@ GUARDED_CARGO_SUBCOMMANDS = {
 }
 
 
-def should_guard(command: list[str]) -> bool:
+def cargo_subcommand(command: list[str]) -> str | None:
     for index, value in enumerate(command[:-1]):
         if Path(value).name in {"cargo", "cargo.exe"}:
             arguments = iter(command[index + 1:])
@@ -165,9 +191,13 @@ def should_guard(command: list[str]) -> bool:
                 if argument in {"--color", "--config", "--manifest-path", "-C", "-Z"}:
                     next(arguments, None)
                 elif not argument.startswith(("-", "+")):
-                    return argument in GUARDED_CARGO_SUBCOMMANDS
-            return False
-    return False
+                    return argument
+            return None
+    return None
+
+
+def should_guard(command: list[str]) -> bool:
+    return cargo_subcommand(command) in GUARDED_CARGO_SUBCOMMANDS
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -189,6 +219,8 @@ def main(argv: list[str] | None = None) -> int:
         if cargo_target_dir:
             explicit.append((cargo_directory / cargo_target_dir).resolve())
         targets = repo_targets(repo_root, explicit)
+        if cargo_subcommand(command) in {"clean", "sweep"}:
+            return guard(repo_root, targets, command, max_bytes, maintenance=True)
         if not should_guard(command):
             return subprocess.run(command, check=False).returncode
         return guard(repo_root, targets, command, max_bytes)
