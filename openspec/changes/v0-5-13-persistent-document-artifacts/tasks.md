@@ -57,6 +57,9 @@
 
 ## 2026-10-20 公開エンジン0.9系の先行準備
 
+- [ ] 公開前検査で発見した、自動clean後に補助ツールが非空targetを再生成すると所有タグが失われる経路を修正する。空の所有出力へだけタグを再作成し、非空・未所有directoryの採用拒否は維持する。実tiny Cargoの入れ子targetと再度の閾値cleanを回帰し、通常push・新HEADレビュー・CI・完全release-checkを回収する。delegation-exception: `直列のクリティカルパス`。
+- [x] 自動clean成功直後に空targetの所有タグを準備し直す。実offline Cargoの入れ子buildで旧実装のタグ欠落・次回拒否を再現し、修正後は2回のbuild/閾値cleanが成功した。標準49回帰終了0、独立レビュー指摘0、OpenSpec strict成功。Windowsのbinary suffixにも対応したが、修正後3 OS/full検査は上記で継続する。証跡: file: `tmp/pr68-23bb-semver-red.log`、file: `tmp/pr68-cache-repair-final-script-check.log`。delegation-exception: `直列のクリティカルパス`。
+- [x] HEAD23bb9f65の通常push・最新Codexレビュー・3 OS CIを回収した。通常push55713終了0、Codex新規指摘0・全27thread解決済み、3 OS成功。Linuxは3843関数/31575行100%、未カバー0。公開前検査はsemver202成功後、所有タグの安全検査で停止したため、完全release-check成功とは扱わない。証跡: file: `tmp/pr68-23bb-ci-release-evidence.json`、file: `tmp/pr68-23bb-review-receipt.json`。delegation-exception: `直列のクリティカルパス`。
 - [x] Issue参照の不足を重い品質検査より前にも検出する。通常push77570の品質delegate通過後のURL欠如拒否を受け、既存最終Issue検査を維持した予備検査を追加した。実Git fixtureで事前拒否・正常push・stdin引継ぎ・delegate後の再検査・既存delegate失敗伝播を検証。旧hookのRED後、標準release-governance-checkが終了0、独立レビュー指摘0。品質検査の省略や閾値緩和なし。証跡: file: `tmp/kdv-upstream09-normal-push-first-result.json`、file: `tmp/release-governance-check-current.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] KatanAの保護方針を参考に、clean/sweepも既存guardと同じlock・所有範囲・使用中検査を通す。sweepの失敗隠蔽を除去し、macOS lsofが検出行と終了1を返す場合も使用中として拒否する。実OS lock/open-file回帰と実Cargo fixtureを含む標準script suite48件成功、独立レビューの失敗伝播指摘を修正。通常の40GiB超過時のみ自動cleanする方針は維持する。証跡: file: `tmp/kdv-maintenance-full-script-check.log`。最新HEADの全品質ゲートは通常push hook/CIで回収する。delegation-exception: `直列のクリティカルパス`。
 - [x] 公開IronCalc0.9.0/office2pdf0.9.1とZIP9.0.5へ先行移行し、結合セルの不正範囲拒否・1x1/重複geometry・streaming・metadata整合性を維持する。主担当が委譲した実装/実ZIP回帰と独立レビューを統合した。証跡: file: `evidence/self-review.md`。delegation-exception: `直列のクリティカルパス`。

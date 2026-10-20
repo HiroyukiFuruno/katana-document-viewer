@@ -203,3 +203,11 @@ KatanAのclean保護を参考に、KDVの明示clean/sweepを既存build guard�
 通常push77570は既存品質delegateを通過した後、コミット本文のOpen Issue URL欠如で拒否された（push全体は終了1）。Issue #69へ現在の公開依存・API移行・manifest/lock・検証・未解消の推移ZIP経路を記録し、参照をコミット本文へ補完した。単独の実remote入力によるIssue検査は終了0だが、通常pushと最新HEADの公開側レビュー/CIはまだ未完である。
 
 この不足を重い検査の後で検出しないよう、delegate前にも同じIssue検査を追加した。既存のdelegateと最終Issue検査は残し、検査中のIssue状態変化も最終段で拒否する。旧hookでは、実Git fixtureの参照欠如でも記録delegateが起動してしまう回帰が終了1となった。修正後は、malformed入力/参照欠如で未起動、正常default branch入力で終了0とstdin保持、delegateがfixtureのoriginを書き換えた場合の最終拒否、既存delegate失敗伝播を確認した。標準 `just release-governance-check` は終了0（`tmp/release-governance-check-current.log`）。独立レビューでも認証・scope・品質/final guardの弱体化は指摘されていない。Rust source/manifest/lockの18件は検査済みhashを維持する。
+
+### 最新HEADのCIと自動clean後の再生成
+
+23bb9f65の通常push55713は全hookを通過し終了0、Codex receipt6292503608は新規指摘なし。全レビューを取得し27thread未解決0、CI39432744843のmacOS/Linux/Windowsが成功した。Linuxの関数3843/行31575はともに100%・未カバー0で、region98.71%と222関数のprofile mismatch警告もログに保持した。標準native coverageの3839関数/31593行100%と対象OSを区別する。
+
+公開前検査39432745015はsemver202成功・58skip後、自動cleanの次に起動した補助ツールが入れ子出力だけを生成し、rootの所有タグが失われたため後続Storybook入口で安全停止した。完全release-check・配布検査は未完であり、3 OS CI成功で代用しない。clean前の所有・使用中確認は維持し、成功した自動clean直後の空targetへタグを準備し直す修正と実入れ子Cargo回帰を行う。未所有の非空directoryへタグを付けて削除可能にする対処は採用しない。
+
+修正は自動clean成功後の `prepare_targets` 再実行1行に限定した。実Cargoの依存なしfixtureをoffline/1jobで入れ子targetへbuildし、旧実装では初回終了0でもroot tagなし・次回終了2を確認した。修正後は2回の閾値clean/buildとも終了0、root tagとbinaryを確認した。Windowsではbinaryに.exeを付ける。標準49件は終了0（`tmp/pr68-cache-repair-final-script-check.log`）、OpenSpec strictも終了0。独立レビューで、同一lock内・clean成功時だけの再準備、例外時のsafe failure、非空未所有directory拒否、40GiB閾値、wrapped commandの終了値伝播に問題なしと確認した。Rust source/graph18件は不変。通常pushの全品質検査と修正後HEADのreview/CI/full preflightは引き続き実結果を回収する。

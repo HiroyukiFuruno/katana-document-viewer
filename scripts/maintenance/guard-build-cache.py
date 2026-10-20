@@ -176,6 +176,7 @@ def guard(
                 return 3
             if not maintenance:
                 clean_targets(repo_root, targets)
+                prepare_targets(repo_root, targets)
         return subprocess.run(command, check=False).returncode
 
 GUARDED_CARGO_SUBCOMMANDS = {
