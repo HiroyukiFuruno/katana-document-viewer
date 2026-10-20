@@ -59,12 +59,35 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
 
 def owned_target(path: Path) -> bool:
     tag = path / "CACHEDIR.TAG"
+    descriptor: int | None = None
     try:
-        if not stat.S_ISREG(tag.lstat().st_mode):
+        initial = tag.lstat()
+        if not stat.S_ISREG(initial.st_mode):
             return False
-        return tag.read_text(encoding="utf-8").startswith(CACHEDIR_TAG)
-    except OSError:
+        descriptor = _open_tag_descriptor(tag)
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode):
+            return False
+        with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
+            descriptor = None
+            return stream.read(len(CACHEDIR_TAG)) == CACHEDIR_TAG
+    except (OSError, UnicodeError):
         return False
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _open_tag_descriptor(tag: Path) -> int:
+    if os.name != "nt":
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        if not nofollow:
+            raise OSError(errno.EOPNOTSUPP, "O_NOFOLLOW is required")
+        flags = os.O_RDONLY | os.O_NONBLOCK | nofollow
+        return os.open(tag, flags)
+    from windows_tag_handle import open_tag_descriptor
+
+    return open_tag_descriptor(tag)
 
 
 def target_bytes(path: Path, seen: set[tuple[int, int | str]] | None = None) -> int:
