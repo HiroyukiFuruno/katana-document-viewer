@@ -7,6 +7,7 @@ import argparse
 import errno
 import math
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -59,7 +60,9 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
 def owned_target(path: Path) -> bool:
     tag = path / "CACHEDIR.TAG"
     try:
-        return tag.is_file() and tag.read_text(encoding="utf-8").startswith(CACHEDIR_TAG)
+        if not stat.S_ISREG(tag.lstat().st_mode):
+            return False
+        return tag.read_text(encoding="utf-8").startswith(CACHEDIR_TAG)
     except OSError:
         return False
 

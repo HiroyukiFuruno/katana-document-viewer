@@ -71,3 +71,5 @@
 - [ ] 公式ZIP修正版が公開され次第registry依存として取り込み、#69の旧ZIP graphが解消したことを確認して全再検査する。KRR修正版の取込/最終公開は1.3/2.1–2.3で継続する。delegation-exception: `直列のクリティカルパス`。
 
 上流のoffice2pdf/owner forksへの編集は、親Issue2323を根拠にした今回限りの明示許可と外部編集許可の範囲に限る。現公開0.9系にも旧ZIP依存が残るため、現状をKRRだけの待機と扱わない。
+
+- [x] PR68 b834のP2: 所有タグはlstatで通常ファイルと確認し、外部署名へのsymlinkを未所有として拒否する。実Cargo maintenance経路の旧削除を再現し、自動閾値/明示cleanの両経路でタグ・外部ファイル・無関係出力を保持する51回帰が成功した。fixtureは一時領域内へ隔離した。証跡: file: `tmp/pr68-symlink-red.log`、file: `tmp/pr68-symlink-standard.log`。通常push・各thread reply/resolve・最新HEAD全ゲートは継続する。delegation-exception: `直列のクリティカルパス`。
