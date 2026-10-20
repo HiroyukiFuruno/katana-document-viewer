@@ -197,3 +197,9 @@ Storybook本体は646成功・失敗0・既存ignored23/filtered24で終了し�
 ### clean/sweepの使用中保護
 
 KatanAのclean保護を参考に、KDVの明示clean/sweepを既存build guardの同一lockへ統合した。実行中なら非blockingで拒否し、所有・使用中検査の失敗も非0で返す。独立レビューで判明したsweepの `|| true` による失敗隠蔽を除去し、cleanの不要なsweep前提も外した。通常buildの40GiB閾値は維持する。実OSのopen-file回帰は、macOS lsofが検出行を出力しつつ終了1を返す場合を発見したため、出力があれば使用中と判断するよう修正した。実OS lock/open-file回帰とWindows未知errno単体検査を含むPython25件が成功した（`tmp/kdv-maintenance-python-checks.log`）。Rustのソース・依存graphは変更していない。その後、実Cargo fixtureを含む標準 `just build-cache-script-test` が48件成功・実終了0となった（`tmp/kdv-maintenance-full-script-check.log`）。最新HEADの全品質ゲートは通常push hook/CIで引き続き回収する。
+
+### Issue参照不足の早期検出
+
+通常push77570は既存品質delegateを通過した後、コミット本文のOpen Issue URL欠如で拒否された（push全体は終了1）。Issue #69へ現在の公開依存・API移行・manifest/lock・検証・未解消の推移ZIP経路を記録し、参照をコミット本文へ補完した。単独の実remote入力によるIssue検査は終了0だが、通常pushと最新HEADの公開側レビュー/CIはまだ未完である。
+
+この不足を重い検査の後で検出しないよう、delegate前にも同じIssue検査を追加した。既存のdelegateと最終Issue検査は残し、検査中のIssue状態変化も最終段で拒否する。旧hookでは、実Git fixtureの参照欠如でも記録delegateが起動してしまう回帰が終了1となった。修正後は、malformed入力/参照欠如で未起動、正常default branch入力で終了0とstdin保持、delegateがfixtureのoriginを書き換えた場合の最終拒否、既存delegate失敗伝播を確認した。標準 `just release-governance-check` は終了0（`tmp/release-governance-check-current.log`）。独立レビューでも認証・scope・品質/final guardの弱体化は指摘されていない。Rust source/manifest/lockの18件は検査済みhashを維持する。
