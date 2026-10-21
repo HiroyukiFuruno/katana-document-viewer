@@ -1,10 +1,8 @@
 use super::{
-    SpreadsheetCoordinate, SpreadsheetMergedCellArtifact, SpreadsheetSheetArtifact,
-    SpreadsheetTrackArtifact,
+    SpreadsheetMergedCellArtifact, SpreadsheetSheetArtifact, SpreadsheetTrackArtifact,
     spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSupport},
 };
 use ironcalc::base::Model;
-use ironcalc::base::expressions::utils::parse_reference_a1;
 
 pub(crate) struct SpreadsheetSheetBuilder;
 
@@ -13,15 +11,47 @@ impl SpreadsheetSheetBuilder {
         model: &Model<'_>,
         max_sheets: usize,
         max_logical_cells: usize,
+        merged_cells_by_sheet: Vec<Vec<SpreadsheetMergedCellArtifact>>,
     ) -> Result<Vec<SpreadsheetSheetArtifact>, SpreadsheetEngineError> {
         let names = model.workbook.get_worksheet_names();
+        Self::validate_merge_cell_sheet_count(names.len(), merged_cells_by_sheet.len())?;
+        Self::build_sheets(
+            model,
+            names,
+            max_sheets,
+            max_logical_cells,
+            merged_cells_by_sheet,
+        )
+    }
+
+    fn validate_merge_cell_sheet_count(
+        workbook_count: usize,
+        metadata_count: usize,
+    ) -> Result<(), SpreadsheetEngineError> {
+        if workbook_count != metadata_count {
+            return Err(SpreadsheetEngineError::Import(format!(
+                "merged-cell metadata has {} sheets but workbook has {}",
+                metadata_count, workbook_count
+            )));
+        }
+        Ok(())
+    }
+
+    fn build_sheets(
+        model: &Model<'_>,
+        names: Vec<String>,
+        max_sheets: usize,
+        max_logical_cells: usize,
+        merged_cells_by_sheet: Vec<Vec<SpreadsheetMergedCellArtifact>>,
+    ) -> Result<Vec<SpreadsheetSheetArtifact>, SpreadsheetEngineError> {
         SpreadsheetEngineSupport::check_limit("sheet_count", names.len(), max_sheets)?;
         let mut total_cells = 0_usize;
         names
             .into_iter()
+            .zip(merged_cells_by_sheet)
             .enumerate()
-            .map(|(index, name)| {
-                let sheet = Self::build_sheet(model, index, name)?;
+            .map(|(index, (name, merged_cells))| {
+                let sheet = Self::build_sheet(model, index, name, merged_cells)?;
                 let logical_cells = sheet.row_count.saturating_mul(sheet.column_count);
                 total_cells = total_cells.saturating_add(logical_cells);
                 SpreadsheetEngineSupport::check_limit(
@@ -38,6 +68,7 @@ impl SpreadsheetSheetBuilder {
         model: &Model<'_>,
         index: usize,
         name: String,
+        merged_cells: Vec<SpreadsheetMergedCellArtifact>,
     ) -> Result<SpreadsheetSheetArtifact, SpreadsheetEngineError> {
         let sheet_index = u32::try_from(index).map_err(SpreadsheetEngineSupport::model_error)?;
         let worksheet = model
@@ -56,7 +87,7 @@ impl SpreadsheetSheetBuilder {
             column_tracks: Self::column_tracks(model, sheet_index, column_count)?,
             frozen_rows: SpreadsheetEngineSupport::non_negative(worksheet.frozen_rows)?,
             frozen_columns: SpreadsheetEngineSupport::non_negative(worksheet.frozen_columns)?,
-            merged_cells: Self::merged_cells(&worksheet.merge_cells)?,
+            merged_cells,
             show_grid_lines: worksheet.show_grid_lines,
         })
     }
@@ -96,45 +127,11 @@ impl SpreadsheetSheetBuilder {
             .collect::<Result<_, String>>()
             .map_err(SpreadsheetEngineError::Model)
     }
-
-    fn merged_cells(
-        ranges: &[String],
-    ) -> Result<Vec<SpreadsheetMergedCellArtifact>, SpreadsheetEngineError> {
-        ranges
-            .iter()
-            .map(|range| Self::merged_cell(range))
-            .collect()
-    }
-
-    fn merged_cell(range: &str) -> Result<SpreadsheetMergedCellArtifact, SpreadsheetEngineError> {
-        let Some((start, end)) = range.split_once(':') else {
-            return Err(SpreadsheetEngineError::InvalidMergedCell(range.to_owned()));
-        };
-        let start = match parse_reference_a1(start) {
-            Some(start) => start,
-            None => return Err(SpreadsheetEngineError::InvalidMergedCell(range.to_owned())),
-        };
-        let end = match parse_reference_a1(end) {
-            Some(end) => end,
-            None => return Err(SpreadsheetEngineError::InvalidMergedCell(range.to_owned())),
-        };
-        if end.row < start.row || end.column < start.column {
-            return Err(SpreadsheetEngineError::InvalidMergedCell(range.to_owned()));
-        }
-        Ok(SpreadsheetMergedCellArtifact {
-            anchor: SpreadsheetCoordinate::new(
-                SpreadsheetEngineSupport::zero_based(start.row)?,
-                SpreadsheetEngineSupport::zero_based(start.column)?,
-            ),
-            row_span: SpreadsheetEngineSupport::span(start.row, end.row)?,
-            column_span: SpreadsheetEngineSupport::span(start.column, end.column)?,
-        })
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{SpreadsheetEngineError, SpreadsheetSheetBuilder};
+    use super::SpreadsheetEngineError;
     use crate::multi_format::SpreadsheetViewerLimits;
     use crate::multi_format::spreadsheet_engine::SpreadsheetEngineSession;
 
@@ -152,26 +149,6 @@ mod tests {
                 kind: "logical_cell_count",
                 ..
             })
-        ));
-    }
-
-    #[test]
-    fn malformed_merged_cell_ranges_are_rejected() {
-        assert!(matches!(
-            SpreadsheetSheetBuilder::merged_cell("A1"),
-            Err(SpreadsheetEngineError::InvalidMergedCell(_))
-        ));
-        assert!(matches!(
-            SpreadsheetSheetBuilder::merged_cell("B2:A1"),
-            Err(SpreadsheetEngineError::InvalidMergedCell(_))
-        ));
-        assert!(matches!(
-            SpreadsheetSheetBuilder::merged_cell(":A1"),
-            Err(SpreadsheetEngineError::InvalidMergedCell(_))
-        ));
-        assert!(matches!(
-            SpreadsheetSheetBuilder::merged_cell("A1:"),
-            Err(SpreadsheetEngineError::InvalidMergedCell(_))
         ));
     }
 }

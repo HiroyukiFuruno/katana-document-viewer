@@ -1,28 +1,39 @@
-use super::spreadsheet_engine::{SpreadsheetEngineError, SpreadsheetEngineSupport};
+use super::spreadsheet_engine::SpreadsheetEngineError;
+use super::spreadsheet_filter_xml_filter::auto_filter;
+use super::spreadsheet_filter_xml_merge::SpreadsheetMergeParser;
 use super::spreadsheet_streaming_xml_values::{attribute, attribute_usize, xml_error};
 use super::{
-    SpreadsheetAutoFilterArtifact, SpreadsheetCoordinate, SpreadsheetFilterColumnArtifact,
-    SpreadsheetFilterCriterion, SpreadsheetFilterRange,
+    SpreadsheetAutoFilterArtifact, SpreadsheetFilterColumnArtifact, SpreadsheetFilterCriterion,
+    SpreadsheetMergedCellArtifact,
 };
-use ironcalc::base::expressions::utils::parse_reference_a1;
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 use std::io::BufRead;
 
 pub(super) fn parse_worksheet(
     input: impl BufRead,
-) -> Result<Option<SpreadsheetAutoFilterArtifact>, SpreadsheetEngineError> {
-    let mut parser = FilterParser::default();
+    capture_merged_cells: bool,
+) -> Result<ParsedWorksheetMetadata, SpreadsheetEngineError> {
+    let mut parser = FilterParser {
+        merged_cells: SpreadsheetMergeParser::new(capture_merged_cells),
+        ..FilterParser::default()
+    };
     let mut reader = Reader::from_reader(input);
     let mut buffer = Vec::new();
     loop {
         match reader.read_event_into(&mut buffer) {
-            Ok(Event::Start(event)) => parser.start(&reader, &event)?,
-            Ok(Event::Empty(event)) => parser.empty(&reader, &event)?,
-            Ok(Event::End(event)) if event.local_name().as_ref() == "filterColumn" => {
-                parser.finish_column();
+            Ok(Event::Start(event)) => {
+                parser.start(&reader, &event, false)?;
+                parser.xml_depth += 1;
             }
-            Ok(Event::Eof) => return Ok(parser.filter),
+            Ok(Event::Empty(event)) => {
+                parser.start(&reader, &event, true)?;
+                if event.local_name().as_ref() == "filterColumn" {
+                    parser.finish_column();
+                }
+            }
+            Ok(Event::End(event)) => parser.end(&event),
+            Ok(Event::Eof) => return parser.finish(),
             Ok(_) => {}
             Err(error) => return Err(xml_error(error)),
         }
@@ -30,8 +41,15 @@ pub(super) fn parse_worksheet(
     }
 }
 
+pub(super) struct ParsedWorksheetMetadata {
+    pub(super) auto_filter: Option<SpreadsheetAutoFilterArtifact>,
+    pub(super) merged_cells: Vec<SpreadsheetMergedCellArtifact>,
+}
+
 #[derive(Default)]
 struct FilterParser {
+    xml_depth: usize,
+    merged_cells: SpreadsheetMergeParser,
     filter: Option<SpreadsheetAutoFilterArtifact>,
     column: Option<SpreadsheetFilterColumnArtifact>,
 }
@@ -41,9 +59,16 @@ impl FilterParser {
         &mut self,
         reader: &Reader<impl BufRead>,
         event: &BytesStart<'_>,
+        is_empty: bool,
     ) -> Result<(), SpreadsheetEngineError> {
         match event.local_name().as_ref() {
             "autoFilter" => self.filter = auto_filter(reader, event)?,
+            "mergeCells" if self.merged_cells.is_worksheet_section(self.xml_depth) => {
+                self.merged_cells.start_section(self.xml_depth, is_empty);
+            }
+            "mergeCell" if self.merged_cells.is_merge_cell(self.xml_depth) => {
+                self.merged_cells.capture_reference(reader, event)?;
+            }
             "filterColumn" => self.column = filter_column(reader, event, self.filter.as_ref())?,
             "filters" => add_blank(reader, event, self.column.as_mut())?,
             "filter" => add_value(reader, event, self.column.as_mut())?,
@@ -53,16 +78,21 @@ impl FilterParser {
         Ok(())
     }
 
-    fn empty(
-        &mut self,
-        reader: &Reader<impl BufRead>,
-        event: &BytesStart<'_>,
-    ) -> Result<(), SpreadsheetEngineError> {
-        self.start(reader, event)?;
+    fn end(&mut self, event: &quick_xml::events::BytesEnd<'_>) {
+        if event.local_name().as_ref() == "mergeCells" {
+            self.merged_cells.end_section(self.xml_depth);
+        }
         if event.local_name().as_ref() == "filterColumn" {
             self.finish_column();
         }
-        Ok(())
+        self.xml_depth = self.xml_depth.saturating_sub(1);
+    }
+
+    fn finish(self) -> Result<ParsedWorksheetMetadata, SpreadsheetEngineError> {
+        Ok(ParsedWorksheetMetadata {
+            auto_filter: self.filter,
+            merged_cells: self.merged_cells.finish()?,
+        })
     }
 
     fn finish_column(&mut self) {
@@ -84,39 +114,6 @@ impl FilterParser {
                 .push(format!("unsupported AutoFilter criterion `{kind}`"));
         }
     }
-}
-
-fn auto_filter(
-    reader: &Reader<impl BufRead>,
-    event: &BytesStart<'_>,
-) -> Result<Option<SpreadsheetAutoFilterArtifact>, SpreadsheetEngineError> {
-    attribute(reader, event, b"ref")?
-        .map(|reference| {
-            Ok(SpreadsheetAutoFilterArtifact {
-                range: filter_range(&reference)?,
-                columns: Vec::new(),
-                filtered_out_rows: Vec::new(),
-                diagnostics: Vec::new(),
-            })
-        })
-        .transpose()
-}
-
-fn filter_range(reference: &str) -> Result<SpreadsheetFilterRange, SpreadsheetEngineError> {
-    let (start, end) = reference.split_once(':').unwrap_or((reference, reference));
-    Ok(SpreadsheetFilterRange {
-        start: coordinate(start)?,
-        end: coordinate(end)?,
-    })
-}
-
-fn coordinate(reference: &str) -> Result<SpreadsheetCoordinate, SpreadsheetEngineError> {
-    let parsed = parse_reference_a1(reference)
-        .ok_or_else(|| SpreadsheetEngineError::Import("invalid AutoFilter range".into()))?;
-    Ok(SpreadsheetCoordinate::new(
-        SpreadsheetEngineSupport::zero_based(parsed.row)?,
-        SpreadsheetEngineSupport::zero_based(parsed.column)?,
-    ))
 }
 
 fn filter_column(

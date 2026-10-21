@@ -47,8 +47,9 @@ FORBIDDEN_ADAPTER_MARKERS = (
 )
 FIXED_SELECTED_ENGINES = {
     "hayro": ("hayro", "0.7.1"),
-    "ironcalc": ("ironcalc", "0.8.3"),
+    "ironcalc": ("ironcalc", "0.9.1"),
 }
+FIXED_ENGINE_TRANSITIVES = {"ironcalc_base": "0.9.1"}
 LINUX_SANDBOX_DEPENDENCIES = {
     "libc": "0.2.190",
     "seccompiler": "0.5.0",
@@ -286,6 +287,7 @@ def multi_format_lockfile_errors(manifest: str, lockfile: str) -> list[str]:
     }
     for name, version in {
         **selected_packages,
+        **FIXED_ENGINE_TRANSITIVES,
         **LINUX_SANDBOX_DEPENDENCIES,
     }.items():
         registry_matches = [
@@ -469,8 +471,7 @@ def justfile_errors(justfile: str) -> list[str]:
         "release-verify: release-contract-check semver-check check",
         "{{CARGO}} clean\n    {{RTK_CMD}}just coverage\n    {{CARGO}} clean --target-dir target/llvm-cov-target",
         'COVERAGE_TARGET_PACKAGES := "-p katana-document-viewer"',
-        "coverage-v8-refresh:",
-        "{{CARGO}} clean -p v8 --target-dir target/llvm-cov-target",
+        "coverage-v8-refresh:\n    {{CARGO}} clean --target-dir target/llvm-cov-target",
         "coverage: coverage-v8-refresh",
         "coverage-missing: coverage-v8-refresh",
         "document-surface-boundary-check:",
@@ -748,7 +749,7 @@ def self_test() -> None:
             (
                 'hayro = "=0.7.1"',
                 'office2pdf = { package = "office2pdf", version = "=0.7.0" }',
-                'ironcalc = "=0.8.3"',
+                'ironcalc = "=0.9.1"',
                 'libc = "=0.2.190"',
                 'seccompiler = "=0.5.0"',
                 'skarn-sandbox = "=1.0.1"',
@@ -952,10 +953,16 @@ checksum = "0000000000000000000000000000000000000000000000000000000000000000"
         for name, version in {
             **{package: version for package, version in selected_engines(toml_loads(workspace_manifest).get("workspace", {}).get("dependencies", {})).values()},
             **LINUX_SANDBOX_DEPENDENCIES,
+            **FIXED_ENGINE_TRANSITIVES,
             "katana-ui-core": KUC_VERSION,
         }.items()
     )
     assert not multi_format_lockfile_errors(workspace_manifest, selected_lock)
+    assert multi_format_lockfile_errors(
+        workspace_manifest,
+        selected_lock.replace('name = "ironcalc_base"\nversion = "0.9.1"',
+                              'name = "ironcalc_base"\nversion = "0.9.0"'),
+    )
     assert multi_format_lockfile_errors(
         workspace_manifest, selected_lock.replace('version = "0.7.0"', 'version = "0.6.8"', 1)
     )

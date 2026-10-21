@@ -177,6 +177,12 @@ def validate(version: str) -> list[str]:
             cwd=consumer,
             environment=environment,
         )
+        for mode in ("cold", "restart"):
+            run(
+                ["cargo", "run", "--manifest-path", str(manifest_path), "--locked", "--", mode],
+                cwd=consumer,
+                environment=environment,
+            )
         duplicates = run(
             [
                 "cargo",

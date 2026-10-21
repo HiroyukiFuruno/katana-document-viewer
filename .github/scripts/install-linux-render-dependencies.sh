@@ -10,7 +10,7 @@ emoji_font='/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
 emoji_font_sha256='93cdc4ee9aa40e2afceecc63da0ca05ec7aab4bec991ece51a6b52389f48a477'
 
 sudo apt-get update
-sudo apt-get install -y fonts-noto-cjk graphviz imagemagick xvfb xclip
+sudo apt-get install -y fonts-noto-cjk graphviz imagemagick xvfb xclip lsof
 
 package_tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${package_tmp_dir}"' EXIT

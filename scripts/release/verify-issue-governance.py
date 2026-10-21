@@ -607,6 +607,9 @@ def _self_test_delegate_replays_updates() -> None:
             base = run(["git", "rev-parse", "HEAD"]).strip()
             run(["git", "update-ref", "refs/remotes/origin/master", base])
             run(["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master"])
+            run(["git", "switch", "--quiet", "-c", "release/test"])
+            run(["git", "-c", "user.email=kdv-self-test@example.invalid", "commit", "--allow-empty", "--quiet", "-m", "missing issue reference"])
+            branch_tip = run(["git", "rev-parse", "HEAD"]).strip()
         finally:
             os.chdir(previous)
         hook = fixture / ".githooks/pre-push"
@@ -620,12 +623,20 @@ def _self_test_delegate_replays_updates() -> None:
             validator.with_name("git_fixture_environment.py"),
         )
         hook.chmod(0o700)
-        delegate = fixture / "consume-stdin"
-        delegate.write_text("#!/bin/sh\ncat >/dev/null\n", encoding="utf-8")
+        delegate = fixture / "record-delegate"
+        delegate.write_text(
+            "#!/bin/sh\nprintf invoked > \"$DELEGATE_MARKER\"\ncat > \"$DELEGATE_INPUT\"\n",
+            encoding="utf-8",
+        )
         delegate.chmod(0o700)
+        invoked = fixture / "delegate-invoked"
+        recorded = fixture / "delegate-input"
         environment = os.environ.copy()
         environment["KDV_PRE_PUSH_DELEGATE"] = str(delegate)
-        completed = subprocess.run(
+        environment["DELEGATE_MARKER"] = str(invoked)
+        environment["DELEGATE_INPUT"] = str(recorded)
+
+        malformed = subprocess.run(
             [str(hook), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
             check=False,
             input="invalid update\n",
@@ -635,8 +646,64 @@ def _self_test_delegate_replays_updates() -> None:
             env=environment,
             cwd=fixture,
         )
-        assert completed.returncode != 0
-        assert "pre-push input must contain" in completed.stdout
+        assert malformed.returncode != 0
+        assert "pre-push input must contain" in malformed.stdout
+        assert not invoked.exists(), "malformed updates must be rejected before the delegate"
+
+        missing_issue = subprocess.run(
+            [str(hook), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
+            check=False,
+            input=f"refs/heads/release/test {branch_tip} refs/heads/release/test {ZERO_SHA}\n",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=environment,
+            cwd=fixture,
+        )
+        assert missing_issue.returncode != 0, "missing Issue URL must reject a non-default-branch push"
+        assert not invoked.exists(), "Issue governance must reject a missing Issue URL before running the delegate"
+        assert "Open Issue URL" in missing_issue.stdout
+
+        previous = Path.cwd()
+        try:
+            os.chdir(fixture)
+            run(["git", "switch", "--quiet", "master"])
+        finally:
+            os.chdir(previous)
+        default_update = f"refs/heads/master {base} refs/heads/master {ZERO_SHA}\n"
+        positive_default = subprocess.run(
+            [str(hook), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
+            check=False,
+            input=default_update,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=environment,
+            cwd=fixture,
+        )
+        assert positive_default.returncode == 0, "valid default-branch push must pass both governance checks"
+        assert invoked.exists(), "valid default-branch push must invoke the delegate"
+        assert recorded.read_text(encoding="utf-8") == default_update, "delegate must receive the original default-branch stdin"
+
+        delegate.write_text(
+            "#!/bin/sh\ncat > \"$DELEGATE_INPUT\"\ngit remote set-url origin file:///not-a-github-repository\n",
+            encoding="utf-8",
+        )
+        delegate.chmod(0o700)
+        invoked.unlink(missing_ok=True)
+        final_validation = subprocess.run(
+            [str(hook), "origin", "https://github.com/HiroyukiFuruno/katana-document-viewer.git"],
+            check=False,
+            input=default_update,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=environment,
+            cwd=fixture,
+        )
+        assert recorded.read_text(encoding="utf-8") == default_update, "delegate must receive the original default-branch stdin"
+        assert final_validation.returncode != 0, "post-delegate validator must reject changed Git state"
+        assert "origin must be a GitHub owner/repository URL" in final_validation.stdout
 
 
 def _self_test_hook_installer() -> None:
