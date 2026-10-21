@@ -2,6 +2,8 @@
 
 通常の `just` のbuild/test/lint/coverage/package/publishは、開始前にこのリポジトリのtarget使用容量を確認する。直近の約20GiBのビルドを2回分保持できる目安として、初期閾値は40GiBとする。閾値以下では削除しない。
 
+POSIXの使用中検査には `lsof` が必須。Ubuntu/Debianの最小環境では、初回build/clean前に `sudo apt-get update` と `sudo apt-get install -y lsof` で準備する。Linux CIの共通依存インストールにも含めている。macOSは標準の `/usr/sbin/lsof` を使えるようPATHへ `/usr/sbin` を含め、`command -v lsof` で確認する。Windowsは標準の `tasklist` を使う。検査ツールがない場合は導入要求を表示して整理を拒否し、使用中検査を省略しない。
+
 `KDV_BUILD_CACHE_MAX_GIB` で閾値を変更できる。Unixでは実際の割当容量を計測し、ハードリンクを重複計上しない。`CARGO_TARGET_DIR` とCargoの `--target-dir DIRECTORY` / `--target-dir=DIRECTORY` の別profileも、このリポジトリ内だけを集計する。directory名は任意で、リポジトリ外へのsymlink、Git管理領域、tracked sourceやcrate manifestを含むdirectoryは拒否する。
 
 ネストしたprofileも個別のCargo所有タグを維持する。子だけがCargo targetで、親にタグがない場合は、親全体を整理対象に含めない。重なるprofileの同一ファイルは集計全体で一度だけ数える。

@@ -234,3 +234,7 @@ targetの全体整理はPOSIXの全ancestor no-follow/FD相対操作、Windows�
 ## 2026-10-22 coverage専用target刷新の整合
 
 現guardが選択cleanを拒否する一方、coverage-v8-refreshがclean -p v8を呼ぶ既存矛盾を確認した。専用targetを明示した全体cleanへ変更し、通常target・両方の所有タグを保持する実filesystem回帰を追加した。標準72回帰はexit0（Mac限定skip4）、公開契約self-test/staticはexit0、旧選択recipeを拒否する契約回帰も成功。coverage関数/行100%・未カバー0を変更していない。証跡: tmp/kdv-coverage-refresh-script72.log、tmp/kdv-coverage-refresh-contract.log、tmp/kdv-coverage-refresh-contract-regression.json。43f21303の通常push全ゲートはexit0だが、この追加修正後の最新HEAD CI/preflightは別途回収し、過去の成功で代用しない。
+
+## 2026-10-22 fresh review: POSIX lsof依存
+
+PR68 thread PRRT_kwDOSTfBFs6u5iVd（discussion_r4340478042）のP2を採用。Linux共通依存導入へlsofを追加し、最小Ubuntu/DebianとmacOS PATHの準備をdocsへ明示した。検査ツール不在の安全側拒否は維持し、導入要求の診断を追加。PATHから実ツールを除く回帰で終了3と出力/タグ保持を確認、標準73回帰exit0（Mac skip4）。証跡: tmp/kdv-lsof-dependency-script73.log。最終commit push後に当該threadへreply/resolveし、fresh review/CIを再回収する。

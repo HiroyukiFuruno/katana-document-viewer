@@ -1,5 +1,7 @@
 import importlib.util
+import contextlib
 import ctypes
+import io
 import os
 import struct
 from ctypes import wintypes
@@ -57,6 +59,19 @@ def device_io(kernel, handle, code, buffer):
 
 
 class TargetAnchorTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "requires POSIX process inspection")
+    def test_missing_lsof_reports_required_tool_and_preserves_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            target = fixture(root)
+            errors = io.StringIO()
+            with patch.dict(os.environ, {"PATH": ""}), contextlib.redirect_stderr(errors):
+                result = guard.main(clean_command(root))
+            self.assertEqual(3, result)
+            self.assertIn("install lsof on POSIX", errors.getvalue())
+            self.assertTrue((target / "artifact").is_file())
+            self.assertTrue((target / "CACHEDIR.TAG").is_file())
+
     @unittest.skipIf(os.name == "nt", "requires POSIX directory descriptors")
     def test_posix_refuses_replaced_ancestor_before_opening_external_owned_target(self):
         from posix_target_cleanup import PosixTargetCleanup

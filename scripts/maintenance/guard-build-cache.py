@@ -131,6 +131,11 @@ def active_build(targets: list[Path]) -> bool:
                 return True
             if probe.returncode not in (0, 1) or probe.stderr.strip():
                 return True
+    except FileNotFoundError as error:
+        setup = "restore tasklist on Windows" if os.name == "nt" else "install lsof on POSIX before build-cache cleanup"
+        print(f"required process inspection tool unavailable: {error.filename}; "
+              f"{setup}", file=sys.stderr)
+        return True
     except OSError:
         return True
     return False
