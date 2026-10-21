@@ -242,3 +242,9 @@ PR68 thread PRRT_kwDOSTfBFs6u5iVd（discussion_r4340478042）のP2を採用。Li
 ## 2026-10-22 Windows native失敗の修正・再検証待ち
 
 f496 CI Windows nativeは2件失敗（既存writerがあってもmetadata-only pin成功、reparse buffer invalid4392）。新4d通常push52075は、この実失敗回収後に親gitpushを確認した自身hook PGID75568だけSIGINTしexit1、成功に数えない。pinのdelete=FalseへLIST_DIRECTORYを加えて共有検査へ参加させ、子削除は既存DELETEで参加する。失敗時もcontextでHANDLEを閉じるテストへ修正。junction bufferはsubstitute/print両名とNUL/byte offsetを構成しoutside正例を先に確認、同一bufferの属性handle拒否と実再帰DELETEhandle中のwriter拒否を確認する。macOS標準73件はexit0（native等skip4）だがWindows成功を代用せず、native CI再回収待ち。容量回帰をCIのharnessより先行し、省略なしで失敗を早期検出する。Microsoft一次資料: https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea 、https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-iochecklinkshareaccess 。
+
+## 2026-10-22 Windows属性専用handleの実変更を受けたcapability化
+
+bb78のnative再回帰では旧writer拒否は成功した一方、FILE_WRITE_ATTRIBUTESだけの既存handleによる有効FSCTL_SET_REPARSE_POINTが成功した。共有制御だけで属性変更も防げるという仮定を撤回し、外部非削除というDoDを維持して方式を修正する。volume rootだけ絶対openし、祖先/target/tag/子すべてをNtCreateFile RootDirectory+一成分名+leaf no-followで開く。NtQueryDirectoryFileで保持HANDLEから列挙し、削除/readonly解除も同HANDLEに限定する。所有tagは相対openした保持HANDLEから署名を読み、前後に祖先/root/tagのreparse化を検査する。native回帰は同一valid bufferのoutside正例→live変更成功→stale directory属性での実削除又は安全拒否→外部sentinel保持を確認し、静的junctionのfull-purge成功も追加した。macOS75件exit0（Windows専用等skip6）、x64構造size16/48/16と主要offsetを確認。native成功の代用にはせず再CIで回収する。証跡: tmp/pr68-bb78ec0f-windows-job.log、tmp/kdv-windows-relative-io-script75.log、tmp/kdv-windows-relative-io-layout.json。
+
+root自体のreparse変更もnative回帰へ追加した。OSが5/32/145で防止した場合は通常整理成功、変更が実成功した場合は保持rootの属性検査でELOOPを返して整理を拒否し、どちらも外部sentinelを保持する。通常の有効junction full-purge正例は別回帰で必須とするため、invalid bufferや常時拒否を安全成功として代用しない。

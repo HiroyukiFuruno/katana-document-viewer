@@ -1,6 +1,7 @@
 import importlib.util
 import contextlib
 import ctypes
+import errno
 import io
 import os
 import struct
@@ -308,7 +309,7 @@ class TargetAnchorTests(unittest.TestCase):
                     self.assertEqual(ctypes.c_void_p(-1).value, denied)
 
     @unittest.skipUnless(os.name == "nt", "requires native Windows reparse points")
-    def test_windows_anchor_blocks_mountpoint_update_while_external_succeeds(self):
+    def test_windows_relative_cleanup_preserves_external_after_live_reparse_update(self):
         from windows_target_cleanup import WindowsTargetCleanup
         from windows_tag_handle import kernel_api
 
@@ -341,17 +342,89 @@ class TargetAnchorTests(unittest.TestCase):
             self.assertNotEqual(ctypes.c_void_p(-1).value, attributes)
             try:
                 with WindowsTargetCleanup(target, guard.CACHEDIR_TAG) as anchor:
-                    with anchor._open(child, delete=True):
+                    with anchor.relative.open_child(anchor.root_handle, child.name, delete=True) as (handle, attributes_before):
                         denied = kernel.CreateFileW(str(child), 0x40000000, 7, None, 3, flags, None)
                         if denied != ctypes.c_void_p(-1).value:
                             kernel.CloseHandle(denied)
                         self.assertEqual(ctypes.c_void_p(-1).value, denied)
-                        self.assertFalse(device_io(kernel, attributes, 0x000900A4, buffer))
-                        self.assertEqual(5, ctypes.get_last_error())
+                        self.assertTrue(device_io(kernel, attributes, 0x000900A4, buffer))
+                        try:
+                            anchor._remove_open(handle, attributes_before)
+                        except OSError as error:
+                            print(f"live reparse cleanup refused safely: {error}")
             finally:
                 kernel.CloseHandle(attributes)
             self.assertEqual(b"keep", (external / "sentinel").read_bytes())
-            child.rmdir()
+            if child.exists():
+                child.rmdir()
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows reparse points")
+    def test_windows_root_reparse_update_is_prevented_or_refused_without_external_deletion(self):
+        from windows_target_cleanup import WindowsTargetCleanup
+        from windows_tag_handle import kernel_api
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            target = fixture(root)
+            external = root / "external"
+            external.mkdir()
+            (external / "sentinel").write_bytes(b"keep")
+            kernel = kernel_api()
+            attributes = kernel.CreateFileW(str(target), 0x100, 7, None, 3, 0x02200000, None)
+            self.assertNotEqual(ctypes.c_void_p(-1).value, attributes)
+            changed = False
+            try:
+                with WindowsTargetCleanup(target, guard.CACHEDIR_TAG) as anchor:
+                    changed = bool(device_io(kernel, attributes, 0x000900A4, mountpoint_buffer(external)))
+                    if changed:
+                        with self.assertRaises(OSError) as failure:
+                            anchor.purge()
+                        self.assertEqual(errno.ELOOP, failure.exception.errno)
+                    else:
+                        self.assertIn(ctypes.get_last_error(), (5, 32, 145))
+                        anchor.purge()
+                    self.assertEqual(b"keep", (external / "sentinel").read_bytes())
+            finally:
+                try:
+                    if changed:
+                        writer = kernel.CreateFileW(str(target), 0x40000000, 7, None, 3, 0x02200000, None)
+                        self.assertNotEqual(ctypes.c_void_p(-1).value, writer)
+                        try:
+                            self.assertTrue(device_io(kernel, writer, 0x000900AC,
+                                                      struct.pack("<LHH", 0xA0000003, 0, 0)))
+                        finally:
+                            kernel.CloseHandle(writer)
+                finally:
+                    kernel.CloseHandle(attributes)
+            self.assertTrue((target / "CACHEDIR.TAG").is_file())
+            self.assertEqual(b"keep", (external / "sentinel").read_bytes())
+
+    @unittest.skipUnless(os.name == "nt", "requires native Windows reparse points")
+    def test_windows_full_cleanup_removes_junction_and_preserves_external(self):
+        from windows_target_cleanup import WindowsTargetCleanup
+        from windows_tag_handle import kernel_api
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            target = fixture(root)
+            child = target / "junction"
+            child.mkdir()
+            external = root / "external"
+            external.mkdir()
+            (external / "sentinel").write_bytes(b"keep")
+            kernel = kernel_api()
+            writer = kernel.CreateFileW(str(child), 0x40000000, 7, None, 3, 0x02200000, None)
+            self.assertNotEqual(ctypes.c_void_p(-1).value, writer)
+            try:
+                self.assertTrue(device_io(kernel, writer, 0x000900A4, mountpoint_buffer(external)))
+            finally:
+                kernel.CloseHandle(writer)
+            with WindowsTargetCleanup(target, guard.CACHEDIR_TAG) as anchor:
+                anchor.purge()
+            self.assertFalse(child.exists())
+            self.assertFalse((target / "artifact").exists())
+            self.assertTrue((target / "CACHEDIR.TAG").is_file())
+            self.assertEqual(b"keep", (external / "sentinel").read_bytes())
 
 
 if __name__ == "__main__":
