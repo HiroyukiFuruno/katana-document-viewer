@@ -45,7 +45,7 @@ def nested_output(root: Path, target: Path) -> list[str]:
 class SemverTargetOwnershipTests(unittest.TestCase):
     def test_cleanup_reclaims_root_tag_before_nested_semver_output(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             target = fixture(root)
             command = nested_output(root, target)
             first = guard.guard(root, [target], command, 1)

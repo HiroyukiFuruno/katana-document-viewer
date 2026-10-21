@@ -18,6 +18,8 @@ KDV-local DoD。下流実アプリ/配布/OS clipboardをKDV完了条件に追�
 
 ## 現状
 
+2026-10-22更新: IronCalc0.9.1の公式Releaseとregistry公開、ZIP9.0.5依存を確認し、manifest/lock/release契約へ取り込んだ。Python公開契約と自己検査は成功。office2pdfと派生2packageのZIP修正版、KRR新版は引き続き公開待ち。PR68のtarget pathname差し替え指摘は、POSIX directory FD / Windows pinned HANDLEによる内容整理へ変更して対応中。最新sourceの全ゲートとWindows native回帰を回収するまで、この追加修正を完了扱いしない。
+
 2026-10-20更新: 公開IronCalc0.9.0/office2pdf0.9.1へ先行移行し、結合セルの互換性を維持した。標準coverageは3839関数/31593行100%、通常検査も成功。最新の追跡は `changes/v0-5-13-persistent-document-artifacts/tasks.md` の「2026-10-20 公開エンジン0.9系の先行準備」を参照する。ZIP修正PRはIronCalcを含め対象owner側でマージ済みだが、公式修正版のregistry公開は未確認で、KRR新版も未公開。旧ZIPを含む現公開版を最終リリースに使用しない。追加のclean/sweep使用中保護と最新HEADのpush/review/CI/公開前検査を先行して完了する。
 
 master 99371a97からrelease/v0.5.13を作成。stash 0、worktreeは現checkoutのみ。KRRの既存担当はHTML画像99の修正と品質検査を継続中。永続cache API・実独立process回帰・PDF段階traceを追加。release-target-check、AST、semver-check（196 PASS）、公開APIエラー経路を含む限定回帰はPASS。coverageは全体実行に追加integration profileを合算してfunctions/lines 100%。現在の公開KRR 0.4.23を使うrelease-checkは終了コード0でPASS（最新sourceの3776関数/31090行100%、package/dry-run含む）。Draftレビューへ進む。これは最終KRR取り込み・公開完了の証跡とは扱わず、新版公開後に同じ最終source/graphでrelease-checkとcurrent HEAD reviewを再確認する。

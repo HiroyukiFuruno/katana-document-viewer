@@ -135,12 +135,9 @@ def active_build(targets: list[Path]) -> bool:
 
 
 def clean_targets(repo_root: Path, targets: list[Path]) -> None:
-    manifest = repo_root / "Cargo.toml"
-    for target in targets:
-        subprocess.run(
-            ["cargo", "clean", "--manifest-path", str(manifest), "--target-dir", str(target)],
-            check=True,
-        )
+    from anchored_cleanup import purge_targets
+
+    purge_targets(targets)
 
 
 def acquire_lock(lock) -> None:
@@ -191,6 +188,11 @@ def guard(
                 return 3
         else:
             acquire_lock(lock)
+        cleanup_mode = None
+        if maintenance and cargo_subcommand(command) in {"clean", "sweep"}:
+            from anchored_cleanup import maintenance_mode
+
+            cleanup_mode = maintenance_mode(command, cargo_subcommand(command))
         prepare_targets(repo_root, targets)
         seen: set[tuple[int, int | str]] = set()
         if maintenance or sum(target_bytes(target, seen) for target in targets) > max_bytes:
@@ -202,7 +204,9 @@ def guard(
                 return 3
             if not maintenance:
                 clean_targets(repo_root, targets)
-                prepare_targets(repo_root, targets)
+            elif cleanup_mode == "full":
+                clean_targets(repo_root, targets)
+                return 0
         return subprocess.run(command, check=False).returncode
 
 GUARDED_CARGO_SUBCOMMANDS = {

@@ -219,3 +219,12 @@ b834の通常pushは終了0。正式レビューでCACHEDIR.TAG symlinkの追従
 ### 所有タグの同一ハンドル検査
 
 dbd5の通常pushは全hook終了0、symlink指摘へreply/resolve済み。最新Codexレビューはlstatとread_text間の置換を新たに指摘した。実lstat結果を取得した直後に署名ファイルをsymlinkへ置換すると、旧maintenanceは終了0で無関係出力を削除した。POSIXではNOFOLLOW/NONBLOCKで開き、同fdのfstat/署名読取を行う。Windowsのinode比較fallbackは、元ファイルをrenameして同inodeへのリンクにすると通るため不採用とし、CreateFileWのOPEN_REPARSE_POINT・同HANDLEのdisk種別/非reparse/非directory属性を確認してFDへ移管する。未移管HANDLEはfinallyで閉じる。主担当がWindows責務をmoduleへ分離し、実open前のNONBLOCK検査と外部bytes保持assertを補完した。標準56件は終了0、MacではWindows native専用1件をskip。Windows実CIと修正後全品質ゲート/新review/各threadreplyresolveは未完であり、旧HEADの完走を代用しない。
+# 2026-10-22 公開IronCalc更新とtarget実体固定
+
+局所レビューはPASS。IronCalc/baseを公開0.9.1へ揃え、古いbaseを拒否する公開契約回帰を追加した。最初のコンパイル失敗は公開済みbaseへのlock更新で解消し、上流依存下限はIronCalc #1578へ報告した。
+
+targetの全体整理はPOSIXの全ancestor no-follow/FD相対操作、Windowsのancestor/target/tag HANDLE保持と同HANDLE削除へ変更した。root/tagを維持し、選択clean/sweepを全体削除へ読み替えず、target作成前に拒否する。40GiB閾値は維持。実target差替えとPOSIX中間ancestor差替えのREDを再現し、修正後の標準script suiteは64件成功（MacではWindows専用等4件skip）。直接guardを呼ぶ既存fixture2件は、通常入口と同じく一時pathを先にresolveする。判定や期待値は緩和していない。独立レビューの追加指摘は0。
+
+修正graphの先行通常検査はfmt/strict Clippy/AST/公開境界/全workspace・Storybook/Office検査まで成功（記録された36 suiteで3003 PASS、失敗0）。最後のV8実リンク中に容量不足となり、自分のPGID23220だけを中断したため全体はexit130であり、通常検査完了とは扱わない。その後private直下の既存clean-allは最終exit0、Rustプロセス0、空き約34GBを確認した。最終sourceの通常push hook、3 OS native CI、release-preflightのcoverage/semver/package/dry-runを引き続き回収する。Windows nativeの成功も未確認。
+
+証跡: `tmp/kdv-ironcalc091-base091-anchor-check.log`、`tmp/kdv-anchor-final64-python.log`、`tmp/kdv-anchored-cleanup-independent-review.md`、`tmp/kdv-capacity-recovery-verified-20261022.log`。KRRとoffice2pdf/forksの修正版公開待ちは維持し、古いKRRで公開しない。

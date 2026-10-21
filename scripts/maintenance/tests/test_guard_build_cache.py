@@ -153,7 +153,7 @@ class GuardBuildCacheTests(unittest.TestCase):
 
     def test_real_cargo_cleanup_removes_only_owned_target(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "Cargo.toml").write_text(
                 '[package]\nname="cache-guard-smoke"\nversion="0.0.0"\nedition="2021"\n'
             )

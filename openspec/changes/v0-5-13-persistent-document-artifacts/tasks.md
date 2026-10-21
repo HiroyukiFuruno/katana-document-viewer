@@ -2,6 +2,14 @@
 
 # 主担当の統合・検証タスク
 
+## 2026-10-22 再検証と独立残作業
+
+- [x] 公式IronCalc0.9.1（ZIP9）をmanifest/lock/release契約へ取り込む。registry checksum、ReleaseのPR1565包含、exact-head CI6件成功を確認した。Python release契約/self-test成功。証跡: `tmp/kdv-upstream-publication-20261022.json`。delegation-exception: `直列のクリティカルパス`。
+- [ ] PR68 target pathname差し替えを、所有directoryを保持した内容整理で防ぐ。root/tagは残し、選択clean/sweepは削除前・target作成前に拒否する。40GiB閾値を維持し、POSIX置換・Windows共有競合・外部リンク・readonlyの実回帰と独立レビューを回収する。delegation-exception: `直列のクリティカルパス`。
+- [x] POSIX中間ancestor差替えを隔離した実filesystemでRED再現し、`/`からの全component no-follow/dir_fd連鎖で拒否する。最終target差替え・外部保持・選択clean拒否を含む限定8回帰は成功（MacではWindows専用3件skip）。最終全script suite/native CIは上記タスクで回収する。証跡: `tmp/pr68-posix-ancestor-red.json`、`tmp/kdv-anchor-ancestor-green.log`。delegation-exception: `直列のクリティカルパス`。
+- [ ] 上記最終source/graphで既存全ゲート、coverage100%、semver、package/dry-run、3 OS CI、fresh review/reply/resolveを回収する。途中中断のrelease-contract検査（exit130）は成功に数えない。delegation-exception: `直列のクリティカルパス`。
+- [ ] office2pdf/派生2packageの公式ZIP修正版とKRR新版が公開された後に取り込み、最終全検査・公開・Issue Close・ローカル整理を行う。delegation-exception: `直列のクリティカルパス`。
+
 独立した限定作業はzip_diagnosis・profiling_inventory・cache_testsへ渡した。利用可能モデルの制約に従いgpt-5.6-luna / mediumを明示した実履歴がある。以下は主担当が依存順に行う統合と公開判定であり、workerの実装完了をそのまま完了証跡にしない。
 
 - [x] 1.1 #65/#66の公開契約・設計と実装を照合し、cold/warm/restart計測・無効化・容量/破損/clear/closeの実回帰を統合する。delegation-exception: `直列のクリティカルパス`。
