@@ -34,7 +34,7 @@ cosmic-text = "0.19"
 flate2 = "1"
 hayro = "=0.7.1"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
-ironcalc = "=0.9.0"
+ironcalc = "=0.9.1"
 libc = "=0.2.190"
 minifb = "0.29"
 office2pdf = { package = "office2pdf", version = "=0.9.1" }

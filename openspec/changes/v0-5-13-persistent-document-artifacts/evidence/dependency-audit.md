@@ -1,5 +1,15 @@
 # 依存確認 2026-10-06
 
+## 2026-10-22 IronCalcの公式ZIP修正版
+
+IronCalc0.9.1は2026-10-21T13:39:32Zに公開済み。checksumは`aabf0987c9f8e941476a7bfd2564496ca9f97bbf25a7165f7d499895b35fff0c`で、公式ReleaseがPR1565を含む。manifest/lock/release契約を0.9.1へ変更し、通常のprecise updateは終了0。IronCalcのZIP0.6/thiserror1のedgeがZIP9.0.5/thiserror2へ変わり、itertools0.12.1は0.15.0へ移行した。同時に既存derive_arbitrary1.5.0のsyn依存edgeが2.0.119から3.0.9へ解決された。Python公開契約とself-testは成功したが、追加sourceのRust全ゲートは再検証中。
+
+office2pdf0.9.1とowner fork0.1.0には旧ZIPが残り、公式修正版は未公開。KRRも公開0.4.23のまま。従ってIronCalc更新だけで#69解消やKRRだけの待機とは扱わない。監査証跡: `tmp/kdv-upstream-publication-20261022.json`。
+
+先行標準checkはexit101。ironcalcのみのprecise updateでは互換要件`0.9`内の既存ironcalc_base0.9.0が保持され、0.9.1で削除されたWorkbook/Worksheet.viewsにより上流crate自身がコンパイル失敗した。公式公開済みironcalc_base0.9.1へ更新し、必要なstatrs0.19.1も採用した。公開契約へbase版を追加し、古いbaseを拒否するself-testを追加した。Python契約/self-testは成功、修正graphの全検査を再実行する。証跡: `tmp/kdv-ironcalc091-anchor-check.log`、`tmp/kdv-ironcalc-base091-update.log`。未公開patchやregistry sourceの直接変更は行っていない。
+
+上流の依存下限について[IronCalc #1578](https://github.com/ironcalc/IronCalc/issues/1578)へ実際のコンパイルエラーと組合せ、下限0.9.1への修正案を報告した。KDV側では公開済みbaseへの更新で解消できるため、このIssueの解決待ちをKDVの完了条件へ追加しない。
+
 - 開始時: KDV 0.5.12、KRR 0.4.23、office2pdf 0.8.1、zip直依存8.6.0。workspace全dependencyとCargo.lockを確認。
 - `cargo outdated --workspace --depth 1 --exit-code 0`: All dependencies are up to date。現在の互換要件内でdirect dependency更新候補なし。major候補の評価と全推移lock確認は継続する。
 - 永続artifact内容hashに、既に推移graphへ存在するsha2 0.11をdirect dependencyとして追加。ゲートは変更しない。
