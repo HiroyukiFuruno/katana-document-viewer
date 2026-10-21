@@ -13,6 +13,7 @@ REPARSE = 0x400
 READONLY = 1
 DELETE_ACCESS = 0x10000
 READ_ATTRIBUTES = 0x80
+LIST_DIRECTORY = 1
 WRITE_ATTRIBUTES = 0x100
 
 
@@ -41,7 +42,8 @@ class WindowsTargetCleanup:
 
     @contextmanager
     def _open(self, path: Path, *, delete: bool = False):
-        access = READ_ATTRIBUTES | (DELETE_ACCESS | WRITE_ATTRIBUTES if delete else 0)
+        # 属性だけのopenは共有競合検査へ参加しないため、pinには一覧読取も要求する。
+        access = READ_ATTRIBUTES | (DELETE_ACCESS | WRITE_ATTRIBUTES if delete else LIST_DIRECTORY)
         # 全祖先と対象のrenameを禁止し、開いたHANDLE以外へ削除が逸れないようにする。
         handle = self.kernel.CreateFileW(str(path), access, 1, None, 3, 0x02200000, None)
         if handle == ctypes.c_void_p(-1).value:

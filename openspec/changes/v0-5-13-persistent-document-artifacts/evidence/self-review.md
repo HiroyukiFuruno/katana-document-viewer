@@ -238,3 +238,7 @@ targetの全体整理はPOSIXの全ancestor no-follow/FD相対操作、Windows�
 ## 2026-10-22 fresh review: POSIX lsof依存
 
 PR68 thread PRRT_kwDOSTfBFs6u5iVd（discussion_r4340478042）のP2を採用。Linux共通依存導入へlsofを追加し、最小Ubuntu/DebianとmacOS PATHの準備をdocsへ明示した。検査ツール不在の安全側拒否は維持し、導入要求の診断を追加。PATHから実ツールを除く回帰で終了3と出力/タグ保持を確認、標準73回帰exit0（Mac skip4）。証跡: tmp/kdv-lsof-dependency-script73.log。最終commit push後に当該threadへreply/resolveし、fresh review/CIを再回収する。
+
+## 2026-10-22 Windows native失敗の修正・再検証待ち
+
+f496 CI Windows nativeは2件失敗（既存writerがあってもmetadata-only pin成功、reparse buffer invalid4392）。新4d通常push52075は、この実失敗回収後に親gitpushを確認した自身hook PGID75568だけSIGINTしexit1、成功に数えない。pinのdelete=FalseへLIST_DIRECTORYを加えて共有検査へ参加させ、子削除は既存DELETEで参加する。失敗時もcontextでHANDLEを閉じるテストへ修正。junction bufferはsubstitute/print両名とNUL/byte offsetを構成しoutside正例を先に確認、同一bufferの属性handle拒否と実再帰DELETEhandle中のwriter拒否を確認する。macOS標準73件はexit0（native等skip4）だがWindows成功を代用せず、native CI再回収待ち。容量回帰をCIのharnessより先行し、省略なしで失敗を早期検出する。Microsoft一次資料: https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea 、https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-iochecklinkshareaccess 。

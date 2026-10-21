@@ -43,7 +43,9 @@ def clean_command(root, *arguments):
 
 def mountpoint_buffer(external):
     substitute = ("\\??\\" + str(external)).encode("utf-16-le")
-    payload = struct.pack("<HHHH", 0, len(substitute), len(substitute), 0) + substitute
+    printed = str(external).encode("utf-16-le")
+    names = substitute + b"\0\0" + printed + b"\0\0"
+    payload = struct.pack("<HHHH", 0, len(substitute), len(substitute) + 2, len(printed)) + names
     return struct.pack("<LHH", 0xA0000003, len(payload), 0) + payload
 
 
@@ -292,7 +294,8 @@ class TargetAnchorTests(unittest.TestCase):
             self.assertNotEqual(ctypes.c_void_p(-1).value, writer)
             try:
                 with self.assertRaises(OSError):
-                    WindowsTargetCleanup(target, guard.CACHEDIR_TAG).__enter__()
+                    with WindowsTargetCleanup(target, guard.CACHEDIR_TAG):
+                        pass
             finally:
                 kernel.CloseHandle(writer)
             with WindowsTargetCleanup(target, guard.CACHEDIR_TAG):
@@ -319,16 +322,7 @@ class TargetAnchorTests(unittest.TestCase):
             (external / "sentinel").write_bytes(b"keep")
             kernel = kernel_api()
             flags = 0x02200000
-            attributes = kernel.CreateFileW(str(child), 0x100, 7, None, 3, flags, None)
-            self.assertNotEqual(ctypes.c_void_p(-1).value, attributes)
             buffer = mountpoint_buffer(external)
-            try:
-                with WindowsTargetCleanup(target, guard.CACHEDIR_TAG) as anchor:
-                    with anchor._open(child):
-                        self.assertFalse(device_io(kernel, attributes, 0x000900A4, buffer))
-                        self.assertEqual(5, ctypes.get_last_error())
-            finally:
-                kernel.CloseHandle(attributes)
             writer = kernel.CreateFileW(str(child), 0x40000000, 7, None, 3, flags, None)
             self.assertNotEqual(ctypes.c_void_p(-1).value, writer)
             try:
@@ -343,6 +337,20 @@ class TargetAnchorTests(unittest.TestCase):
                                           struct.pack("<LHH", 0xA0000003, 0, 0)))
             finally:
                 kernel.CloseHandle(deleter)
+            attributes = kernel.CreateFileW(str(child), 0x100, 7, None, 3, flags, None)
+            self.assertNotEqual(ctypes.c_void_p(-1).value, attributes)
+            try:
+                with WindowsTargetCleanup(target, guard.CACHEDIR_TAG) as anchor:
+                    with anchor._open(child, delete=True):
+                        denied = kernel.CreateFileW(str(child), 0x40000000, 7, None, 3, flags, None)
+                        if denied != ctypes.c_void_p(-1).value:
+                            kernel.CloseHandle(denied)
+                        self.assertEqual(ctypes.c_void_p(-1).value, denied)
+                        self.assertFalse(device_io(kernel, attributes, 0x000900A4, buffer))
+                        self.assertEqual(5, ctypes.get_last_error())
+            finally:
+                kernel.CloseHandle(attributes)
+            self.assertEqual(b"keep", (external / "sentinel").read_bytes())
             child.rmdir()
 
 

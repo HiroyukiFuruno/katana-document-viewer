@@ -10,6 +10,7 @@
 - [x] 明示cleanの指定外target削除を実filesystemでRED再現し、CLI単一target > 環境target > 既定targetへ限定する。manifest/global/重複/guard専用指定は削除前拒否、helpはtarget作成なし。標準71回帰成功（MacではWindows専用等4件skip）、独立レビュー追加指摘0。既存tag競合回帰は未対応manifest指定を外して同じ競合を検証し、busy時status3も維持する。最終push/native CIは上記未完タスクで追跡。証跡: file: `tmp/pr68-explicit-target-red.json`、`tmp/kdv-target-selection-full71.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] coverageの既存選択cleanとの矛盾を解消し、coverage専用targetだけを明示全体刷新する。親target/所有タグ保持の実filesystem回帰を含む72件成功、公開契約は現recipe受入・旧選択recipe拒否。関数/行100%条件は維持。最終HEADの公開前検査は下記で回収する。証跡: file: `tmp/kdv-coverage-refresh-script72.log`、`tmp/kdv-coverage-refresh-contract-regression.json`。delegation-exception: `直列のクリティカルパス`。
 - [x] fresh Codex reviewのlsof未導入P2へ対応し、Linux CIの共通依存導入とPOSIX初期手順を明示する。ツール不在は導入要求を表示して安全に拒否し、生成物/所有タグを保持する実回帰を含む73件成功。証跡: file: `tmp/kdv-lsof-dependency-script73.log`。delegation-exception: `直列のクリティカルパス`。
+- [ ] Windows native f496回帰の2件失敗を修正し再回収する。属性のみのpinをLIST_DIRECTORY読取で共有検査へ参加させ、失敗時のテストHANDLE漏れを防ぐ。有効なjunction bufferのoutside正例を先行し、実再帰DELETE handle中のwriter拒否と属性handle更新拒否を検査する。CIの容量回帰をharnessより先へ移し、ゲートを省略せず早期検出する。証跡: file: `tmp/pr68-f4960c7-windows-job.log`、`tmp/kdv-windows-share-fix-script73.log`。delegation-exception: `直列のクリティカルパス`。
 - [ ] 上記最終source/graphで既存全ゲート、coverage100%、semver、package/dry-run、3 OS CI、fresh review/reply/resolveを回収する。途中中断のrelease-contract検査（exit130）は成功に数えない。delegation-exception: `直列のクリティカルパス`。
 - [ ] office2pdf/派生2packageの公式ZIP修正版とKRR新版が公開された後に取り込み、最終全検査・公開・Issue Close・ローカル整理を行う。delegation-exception: `直列のクリティカルパス`。
 
