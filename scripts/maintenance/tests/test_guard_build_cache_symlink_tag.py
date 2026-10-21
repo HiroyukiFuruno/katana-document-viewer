@@ -55,7 +55,7 @@ class SymlinkTagOwnershipTests(unittest.TestCase):
             with patch.object(Path, "lstat", replace_after_lstat):
                 result = guard.main([
                     "--repo-root", str(root), "--max-gib", "1", "--",
-                    "cargo", "clean", "--manifest-path", str(manifest),
+                    "cargo", "clean",
                 ])
             self.assertEqual(2, result)
             self.assertTrue(tag.is_symlink())
@@ -168,7 +168,7 @@ class SymlinkTagOwnershipTests(unittest.TestCase):
             manifest, target, external = symlink_fixture(root)
             result = guard.main([
                 "--repo-root", str(root), "--max-gib", "1", "--",
-                "cargo", "clean", "--manifest-path", str(manifest),
+                "cargo", "clean",
             ])
             self.assertEqual(2, result)
             self.assertTrue((target / "CACHEDIR.TAG").is_symlink())

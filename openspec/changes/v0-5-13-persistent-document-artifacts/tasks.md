@@ -4,9 +4,10 @@
 
 ## 2026-10-22 再検証と独立残作業
 
-- [x] 公式IronCalc0.9.1（ZIP9）をmanifest/lock/release契約へ取り込む。registry checksum、ReleaseのPR1565包含、exact-head CI6件成功を確認した。Python release契約/self-test成功。証跡: `tmp/kdv-upstream-publication-20261022.json`。delegation-exception: `直列のクリティカルパス`。
+- [x] 公式IronCalc0.9.1（ZIP9）をmanifest/lock/release契約へ取り込む。registry checksum、ReleaseのPR1565包含、exact-head CI6件成功を確認した。Python release契約/self-test成功。証跡: file: `tmp/kdv-upstream-publication-20261022.json`。delegation-exception: `直列のクリティカルパス`。
 - [ ] PR68 target pathname差し替えを、所有directoryを保持した内容整理で防ぐ。root/tagは残し、選択clean/sweepは削除前・target作成前に拒否する。40GiB閾値を維持し、POSIX置換・Windows共有競合・外部リンク・readonlyの実回帰と独立レビューを回収する。delegation-exception: `直列のクリティカルパス`。
-- [x] POSIX中間ancestor差替えを隔離した実filesystemでRED再現し、`/`からの全component no-follow/dir_fd連鎖で拒否する。最終target差替え・外部保持・選択clean拒否を含む限定8回帰は成功（MacではWindows専用3件skip）。最終全script suite/native CIは上記タスクで回収する。証跡: `tmp/pr68-posix-ancestor-red.json`、`tmp/kdv-anchor-ancestor-green.log`。delegation-exception: `直列のクリティカルパス`。
+- [x] POSIX中間ancestor差替えを隔離した実filesystemでRED再現し、`/`からの全component no-follow/dir_fd連鎖で拒否する。最終target差替え・外部保持・選択clean拒否を含む限定8回帰は成功（MacではWindows専用3件skip）。最終全script suite/native CIは上記タスクで回収する。証跡: file: `tmp/pr68-posix-ancestor-red.json`、`tmp/kdv-anchor-ancestor-green.log`。delegation-exception: `直列のクリティカルパス`。
+- [x] 明示cleanの指定外target削除を実filesystemでRED再現し、CLI単一target > 環境target > 既定targetへ限定する。manifest/global/重複/guard専用指定は削除前拒否、helpはtarget作成なし。標準71回帰成功（MacではWindows専用等4件skip）、独立レビュー追加指摘0。既存tag競合回帰は未対応manifest指定を外して同じ競合を検証し、busy時status3も維持する。最終push/native CIは上記未完タスクで追跡。証跡: file: `tmp/pr68-explicit-target-red.json`、`tmp/kdv-target-selection-full71.log`。delegation-exception: `直列のクリティカルパス`。
 - [ ] 上記最終source/graphで既存全ゲート、coverage100%、semver、package/dry-run、3 OS CI、fresh review/reply/resolveを回収する。途中中断のrelease-contract検査（exit130）は成功に数えない。delegation-exception: `直列のクリティカルパス`。
 - [ ] office2pdf/派生2packageの公式ZIP修正版とKRR新版が公開された後に取り込み、最終全検査・公開・Issue Close・ローカル整理を行う。delegation-exception: `直列のクリティカルパス`。
 

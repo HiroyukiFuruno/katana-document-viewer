@@ -22,19 +22,32 @@ def purge_targets(targets: list[Path]) -> None:
 
 def maintenance_mode(command: list[str], subcommand: str) -> str:
     """Return full/read-only mode, refusing selectors without changing their meaning."""
-    arguments = iter(command[command.index(subcommand) + 1:])
-    values = list(arguments)
-    if any(value in {"--dry-run", "--help", "-h", "--version", "-V"} for value in values):
+    cargo_index = next(i for i, value in enumerate(command) if Path(value).name in {"cargo", "cargo.exe"})
+    subcommand_index = cargo_index + 1
+    if command[subcommand_index] != subcommand:
+        raise ValueError("anchored maintenance does not support Cargo global selectors")
+    values = command[subcommand_index + 1:]
+    if any(value in {"--dry-run", "-n", "--help", "-h", "--version", "-V"} for value in values):
         return "read-only"
     if subcommand != "clean":
         raise ValueError("anchored cargo sweep is unsupported; refusing pathname cleanup")
     arguments = iter(values)
+    target_seen = False
     for value in arguments:
-        if value in {"--manifest-path", "--target-dir", "--color"}:
-            if next(arguments, None) is None:
+        if value in {"--target-dir", "--color"}:
+            argument = next(arguments, None)
+            if not argument or argument.startswith("-"):
                 raise ValueError(f"missing value for {value}")
-        elif value.startswith(("--manifest-path=", "--target-dir=", "--color=")):
-            continue
+            if value == "--color" and argument not in {"always", "never", "auto"}:
+                raise ValueError("invalid Cargo color mode")
+        elif value.startswith(("--target-dir=", "--color=")):
+            option, _, argument = value.partition("=")
+            if not argument or (option == "--color" and argument not in {"always", "never", "auto"}):
+                raise ValueError(f"invalid value for {option}")
         elif value not in {"-v", "-vv", "--verbose", "-q", "--quiet", "--locked", "--offline", "--frozen"}:
             raise ValueError(f"anchored selective cargo clean is unsupported: {value}")
+        if value == "--target-dir" or value.startswith("--target-dir="):
+            if target_seen:
+                raise ValueError("repeated Cargo target selection is unsupported")
+            target_seen = True
     return "full"

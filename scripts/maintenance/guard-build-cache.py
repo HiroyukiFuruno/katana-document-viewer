@@ -36,11 +36,13 @@ def parse_max_gib(value: str | None = None) -> int:
     return math.ceil(gib * 1024**3)
 
 
-def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
+def repo_targets(
+    repo_root: Path, explicit: Iterable[Path] = (), *, include_default: bool = True,
+) -> list[Path]:
     root = repo_root.resolve()
     explicit = list(explicit)
     default = (root / "target").resolve()
-    candidates = [default, *explicit]
+    candidates = [default, *explicit] if include_default else explicit
     targets: list[Path] = []
     for candidate in candidates:
         path = candidate.resolve()
@@ -51,7 +53,7 @@ def repo_targets(repo_root: Path, explicit: Iterable[Path] = ()) -> list[Path]:
         reject_source_target(root, path)
         targets.append(path)
     unique = sorted(set(targets), key=lambda item: (len(item.parts), str(item)))
-    if default not in {path.resolve() for path in explicit} and not owned_target(default):
+    if include_default and default not in {path.resolve() for path in explicit} and not owned_target(default):
         if any(default in path.parents for path in unique):
             unique.remove(default)
     return unique
@@ -193,6 +195,8 @@ def guard(
             from anchored_cleanup import maintenance_mode
 
             cleanup_mode = maintenance_mode(command, cargo_subcommand(command))
+            if cleanup_mode == "read-only":
+                return subprocess.run(command, check=False).returncode
         prepare_targets(repo_root, targets)
         seen: set[tuple[int, int | str]] = set()
         if maintenance or sum(target_bytes(target, seen) for target in targets) > max_bytes:
@@ -244,14 +248,28 @@ def main(argv: list[str] | None = None) -> int:
     try:
         max_bytes = parse_max_gib(args.max_gib)
         repo_root = args.repo_root.resolve()
+        subcommand = cargo_subcommand(command)
+        maintenance = subcommand in {"clean", "sweep"}
         cargo_directory = command_directory(command)
-        explicit = [*(args.target_dir or ()), *command_target_dirs(command)]
+        command_targets = command_target_dirs(command)
         cargo_target_dir = os.environ.get("CARGO_TARGET_DIR")
+        if maintenance:
+            if args.target_dir or len(command_targets) > 1:
+                raise ValueError("maintenance requires one Cargo-selected target directory")
+            if command_targets:
+                selected = command_targets[0].resolve()
+            elif cargo_target_dir is not None:
+                if not cargo_target_dir:
+                    raise ValueError("CARGO_TARGET_DIR must not be empty for maintenance")
+                selected = (cargo_directory / cargo_target_dir).resolve()
+            else:
+                selected = (repo_root / "target").resolve()
+            targets = repo_targets(repo_root, [selected], include_default=False)
+            return guard(repo_root, targets, command, max_bytes, maintenance=True)
+        explicit = [*(args.target_dir or ()), *command_targets]
         if cargo_target_dir:
             explicit.append((cargo_directory / cargo_target_dir).resolve())
         targets = repo_targets(repo_root, explicit)
-        if cargo_subcommand(command) in {"clean", "sweep"}:
-            return guard(repo_root, targets, command, max_bytes, maintenance=True)
         if not should_guard(command):
             return subprocess.run(command, check=False).returncode
         return guard(repo_root, targets, command, max_bytes)

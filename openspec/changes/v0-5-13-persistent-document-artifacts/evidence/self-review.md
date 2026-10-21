@@ -228,3 +228,5 @@ targetの全体整理はPOSIXの全ancestor no-follow/FD相対操作、Windows�
 修正graphの先行通常検査はfmt/strict Clippy/AST/公開境界/全workspace・Storybook/Office検査まで成功（記録された36 suiteで3003 PASS、失敗0）。最後のV8実リンク中に容量不足となり、自分のPGID23220だけを中断したため全体はexit130であり、通常検査完了とは扱わない。その後private直下の既存clean-allは最終exit0、Rustプロセス0、空き約34GBを確認した。最終sourceの通常push hook、3 OS native CI、release-preflightのcoverage/semver/package/dry-runを引き続き回収する。Windows nativeの成功も未確認。
 
 証跡: `tmp/kdv-ironcalc091-base091-anchor-check.log`、`tmp/kdv-anchor-final64-python.log`、`tmp/kdv-anchored-cleanup-independent-review.md`、`tmp/kdv-capacity-recovery-verified-20261022.log`。KRRとoffice2pdf/forksの修正版公開待ちは維持し、古いKRRで公開しない。
+
+追加レビューで、明示`--target-dir`へ既定targetも併合する経路と、manifest指定を無視する経路をRED再現した。通常pushは自分のhook PGID22733だけを中断し（push終了1、remote HEADは01fbのまま）、CLI単一target > 環境target > repo既定targetに限定した。manifest/global/重複target/guard専用指定は安全に拒否する。help/dry-runはtarget/tagを作らず委譲する。標準script suite71件成功（Macで4件skip）、独立レビュー追加指摘0。旧tag競合回帰は、未対応manifest指定を外した通常cleanで同じ差替えを検証するため、期待値を変えずに維持した。最終sourceの通常push/native CI/全公開前検査は引き続き未完であり、今回の局所成功で代用しない。証跡: `tmp/pr68-explicit-target-red.json`、`tmp/kdv-target-selection-full71.log`。

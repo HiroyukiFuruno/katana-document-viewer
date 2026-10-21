@@ -27,6 +27,18 @@ def fixture(root):
     return target
 
 
+def target_fixture(root, name):
+    target = root / name
+    target.mkdir()
+    (target / "CACHEDIR.TAG").write_text(guard.CACHEDIR_TAG + "\n")
+    (target / "sentinel").write_bytes(name.encode())
+    return target
+
+
+def clean_command(root, *arguments):
+    return ["--repo-root", str(root), "--", "cargo", "clean", *arguments]
+
+
 def mountpoint_buffer(external):
     substitute = ("\\??\\" + str(external)).encode("utf-16-le")
     payload = struct.pack("<HHHH", 0, len(substitute), len(substitute), 0) + substitute
@@ -122,6 +134,104 @@ class TargetAnchorTests(unittest.TestCase):
             for arguments in (["clean", "-p", "anchor-fixture"], ["sweep", "--time", "7"]):
                 self.assertEqual(2, guard.main(["--repo-root", str(root), "--", "cargo", *arguments]))
                 self.assertFalse((root / "target").exists())
+
+    def test_cli_target_dir_only_cleans_selected_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            manifest = root / "Cargo.toml"
+            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            default = target_fixture(root, "target")
+            selected = target_fixture(root, "custom")
+            result = guard.main(clean_command(root, "--target-dir", str(selected)))
+            self.assertEqual(0, result)
+            self.assertTrue((default / "sentinel").is_file())
+            self.assertFalse((selected / "sentinel").exists())
+
+    def test_environment_target_and_cli_precedence_preserve_other_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            manifest = root / "Cargo.toml"
+            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            default = target_fixture(root, "target")
+            env_target = target_fixture(root, "env-target")
+            cli_target = target_fixture(root, "cli-target")
+            with patch.dict(os.environ, {"CARGO_TARGET_DIR": str(env_target)}):
+                result = guard.main(clean_command(root, "--target-dir", str(cli_target)))
+            self.assertEqual(0, result)
+            self.assertTrue((default / "sentinel").is_file())
+            self.assertTrue((env_target / "sentinel").is_file())
+            self.assertFalse((cli_target / "sentinel").exists())
+
+    def test_environment_only_cleans_environment_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            default = fixture(root)
+            env_target = target_fixture(root, "env-target")
+            with patch.dict(os.environ, {"CARGO_TARGET_DIR": str(env_target)}):
+                result = guard.main(clean_command(root))
+            self.assertEqual(0, result)
+            self.assertEqual(b"old", (default / "artifact").read_bytes())
+            self.assertFalse((env_target / "sentinel").exists())
+
+    def test_manifest_position_and_repeated_target_dir_are_rejected(self):
+        for manifest_position in ("before", "after", "equal"):
+            with self.subTest(manifest_position=manifest_position), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                manifest = root / "Cargo.toml"
+                manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+                default = target_fixture(root, "target")
+                selected = target_fixture(root, "selected")
+                target_args = ["--target-dir", str(selected)]
+                if manifest_position == "before":
+                    command = ["--manifest-path", str(manifest), *target_args]
+                elif manifest_position == "equal":
+                    command = [f"--manifest-path={manifest}", *target_args]
+                else:
+                    command = [*target_args, "--manifest-path", str(manifest)]
+                result = guard.main(["--repo-root", str(root), "--", "cargo", "clean", *command])
+                self.assertEqual(2, result)
+                self.assertTrue((default / "sentinel").is_file())
+                self.assertTrue((selected / "sentinel").is_file())
+                repeated = guard.main(["--repo-root", str(root), "--", "cargo", "clean",
+                                       *target_args, *target_args])
+                self.assertEqual(2, repeated)
+                self.assertTrue((default / "sentinel").is_file())
+                self.assertTrue((selected / "sentinel").is_file())
+
+    def test_global_prefixes_are_rejected_before_deletion(self):
+        for prefix in (("+stable",), ("--config", "build.target-dir=selected"),
+                       ("-C", "."), ("--manifest-path", "Cargo.toml")):
+            with self.subTest(prefix=prefix), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                manifest = root / "Cargo.toml"
+                manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+                default = target_fixture(root, "target")
+                selected = target_fixture(root, "selected")
+                result = guard.main(["--repo-root", str(root), "--", "cargo", *prefix,
+                                     "clean", "--target-dir", str(selected)])
+                self.assertEqual(2, result)
+                self.assertTrue((default / "sentinel").is_file())
+                self.assertTrue((selected / "sentinel").is_file())
+
+    def test_guard_only_target_dir_is_rejected_before_deletion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            manifest = root / "Cargo.toml"
+            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            selected = target_fixture(root, "selected")
+            result = guard.main(["--repo-root", str(root), "--target-dir", str(selected), "--",
+                                 "cargo", "clean"])
+            self.assertEqual(2, result)
+            self.assertEqual(b"selected", (selected / "sentinel").read_bytes())
+
+    def test_help_does_not_create_target_or_tag(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            manifest = root / "Cargo.toml"
+            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            result = guard.main(clean_command(root, "--help", "--manifest-path", str(manifest)))
+            self.assertEqual(0, result)
+            self.assertFalse((root / "target").exists())
 
     @unittest.skipUnless(os.name == "nt", "requires native Windows handles")
     def test_windows_holds_directory_names_against_rename_until_cleanup_finishes(self):
