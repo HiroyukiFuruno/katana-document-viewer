@@ -230,3 +230,7 @@ targetの全体整理はPOSIXの全ancestor no-follow/FD相対操作、Windows�
 証跡: `tmp/kdv-ironcalc091-base091-anchor-check.log`、`tmp/kdv-anchor-final64-python.log`、`tmp/kdv-anchored-cleanup-independent-review.md`、`tmp/kdv-capacity-recovery-verified-20261022.log`。KRRとoffice2pdf/forksの修正版公開待ちは維持し、古いKRRで公開しない。
 
 追加レビューで、明示`--target-dir`へ既定targetも併合する経路と、manifest指定を無視する経路をRED再現した。通常pushは自分のhook PGID22733だけを中断し（push終了1、remote HEADは01fbのまま）、CLI単一target > 環境target > repo既定targetに限定した。manifest/global/重複target/guard専用指定は安全に拒否する。help/dry-runはtarget/tagを作らず委譲する。標準script suite71件成功（Macで4件skip）、独立レビュー追加指摘0。旧tag競合回帰は、未対応manifest指定を外した通常cleanで同じ差替えを検証するため、期待値を変えずに維持した。最終sourceの通常push/native CI/全公開前検査は引き続き未完であり、今回の局所成功で代用しない。証跡: `tmp/pr68-explicit-target-red.json`、`tmp/kdv-target-selection-full71.log`。
+
+## 2026-10-22 coverage専用target刷新の整合
+
+現guardが選択cleanを拒否する一方、coverage-v8-refreshがclean -p v8を呼ぶ既存矛盾を確認した。専用targetを明示した全体cleanへ変更し、通常target・両方の所有タグを保持する実filesystem回帰を追加した。標準72回帰はexit0（Mac限定skip4）、公開契約self-test/staticはexit0、旧選択recipeを拒否する契約回帰も成功。coverage関数/行100%・未カバー0を変更していない。証跡: tmp/kdv-coverage-refresh-script72.log、tmp/kdv-coverage-refresh-contract.log、tmp/kdv-coverage-refresh-contract-regression.json。43f21303の通常push全ゲートはexit0だが、この追加修正後の最新HEAD CI/preflightは別途回収し、過去の成功で代用しない。

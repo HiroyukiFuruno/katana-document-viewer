@@ -14,6 +14,8 @@
 
 新規または空の出力directoryだけは、source保護を確認して所有タグを初期化する。CIもcache復元より前に空のtargetを初期化する。Cargoは先に存在するdirectoryへタグを生成しない場合があるため、この順序で所有情報を保持する。既存の非空directoryにタグがなければ、勝手に所有対象へ変更しない。
 
+coverage開始前の `coverage-v8-refresh` は、復元済みV8 link artifactの再利用を防ぐため、`target/llvm-cov-target` 全体を明示的に刷新する。親の通常targetと両方の所有タグは保持する。coverage専用生成物の再生成範囲は広がるが、関数・行100%の検査条件は変えない。
+
 実装は `scripts/maintenance/cargo-guard` と `guard-build-cache.py`。既存の `CARGO` 設定の明示的な上書きは維持する。別checkoutへ移動する任意のKUC検査導線は通常のCargoを使い、KDVの容量guardを適用しない。設定を上書きしない通常の導線は自動でこのguardを使用する。
 
 `just build-cache-script-test` は閾値境界・所有範囲・使用中の保護・Windows検査・実際のCargo整理・コマンド終了までの排他を検証し、既存の `just check` に含める。

@@ -147,6 +147,20 @@ class TargetAnchorTests(unittest.TestCase):
             self.assertTrue((default / "sentinel").is_file())
             self.assertFalse((selected / "sentinel").exists())
 
+    def test_coverage_refresh_preserves_default_target_and_both_ownership_tags(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            default = fixture(root)
+            selected = target_fixture(default, "llvm-cov-target")
+            default_tag = (default / "CACHEDIR.TAG").read_bytes()
+            selected_tag = (selected / "CACHEDIR.TAG").read_bytes()
+            result = guard.main(clean_command(root, "--target-dir", str(selected)))
+            self.assertEqual(0, result)
+            self.assertTrue((default / "artifact").is_file())
+            self.assertEqual(default_tag, (default / "CACHEDIR.TAG").read_bytes())
+            self.assertEqual(selected_tag, (selected / "CACHEDIR.TAG").read_bytes())
+            self.assertFalse((selected / "sentinel").exists())
+
     def test_environment_target_and_cli_precedence_preserve_other_targets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()

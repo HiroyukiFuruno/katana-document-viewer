@@ -57,9 +57,9 @@ workspace-test:
 # Backward-compatible test entrypoint
 unit-test: test
 
-# cargo llvm-cov は専用targetを使うため、cache復元後に同じ場所のV8 link artifactを再生成する。
+# 復元済みV8 link artifactを残さないため、coverage専用targetだけを全体刷新する。
 coverage-v8-refresh:
-    {{CARGO}} clean -p v8 --target-dir target/llvm-cov-target
+    {{CARGO}} clean --target-dir target/llvm-cov-target
 
 # Run coverage as a required full-check gate
 coverage: coverage-v8-refresh
