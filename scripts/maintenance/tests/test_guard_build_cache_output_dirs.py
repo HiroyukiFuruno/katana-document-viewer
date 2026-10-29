@@ -177,7 +177,7 @@ class CargoBuildDirectoryGuardTests(unittest.TestCase):
         cargo_config = root / ".cargo"
         cargo_config.mkdir()
         (cargo_config / "config.toml").write_text(
-            f'[build]\ntarget-dir = "{target.name}"\nbuild-dir = "{build_directory.relative_to(root)}"\n'
+            f'[build]\ntarget-dir = "{target.name}"\nbuild-dir = "{build_directory.relative_to(root).as_posix()}"\n'
         )
 
 
