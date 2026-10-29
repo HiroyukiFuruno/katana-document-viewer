@@ -52,3 +52,9 @@ KRRはGitHub Release/registryとも0.4.23で、新版待ちは維持する。全
 通常check18048はexit101でepaint_default_fonts0.37の既存定数4箇所がfeature未指定と判明した。公式0.37のCargo.toml/src定義を確認し`monochrome_emoji_fonts`を明示する。ユーザーの0.37更新と既存fallbackを維持し、ゲート緩和なし。重複起動して待機後にbuildへ入った実consumer契約54461は、同じ既知の不備と競合buildを避けるため自分のcargo PID77260へTERMで中断した（exit241、成功に数えない）。修正後は通常check、公開前検査を直列で回収する。
 
 通常全品質check99637はactual EXIT0（`tmp/kdv-office010-check-feature-fix.log`）。fmt/strict Clippy/AST、Rust test結果の集計3003件（Storybook646件+分離1件を含む）、容量guard75回帰（macOS専用条件による6skip）、既存harnessが成功した。新consumer契約self-testもEXIT0。3OS CI・coverage/semver/package/dry-run・current HEAD reviewは、この新graphでは未回収として継続する。
+
+## 2026-10-29 追加の互換lock更新
+
+CI待機中に追加されたCargo.lock差分（globset0.4.21、ignore0.4.34、unicode-width0.2.3、ZIP9.1.3）を保存し、そのまま今回の依存更新へ取り込む。各版の公式registry checksum/非yankを確認した。上流Office0.10.0/派生0.2.0は維持し、ZIPは9.1.3一版のみ。既存差分を元へ戻していない。
+
+最新graphのstrict Clippy/AST49621 EXIT0、関連実worker19回帰80084 EXIT0。差分は互換patch4件とchecksumだけで、公開契約・consumerのZIP9条件・品質基準の変更はない。自己レビューの追加指摘なし。bbb1c630のCIは追加更新前のgraphであり、新HEADの全通常hook・3OS CI/coverage/semver/package/dry-run・current reviewを別途回収する。証跡: `tmp/kdv-extra-lock-update-20261029.patch`、`tmp/kdv-extra-lock-registry-verified-20261029.json`、`tmp/kdv-latest-lock-lint-ast.log`、`tmp/kdv-latest-lock-office-contracts.log`。

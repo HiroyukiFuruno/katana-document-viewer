@@ -96,3 +96,5 @@
 - [x] 採用後の通常check99637を終了0で回収し、epaint_default_fonts0.37のfeature不足を修正する。新consumerの期待版/旧ZIP・旧派生混在拒否のself-testも成功。全CI/coverage/公開前検査/reviewは上の未完タスクで継続する。証跡: `tmp/kdv-office010-check-feature-fix.log`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] Ubuntu CIのPPTX行送り検査の原因を、Linux/macOSの実PDF baseline比較で特定する。黒画素中心のfont差による誤判定を、同じ19–24pt幅の実baseline検査へ修正し、実PDF行間圧縮の拒否と関連19回帰、strict Clippy/ASTを確認した。既存pixel検査と品質基準は保持。旧HEAD失敗/停止はPASSに数えず、新HEAD全CI/公開前検査/reviewを上記で回収する。証跡: `tmp/pptx-baseline-contracts.log`、`tmp/pptx-office010-linux-macos-baseline-diagnostic.json`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] 待機中に追加された互換lock更新4件を保持し、ZIP9.1.3/ignore0.4.34/globset0.4.21/unicode-width0.2.3の公式checksumと非yankを確認した。最新graphのstrict Clippy/AST49621と実worker19回帰80084は終了0。全検査・レビューは新HEADで上記未完タスクを継続する。証跡: `tmp/kdv-extra-lock-registry-verified-20261029.json`、`tmp/kdv-latest-lock-office-contracts.log`。delegation-exception: `直列のクリティカルパス`。
