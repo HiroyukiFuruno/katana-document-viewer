@@ -113,4 +113,4 @@
 
 - [x] first-frame計測を初回render直後とcycle全体に分離し、既存再描画/close resource0検査を維持する。実child順序/時間関係のRED→strict GREENと、公開入力の通常/診断24process成功・全SHA一致を確認した。DOCX cold2.427–2.506秒は目安未達、debug profile/OS cache未resetの範囲を明記した。証跡: file: `tmp/kdv-first-frame-clock-strict-green.log`、file: `tmp/kdv-true-first-frame-paired-measurement/receipt.json`。delegation-exception: `直列のクリティカルパス`。
 
-- [ ] fb3のWindows CIでnested fixtureのTOMLにWindows区切りが未escapeで入る失敗を修正し、全3OSと公開前検査を再回収する。fixture相対pathをas_posixでTOMLへ記録し、安全検査を維持する。証跡: file: `tmp/kdv-fb3-ci-40830260792-failures.log`。delegation-exception: `直列のクリティカルパス`。
+- [ ] fb3のWindows CIでnested fixtureのTOMLにWindows区切りが未escapeで入る失敗を修正し、全3OSと公開前検査を再回収する。fixture相対pathをas_posixでTOMLへ記録し、安全検査を維持した。ローカル84回帰成功（POSIX対象外6skip）、公開契約と委譲証跡harnessも成功。Windows nativeは修正HEADのCIで回収する。証跡: file: `tmp/kdv-fb3-ci-40830260792-failures.log`、file: `tmp/kdv-windows-config-fixture-regression.log`。delegation-exception: `直列のクリティカルパス`。
