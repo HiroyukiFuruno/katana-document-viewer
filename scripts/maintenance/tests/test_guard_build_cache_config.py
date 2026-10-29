@@ -13,6 +13,39 @@ CACHEDIR_TAG = "Signature: 8a477f597d28d172789f06886806bc55\n"
 
 
 class CargoConfigBuildCacheTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0), "requires POSIX user permission enforcement")
+    def test_unreadable_config_refuses_cleanup_and_preserves_both_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Cargo.toml").write_text('[package]\nname="unreadable-config"\nversion="0.0.0"\n')
+            (root / "src").mkdir()
+            (root / "src/main.rs").write_text("fn main() {}\n")
+            config = root / ".cargo"
+            config.mkdir()
+            (config / "config.toml").write_text('[build]\ntarget-dir="configured-cache"\n')
+            sentinels = []
+            for name in ("target", "configured-cache"):
+                target = root / name
+                target.mkdir()
+                (target / "CACHEDIR.TAG").write_text(CACHEDIR_TAG)
+                sentinel = target / "sentinel"
+                sentinel.write_text("preserve\n")
+                sentinels.append(sentinel)
+            environment = os.environ.copy()
+            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+                environment.pop(name, None)
+            environment["CARGO_HOME"] = str(root / "cargo-home")
+            config.chmod(0)
+            try:
+                result = subprocess.run(
+                    [sys.executable, str(GUARD), "--repo-root", str(root), "--", "cargo", "clean"],
+                    cwd=root, env=environment, capture_output=True, text=True,
+                )
+            finally:
+                config.chmod(0o700)
+            self.assertEqual(2, result.returncode, result.stderr)
+            self.assertTrue(all(sentinel.exists() for sentinel in sentinels))
+
     def run_configured_build(self, cargo_arguments, config_setup):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

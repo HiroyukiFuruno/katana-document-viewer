@@ -26,4 +26,4 @@ master 99371a97からrelease/v0.5.13を作成。stash 0、worktreeは現checkout
 
 私有DOCX/PDF6件の取得からRGBA artifactまでをcold/restart/warmで実測し、全12process成功、restartの変換/raster省略を確認。DOCX cold最大3.753秒は目安未達として記録。#67の歴史的エラーはPNG内の過去表示と判明し、原本は未入手。合法descriptor回帰と現在の原本PPTX3件×2回は成功、未再現の原本を修正済みとは扱わない。KDV #67とKatanA owner #345へ根拠を投稿済み。
 
-2026-10-29更新: office2pdf0.10.0と派生2package0.2.0が公式公開済みとなり、checksum/VCS/修正PR包含を確認してKDVへ採用した。lockから旧ZIP0.6/2.5/8.6が消え、ZIP9.1.2のみ。ユーザーの既存依存更新を保持し、epaint_default_fonts0.37でfeature化された既存絵文字fontも明示有効化した。採用後の通常check/全品質・公開前検査・レビューは `changes/v0-5-13-persistent-document-artifacts/tasks.md` 末尾で追跡する。KRRは0.4.23のままで、修正版公開・採用後までKDV公開は待つ。
+2026-10-29更新: office2pdf0.10.0と派生2package0.2.0が公式公開済みとなり、checksum/VCS/修正PR包含を確認してKDVへ採用した。lockから旧ZIP0.6/2.5/8.6が消え、追加互換更新後はZIP9.1.3のみ。ユーザーの既存依存更新を保持し、epaint_default_fonts0.37でfeature化された既存絵文字fontも明示有効化した。採用後の通常check/全品質・公開前検査・レビューは `changes/v0-5-13-persistent-document-artifacts/tasks.md` 末尾で追跡する。KRRは0.4.23のままで、修正版公開・採用後までKDV公開は待つ。

@@ -104,3 +104,5 @@
 - [x] PR68のCargo設定出力先の容量監視漏れを、Cargo metadataによる実効target解決で修正する。設定ファイル/別config/inline configの実build3経路でRED→GREEN、従来の安全な整理・使用中保護を含む78回帰と公開契約/AST88995が成功した。新HEAD全CI/preflight/reviewは既存未完タスクで回収する。証跡: file: `tmp/kdv-cargo-config-regression-red.log`、file: `tmp/kdv-cargo-config-final-gates.log`。delegation: `/root/cargo_config_guard_audit`（回帰テスト限定、toolはcanonical名のみ返却）。実装修正と検証統合はmainが実施。delegation-exception: `直列のクリティカルパス`。
 
 - [x] clean時もCargo設定済み出力先だけを選び、無関係な既定targetを残す。実build/cleanのRED→GREENと79容量管理回帰、公開契約/ASTを確認した。設定解決前にも既存のmaintenance selector拒否を適用し、不明な出力先は安全側拒否とする。新HEAD全ゲートは既存未完タスクで回収する。証跡: file: `tmp/kdv-cargo-config-clean-red.log`、file: `tmp/kdv-cargo-config-clean-final.log`。mainの実装修正・統合: delegation-exception: `直列のクリティカルパス`。
+
+- [x] 設定探索の権限エラーを未設定と扱わず、設定不明時はcleanupを拒否する。実POSIX permissionのRED→GREENでdefault/configured両sentinel保持を確認し、80容量管理回帰と公開契約/AST82985が成功した。build/cleanの設定解決を利用文書にも反映。証跡: file: `tmp/kdv-cargo-config-permission-red.log`、file: `tmp/kdv-cargo-config-permission-green.log`。delegation-exception: `直列のクリティカルパス`。

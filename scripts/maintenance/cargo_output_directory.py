@@ -47,7 +47,14 @@ def has_cargo_configuration(directory: Path) -> bool:
     if not cargo_home.is_absolute():
         cargo_home = directory / cargo_home
     config_directories = [cargo_home, *(parent / ".cargo" for parent in (directory, *directory.parents))]
-    return any((parent / name).is_file() for parent in config_directories for name in ("config", "config.toml"))
+    for parent in config_directories:
+        for name in ("config", "config.toml"):
+            try:
+                (parent / name).lstat()
+            except FileNotFoundError:
+                continue
+            return True
+    return False
 
 
 def configured_target_directory(command: list[str], cwd: Path | None = None) -> Path:
