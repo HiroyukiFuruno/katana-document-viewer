@@ -26,7 +26,7 @@
 
 ## 未検証
 
-新しい最終source/graphのfull test/coverage100%/score/semver/strict release-check、KRR修正版の公開取り込み、Draft review/required CI/公開/fresh consumerは未完。原本PPTX3件が現在見つかったため、別のlocal-only corpus測定を実行中。報告エラーと合法fixtureの成功を混同しない。
+KRR修正版の公開取り込み後の最終検査・公開/fresh consumerは未完。文書反映後の準備HEAD結果はPR68と最新の物理receiptへ記録し、まだ回収されていない結果は成功と扱わない。前回台帳から再利用できる私有入力の対応を確認できず、追加私有再測定は実施していない。全ディスク上に原本が存在しないとは断定しない。報告エラーと合法fixtureの成功を混同しない。
 
 ## 私有DOCX/PDF corpus（原本は公開しない）
 
@@ -37,7 +37,7 @@
 | PDF 4件 | 0.034–0.061秒 | 0.012–0.015秒 | 0.012–0.014秒 |
 | DOCX 2件 | 1.567–3.753秒 | 0.153–0.160秒 | 0.152–0.155秒 |
 
-最も遅いDOCXではoffice.conversionが2.913秒、最初のrasterが0.029秒で、変換だけでも暫定約2秒を超えるため、全入力での性能合格とは扱わない。表のcycleから初回frame単独の正確値は算出しない。測定はscale 0.5で、実画面の表示時間は含まない。入力名・内容・画像・私有絶対pathは公開artifactへ記載しない。
+最も遅いDOCXの3.753秒は当時のcold cycle値で、office.conversionが2.913秒、最初のrasterが0.029秒だった。変換だけでも暫定約2秒を超えるため、全入力での性能合格とは扱わない。表のcycleから初回frame単独の正確値は算出しない。測定はscale 0.5で、実画面の表示時間は含まない。入力名・内容・画像・私有絶対pathは公開artifactへ記載しない。
 
 ## 2026-10-29 計測区間修正後の公開入力
 
@@ -54,3 +54,7 @@
 DOCX coldは暫定約2秒を超えている。これはdebug profile・scale 0.5・OS cache未resetの公開fixture測定であり、release profile、native表示、旧版からの改善、DEBUGによる速度差の因果関係は検証していない。KatanA原本で観測された13–21秒の原因や改善を、この小規模入力から断定しない。診断coldで変換/raster trace、restartで両traceの省略を確認した。
 
 実行入口は`persistent_cache_contract`の実childで、私有資料を使っていない。binary/worker/入力/両test source/lockの前後SHA256一致、24件のログ・各初回frame/cycleはignored `tmp/kdv-true-first-frame-paired-measurement/receipt.json`に記録した。RED/GREENは`tmp/kdv-first-frame-clock-red.log`と`tmp/kdv-first-frame-clock-strict-green.log`。最終source/graphの全品質・公開前検査はtasks.mdで別途追跡する。
+
+## 2026-10-29 前回私有入力の利用可否
+
+Issue 65の計測記録12件（6種類の内容SHA）とIssue 67の原本記録3件（3種類の期待SHA）をローカルで照合した。両記録のSHA重複は0件で、corpus内の文書ファイル、参照パスから利用可能なファイルへの解決、利用可能ファイルとのSHA一致はいずれも0件だった。前回入力の再利用を確認できないため、追加私有測定は行っていない。全ディスクからの不存在やIssue 67歴史原本の取得・修正を主張しない。匿名番号と件数のみの証跡: ignored `tmp/kdv-current-private-first-frame/receipt.json`。
