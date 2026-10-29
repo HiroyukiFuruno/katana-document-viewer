@@ -149,7 +149,7 @@ class BuildCacheIntegrationTests(unittest.TestCase):
             root = Path(directory).resolve()
             scripts = root / "scripts" / "maintenance"
             scripts.mkdir(parents=True)
-            for name in ("cargo-guard", "guard-build-cache.py", "cargo_target_args.py", "target_ownership.py"):
+            for name in ("cargo-guard", "guard-build-cache.py", "cargo_target_args.py", "cargo_output_directory.py", "target_ownership.py"):
                 shutil.copy2(ROOT / "scripts" / "maintenance" / name, scripts / name)
             recipe = 'set shell := ["bash", "-uc"]\n' + cargo_line + '\nprobe:\n    {{CARGO}} --version\n'
             recipe += "    python3 -c 'from pathlib import Path; print(Path.cwd())'\n"

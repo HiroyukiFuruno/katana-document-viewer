@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterable
 
 from cargo_target_args import command_directory, command_target_dirs
+from cargo_output_directory import configured_target_directory
 from target_ownership import CACHEDIR_TAG, prepare_targets, reject_source_target
 
 try:
@@ -274,6 +275,8 @@ def main(argv: list[str] | None = None) -> int:
         explicit = [*(args.target_dir or ()), *command_targets]
         if cargo_target_dir:
             explicit.append((cargo_directory / cargo_target_dir).resolve())
+        if should_guard(command) and not command_targets:
+            explicit.append(configured_target_directory(command))
         targets = repo_targets(repo_root, explicit)
         if not should_guard(command):
             return subprocess.run(command, check=False).returncode

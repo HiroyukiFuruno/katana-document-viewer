@@ -100,3 +100,5 @@
 - [x] 待機中に追加された互換lock更新4件を保持し、ZIP9.1.3/ignore0.4.34/globset0.4.21/unicode-width0.2.3の公式checksumと非yankを確認した。最新graphのstrict Clippy/AST49621と実worker19回帰80084は終了0。全検査・レビューは新HEADで上記未完タスクを継続する。証跡: file: `tmp/kdv-extra-lock-registry-verified-20261029.json`、file: `tmp/kdv-latest-lock-office-contracts.log`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] 公開契約の旧pixel文言依存を実PDF baselineの正例/圧縮拒否・同じ19–24pt幅へ整合させる。静的公開契約を通常check先頭へ追加し、重いbuild前にpre-pushで不整合を検出する。prerequisiteなしRED後、現契約/負例self-test/実行順序とgovernance/harness/AST57032が成功した。既存ゲート/閾値は保持し、新HEADの全CI/preflight/reviewは上記で継続する。証跡: file: `tmp/kdv-contract-source-gate-green.log`、file: `tmp/kdv-contract-source-harness.log`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] PR68のCargo設定出力先の容量監視漏れを、Cargo metadataによる実効target解決で修正する。設定ファイル/別config/inline configの実build3経路でRED→GREEN、従来の安全な整理・使用中保護を含む78回帰と公開契約/AST88995が成功した。新HEAD全CI/preflight/reviewは既存未完タスクで回収する。証跡: file: `tmp/kdv-cargo-config-regression-red.log`、file: `tmp/kdv-cargo-config-final-gates.log`。delegation: `/root/cargo_config_guard_audit`（回帰テスト限定）。
