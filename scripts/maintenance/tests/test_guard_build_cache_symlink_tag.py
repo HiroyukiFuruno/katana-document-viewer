@@ -1,3 +1,4 @@
+import contextlib
 import importlib.util
 import os
 import sys
@@ -14,6 +15,11 @@ SPEC = importlib.util.spec_from_file_location("guard_build_cache_symlink_tag", S
 guard = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guard)
+
+
+def run_guard_main(arguments):
+    with contextlib.chdir(Path(arguments[1])):
+        return guard.main(arguments)
 
 
 def symlink_fixture(root: Path) -> tuple[Path, Path, Path]:
@@ -53,7 +59,7 @@ class SymlinkTagOwnershipTests(unittest.TestCase):
                 return result
 
             with patch.object(Path, "lstat", replace_after_lstat):
-                result = guard.main([
+                result = run_guard_main([
                     "--repo-root", str(root), "--max-gib", "1", "--",
                     "cargo", "clean",
                 ])
@@ -151,7 +157,7 @@ class SymlinkTagOwnershipTests(unittest.TestCase):
             root = (Path(directory) / "repo").resolve()
             root.mkdir()
             manifest, target, external = symlink_fixture(root)
-            result = guard.main([
+            result = run_guard_main([
                 "--repo-root", str(root), "--max-gib", "0.000000001", "--",
                 "cargo", "build", "--manifest-path", str(manifest), "--offline", "-j1",
             ])
@@ -166,7 +172,7 @@ class SymlinkTagOwnershipTests(unittest.TestCase):
             root = (Path(directory) / "repo").resolve()
             root.mkdir()
             manifest, target, external = symlink_fixture(root)
-            result = guard.main([
+            result = run_guard_main([
                 "--repo-root", str(root), "--max-gib", "1", "--",
                 "cargo", "clean",
             ])

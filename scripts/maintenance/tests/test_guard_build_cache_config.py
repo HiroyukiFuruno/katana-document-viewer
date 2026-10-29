@@ -129,6 +129,59 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
             self.assertFalse(configured_sentinel.exists(), "guard did not clean configured target")
             self.assertTrue(default_sentinel.exists(), "guard cleaned the unrelated default target")
 
+    def test_nested_cargo_clean_uses_nested_target_directory(self):
+        for configured in (True, False):
+            with self.subTest(configured_target=configured), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "Cargo.toml").write_text(
+                    '[package]\nname="parent-clean-smoke"\nversion="0.0.0"\nedition="2021"\n'
+                )
+                parent_target = root / "target"
+                parent_target.mkdir()
+                (parent_target / "CACHEDIR.TAG").write_text(CACHEDIR_TAG)
+                parent_sentinel = parent_target / "parent-sentinel"
+                parent_sentinel.write_text("preserve parent target\n")
+
+                nested = root / "nested"
+                nested.mkdir()
+                (nested / "Cargo.toml").write_text(
+                    '[package]\nname="nested-clean-smoke"\nversion="0.0.0"\nedition="2021"\n\n'
+                    '[workspace]\n'
+                )
+                (nested / "src").mkdir()
+                (nested / "src/main.rs").write_text("fn main() {}\n")
+                if configured:
+                    cargo_config = nested / ".cargo"
+                    cargo_config.mkdir()
+                    (cargo_config / "config.toml").write_text(
+                        '[build]\ntarget-dir = "build-cache"\n'
+                    )
+                    nested_target = nested / "build-cache"
+                else:
+                    nested_target = nested / "target"
+
+                environment = os.environ.copy()
+                for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+                    environment.pop(name, None)
+                environment["CARGO_HOME"] = str(root / "cargo-home")
+                build = subprocess.run(
+                    ["cargo", "--offline", "build"],
+                    cwd=nested, env=environment, capture_output=True, text=True,
+                )
+                self.assertEqual(0, build.returncode, build.stderr)
+                self.assertTrue(nested_target.is_dir(), "Cargo did not use the nested target directory")
+                (nested_target / "CACHEDIR.TAG").write_text(CACHEDIR_TAG)
+                nested_sentinel = nested_target / "nested-sentinel"
+                nested_sentinel.write_text("remove nested target\n")
+
+                cleaned = subprocess.run(
+                    [sys.executable, str(GUARD), "--repo-root", str(root), "--", "cargo", "clean"],
+                    cwd=nested, env=environment, capture_output=True, text=True,
+                )
+                self.assertEqual(0, cleaned.returncode, cleaned.stderr)
+                self.assertFalse(nested_sentinel.exists(), "guard did not clean nested Cargo target")
+                self.assertTrue(parent_sentinel.exists(), "guard cleaned the parent repository target")
+
     def _run_fixture(self, root, target, cargo_arguments):
         manifest = root / "Cargo.toml"
         manifest.write_text(

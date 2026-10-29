@@ -16,7 +16,7 @@ Windowsでは、属性専用の既存HANDLEからのreparse変更は共有制御
 
 明示的な `just clean` も同じlockと所有・使用中検査を通し、閾値に関係なく同じ実体固定の全体整理を行う。guard経由のコマンドが実行中なら待たずに整理を拒否し、終了コード3を返す。`clean -p`・profile・doc等の選択的整理と `sweep` は、Cargo側のpathname削除を検証済み実体へ束縛できないため、終了コード2で拒否する。選択的整理を全体削除へ読み替えない。`--dry-run`・helpは削除を実行せず元コマンドへ委譲する。安全確認の失敗や整理の非0終了も呼出元へ返す。手動の未保護Cargoに対する使用中検査はプロセス・open fileの観測に基づくため、通常のbuild/testもguard経由で実行する。
 
-明示的な整理は、Cargoの `--target-dir`、なければ `CARGO_TARGET_DIR` を対象にする。どちらもない場合、階層config・`CARGO_HOME` config・`CARGO_BUILD_TARGET_DIR` があればCargo metadataで実効出力先を解決し、設定がなければrepo直下の `target` だけを対象にする。他の既定targetを併合しない。設定を確認・解決できなければ削除を拒否する。manifest指定、`-C` / `--config` / toolchain等のglobal指定、重複target指定、guard専用のtarget指定は、整理対象を安全に証明できないため削除前に拒否する。help/dry-runではtargetや所有タグも初期化しない。
+明示的な整理は、Cargoの `--target-dir`、なければ `CARGO_TARGET_DIR` を対象にする。どちらもない場合は、呼び出し元のCargo作業場所・workspace・設定を引き継ぐCargo metadataで実効出力先を解決する。`--repo-root` は整理を許す範囲であり、Cargoの作業場所を変更しない。解決後もrepo内の所有範囲検査を維持し、無関係な既定targetを併合しない。設定を確認・解決できなければ削除を拒否する。manifest指定、`-C` / `--config` / toolchain等のglobal指定、重複target指定、guard専用のtarget指定は、整理対象を安全に証明できないため削除前に拒否する。help/dry-runではtargetや所有タグも初期化しない。
 
 新規または空の出力directoryだけは、source保護を確認して所有タグを初期化する。CIもcache復元より前に空のtargetを初期化する。Cargoは先に存在するdirectoryへタグを生成しない場合があるため、この順序で所有情報を保持する。既存の非空directoryにタグがなければ、勝手に所有対象へ変更しない。
 

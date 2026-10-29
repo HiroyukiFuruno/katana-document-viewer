@@ -4,6 +4,7 @@ import ctypes
 import errno
 import io
 import os
+import shutil
 import struct
 from ctypes import wintypes
 import sys
@@ -21,8 +22,15 @@ guard = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(guard)
 
 
+def run_guard_main(arguments):
+    with contextlib.chdir(Path(arguments[1])):
+        return guard.main(arguments)
+
+
 def fixture(root):
     (root / "Cargo.toml").write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+    (root / "src").mkdir()
+    (root / "src/main.rs").write_text("fn main() {}\n")
     target = root / "target"
     target.mkdir()
     (target / "CACHEDIR.TAG").write_text(guard.CACHEDIR_TAG + "\n")
@@ -38,8 +46,8 @@ def target_fixture(root, name):
     return target
 
 
-def clean_command(root, *arguments):
-    return ["--repo-root", str(root), "--", "cargo", "clean", *arguments]
+def clean_command(root, *arguments, cargo="cargo"):
+    return ["--repo-root", str(root), "--", cargo, "clean", *arguments]
 
 
 def mountpoint_buffer(external):
@@ -68,8 +76,11 @@ class TargetAnchorTests(unittest.TestCase):
             root = Path(directory).resolve()
             target = fixture(root)
             errors = io.StringIO()
-            with patch.dict(os.environ, {"PATH": ""}), contextlib.redirect_stderr(errors):
-                result = guard.main(clean_command(root))
+            cargo, rustc = shutil.which("cargo"), shutil.which("rustc")
+            self.assertIsNotNone(cargo)
+            self.assertIsNotNone(rustc)
+            with patch.dict(os.environ, {"PATH": "", "RUSTC": rustc}), contextlib.redirect_stderr(errors):
+                result = run_guard_main(clean_command(root, cargo=cargo))
             self.assertEqual(3, result)
             self.assertIn("install lsof on POSIX", errors.getvalue())
             self.assertTrue((target / "artifact").is_file())
@@ -112,7 +123,7 @@ class TargetAnchorTests(unittest.TestCase):
                 purge(anchor)
 
             with patch.object(PosixTargetCleanup, "purge", replace_then_purge):
-                result = guard.main(["--repo-root", str(root), "--", "cargo", "clean"])
+                result = run_guard_main(["--repo-root", str(root), "--", "cargo", "clean"])
             self.assertEqual(0, result)
             self.assertEqual(b"keep", (target / "unowned-payload").read_bytes())
             self.assertFalse((original / "artifact").exists())
@@ -131,7 +142,7 @@ class TargetAnchorTests(unittest.TestCase):
             artifact.write_bytes(b"old")
             artifact.chmod(0o444)
             (target / "external-link").symlink_to(external, target_is_directory=True)
-            result = guard.main(["--repo-root", str(root), "--", "cargo", "clean"])
+            result = run_guard_main(["--repo-root", str(root), "--", "cargo", "clean"])
             self.assertEqual(0, result)
             self.assertEqual(["CACHEDIR.TAG"], [p.name for p in target.iterdir()])
             self.assertEqual(b"keep", (external / "payload").read_bytes())
@@ -142,7 +153,7 @@ class TargetAnchorTests(unittest.TestCase):
             target = fixture(root)
             for arguments in (["clean", "-p", "anchor-fixture"], ["clean", "--release"],
                               ["clean", "--doc"], ["sweep", "--time", "7"]):
-                self.assertEqual(2, guard.main(["--repo-root", str(root), "--", "cargo", *arguments]))
+                self.assertEqual(2, run_guard_main(["--repo-root", str(root), "--", "cargo", *arguments]))
                 self.assertEqual(b"old", (target / "artifact").read_bytes())
 
     def test_unsupported_clean_does_not_create_missing_target(self):
@@ -150,7 +161,7 @@ class TargetAnchorTests(unittest.TestCase):
             root = Path(directory).resolve()
             (root / "Cargo.toml").write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
             for arguments in (["clean", "-p", "anchor-fixture"], ["sweep", "--time", "7"]):
-                self.assertEqual(2, guard.main(["--repo-root", str(root), "--", "cargo", *arguments]))
+                self.assertEqual(2, run_guard_main(["--repo-root", str(root), "--", "cargo", *arguments]))
                 self.assertFalse((root / "target").exists())
 
     def test_cli_target_dir_only_cleans_selected_target(self):
@@ -160,7 +171,7 @@ class TargetAnchorTests(unittest.TestCase):
             manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
             default = target_fixture(root, "target")
             selected = target_fixture(root, "custom")
-            result = guard.main(clean_command(root, "--target-dir", str(selected)))
+            result = run_guard_main(clean_command(root, "--target-dir", str(selected)))
             self.assertEqual(0, result)
             self.assertTrue((default / "sentinel").is_file())
             self.assertFalse((selected / "sentinel").exists())
@@ -172,7 +183,7 @@ class TargetAnchorTests(unittest.TestCase):
             selected = target_fixture(default, "llvm-cov-target")
             default_tag = (default / "CACHEDIR.TAG").read_bytes()
             selected_tag = (selected / "CACHEDIR.TAG").read_bytes()
-            result = guard.main(clean_command(root, "--target-dir", str(selected)))
+            result = run_guard_main(clean_command(root, "--target-dir", str(selected)))
             self.assertEqual(0, result)
             self.assertTrue((default / "artifact").is_file())
             self.assertEqual(default_tag, (default / "CACHEDIR.TAG").read_bytes())
@@ -188,7 +199,7 @@ class TargetAnchorTests(unittest.TestCase):
             env_target = target_fixture(root, "env-target")
             cli_target = target_fixture(root, "cli-target")
             with patch.dict(os.environ, {"CARGO_TARGET_DIR": str(env_target)}):
-                result = guard.main(clean_command(root, "--target-dir", str(cli_target)))
+                result = run_guard_main(clean_command(root, "--target-dir", str(cli_target)))
             self.assertEqual(0, result)
             self.assertTrue((default / "sentinel").is_file())
             self.assertTrue((env_target / "sentinel").is_file())
@@ -200,7 +211,7 @@ class TargetAnchorTests(unittest.TestCase):
             default = fixture(root)
             env_target = target_fixture(root, "env-target")
             with patch.dict(os.environ, {"CARGO_TARGET_DIR": str(env_target)}):
-                result = guard.main(clean_command(root))
+                result = run_guard_main(clean_command(root))
             self.assertEqual(0, result)
             self.assertEqual(b"old", (default / "artifact").read_bytes())
             self.assertFalse((env_target / "sentinel").exists())
@@ -220,11 +231,11 @@ class TargetAnchorTests(unittest.TestCase):
                     command = [f"--manifest-path={manifest}", *target_args]
                 else:
                     command = [*target_args, "--manifest-path", str(manifest)]
-                result = guard.main(["--repo-root", str(root), "--", "cargo", "clean", *command])
+                result = run_guard_main(["--repo-root", str(root), "--", "cargo", "clean", *command])
                 self.assertEqual(2, result)
                 self.assertTrue((default / "sentinel").is_file())
                 self.assertTrue((selected / "sentinel").is_file())
-                repeated = guard.main(["--repo-root", str(root), "--", "cargo", "clean",
+                repeated = run_guard_main(["--repo-root", str(root), "--", "cargo", "clean",
                                        *target_args, *target_args])
                 self.assertEqual(2, repeated)
                 self.assertTrue((default / "sentinel").is_file())
@@ -239,7 +250,7 @@ class TargetAnchorTests(unittest.TestCase):
                 manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
                 default = target_fixture(root, "target")
                 selected = target_fixture(root, "selected")
-                result = guard.main(["--repo-root", str(root), "--", "cargo", *prefix,
+                result = run_guard_main(["--repo-root", str(root), "--", "cargo", *prefix,
                                      "clean", "--target-dir", str(selected)])
                 self.assertEqual(2, result)
                 self.assertTrue((default / "sentinel").is_file())
@@ -251,7 +262,7 @@ class TargetAnchorTests(unittest.TestCase):
             manifest = root / "Cargo.toml"
             manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
             selected = target_fixture(root, "selected")
-            result = guard.main(["--repo-root", str(root), "--target-dir", str(selected), "--",
+            result = run_guard_main(["--repo-root", str(root), "--target-dir", str(selected), "--",
                                  "cargo", "clean"])
             self.assertEqual(2, result)
             self.assertEqual(b"selected", (selected / "sentinel").read_bytes())
@@ -261,7 +272,7 @@ class TargetAnchorTests(unittest.TestCase):
             root = Path(directory).resolve()
             manifest = root / "Cargo.toml"
             manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
-            result = guard.main(clean_command(root, "--help", "--manifest-path", str(manifest)))
+            result = run_guard_main(clean_command(root, "--help", "--manifest-path", str(manifest)))
             self.assertEqual(0, result)
             self.assertFalse((root / "target").exists())
 

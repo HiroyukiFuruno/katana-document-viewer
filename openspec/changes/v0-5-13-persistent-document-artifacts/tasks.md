@@ -106,3 +106,5 @@
 - [x] clean時もCargo設定済み出力先だけを選び、無関係な既定targetを残す。実build/cleanのRED→GREENと79容量管理回帰、公開契約/ASTを確認した。設定解決前にも既存のmaintenance selector拒否を適用し、不明な出力先は安全側拒否とする。新HEAD全ゲートは既存未完タスクで回収する。証跡: file: `tmp/kdv-cargo-config-clean-red.log`、file: `tmp/kdv-cargo-config-clean-final.log`。mainの実装修正・統合: delegation-exception: `直列のクリティカルパス`。
 
 - [x] 設定探索の権限エラーを未設定と扱わず、設定不明時はcleanupを拒否する。実POSIX permissionのRED→GREENでdefault/configured両sentinel保持を確認し、80容量管理回帰と公開契約/AST82985が成功した。build/cleanの設定解決を利用文書にも反映。証跡: file: `tmp/kdv-cargo-config-permission-red.log`、file: `tmp/kdv-cargo-config-permission-green.log`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] nested crateからのcleanも呼び出し元Cargo作業場所を維持し、workspace/configに従う実効targetだけを整理する。設定あり/なしの実Cargo 2 subTestでRED→GREEN、81回帰・公開契約/AST37839が成功。既存FS安全検査はassertを保持し、実fixtureのcwd/有効manifestを明示した。implicit target解決はlock取得・selector拒否の後へ移し、設定権限の拒否も維持する。証跡: file: `tmp/kdv-cargo-config-nested-red.log`、file: `tmp/kdv-cargo-config-nested-final.log`。delegation-exception: `直列のクリティカルパス`。
