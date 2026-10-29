@@ -27,10 +27,14 @@ def run_guard_main(arguments):
         return guard.main(arguments)
 
 
-def fixture(root):
+def cargo_fixture(root):
     (root / "Cargo.toml").write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
     (root / "src").mkdir()
     (root / "src/main.rs").write_text("fn main() {}\n")
+
+
+def fixture(root):
+    cargo_fixture(root)
     target = root / "target"
     target.mkdir()
     (target / "CACHEDIR.TAG").write_text(guard.CACHEDIR_TAG + "\n")
@@ -167,8 +171,7 @@ class TargetAnchorTests(unittest.TestCase):
     def test_cli_target_dir_only_cleans_selected_target(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
-            manifest = root / "Cargo.toml"
-            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            cargo_fixture(root)
             default = target_fixture(root, "target")
             selected = target_fixture(root, "custom")
             result = run_guard_main(clean_command(root, "--target-dir", str(selected)))
@@ -193,8 +196,7 @@ class TargetAnchorTests(unittest.TestCase):
     def test_environment_target_and_cli_precedence_preserve_other_targets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
-            manifest = root / "Cargo.toml"
-            manifest.write_text('[package]\nname="anchor-fixture"\nversion="0.0.0"\n')
+            cargo_fixture(root)
             default = target_fixture(root, "target")
             env_target = target_fixture(root, "env-target")
             cli_target = target_fixture(root, "cli-target")

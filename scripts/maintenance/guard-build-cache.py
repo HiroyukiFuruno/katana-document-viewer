@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Iterable
 
 from cargo_target_args import command_directory, command_target_dirs
-from cargo_output_directory import configured_target_directory
+from cargo_output_directory import configured_output_directories
 from target_ownership import CACHEDIR_TAG, prepare_targets, reject_source_target
 
 try:
@@ -186,6 +186,7 @@ def try_acquire_lock(lock) -> bool:
 def guard(
     repo_root: Path, targets: list[Path], command: list[str], max_bytes: int,
     *, maintenance: bool = False, resolve_output: bool = False,
+    target_override: Path | None = None,
 ) -> int:
     lock_path = repo_root / "tmp" / "maintenance" / "build-cache.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -205,7 +206,7 @@ def guard(
                 return subprocess.run(command, check=False).returncode
             if resolve_output:
                 targets = repo_targets(
-                    repo_root, [configured_target_directory(command)], include_default=False,
+                    repo_root, configured_output_directories(command, target_override), include_default=False,
                 )
         prepare_targets(repo_root, targets)
         seen: set[tuple[int, int | str]] = set()
@@ -218,6 +219,7 @@ def guard(
                 return 3
             if not maintenance:
                 clean_targets(repo_root, targets)
+                prepare_targets(repo_root, targets)
             elif cleanup_mode == "full":
                 clean_targets(repo_root, targets)
                 return 0
@@ -277,16 +279,17 @@ def main(argv: list[str] | None = None) -> int:
             targets = repo_targets(repo_root, [selected], include_default=False) if selected else []
             return guard(
                 repo_root, targets, command, max_bytes,
-                maintenance=True, resolve_output=selected is None,
+                maintenance=True, resolve_output=True, target_override=selected,
             )
         explicit = [*(args.target_dir or ()), *command_targets]
         if cargo_target_dir:
             explicit.append((cargo_directory / cargo_target_dir).resolve())
-        if should_guard(command) and not command_targets:
-            explicit.append(configured_target_directory(command))
         targets = repo_targets(repo_root, explicit)
         if not should_guard(command):
             return subprocess.run(command, check=False).returncode
+        override = command_targets[-1] if command_targets else None
+        outputs = configured_output_directories(command, override)
+        targets = repo_targets(repo_root, [*explicit, *outputs])
         return guard(repo_root, targets, command, max_bytes)
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f"build cache guard failed safely: {error}", file=sys.stderr)

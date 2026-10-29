@@ -57,13 +57,18 @@ def validate_configuration_paths(command: list[str]) -> None:
                 continue
 
 
-def configured_target_directory(command: list[str]) -> Path:
+def configured_output_directories(command: list[str], target_override: Path | None = None) -> list[Path]:
     validate_configuration_paths(command)
-    result = subprocess.run(metadata_command(command), check=True, capture_output=True, text=True)
+    environment = os.environ.copy()
+    if target_override is not None:
+        # metadataには--target-dirがないため、CLIで選ばれた値を環境へ束縛する。
+        environment["CARGO_TARGET_DIR"] = str(target_override.resolve())
+    result = subprocess.run(metadata_command(command), env=environment, check=True, capture_output=True, text=True)
     try:
-        value = json.loads(result.stdout)["target_directory"]
+        metadata = json.loads(result.stdout)
+        values = [metadata[name] for name in ("target_directory", "build_directory")]
     except (ValueError, KeyError, TypeError) as error:
-        raise RuntimeError("Cargo metadata did not report its output directory") from error
-    if not isinstance(value, str) or not value or not Path(value).is_absolute():
-        raise RuntimeError("Cargo metadata output directory must be an absolute path")
-    return Path(value).resolve()
+        raise RuntimeError("Cargo metadata did not report all output directories") from error
+    if any(not isinstance(value, str) or not value or not Path(value).is_absolute() for value in values):
+        raise RuntimeError("Cargo metadata output directories must be absolute paths")
+    return list(dict.fromkeys(Path(value).resolve() for value in values))

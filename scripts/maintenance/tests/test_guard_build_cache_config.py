@@ -32,7 +32,7 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
                 sentinel.write_text("preserve\n")
                 sentinels.append(sentinel)
             environment = os.environ.copy()
-            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"):
                 environment.pop(name, None)
             environment["CARGO_HOME"] = str(root / "cargo-home")
             config.chmod(0)
@@ -101,7 +101,7 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
             (root / "src").mkdir()
             (root / "src/main.rs").write_text("fn main() {}\n")
             environment = os.environ.copy()
-            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"):
                 environment.pop(name, None)
             environment["CARGO_HOME"] = str(root / "cargo-home")
 
@@ -161,7 +161,7 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
                     nested_target = nested / "target"
 
                 environment = os.environ.copy()
-                for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+                for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"):
                     environment.pop(name, None)
                 environment["CARGO_HOME"] = str(root / "cargo-home")
                 build = subprocess.run(
@@ -190,7 +190,7 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
         (root / "src").mkdir()
         (root / "src/main.rs").write_text("fn main() {}\n")
         environment = os.environ.copy()
-        for name in ("CARGO_TARGET_DIR", "CARGO_HOME", "CARGO_BUILD_TARGET_DIR"):
+        for name in ("CARGO_TARGET_DIR", "CARGO_HOME", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"):
             environment.pop(name, None)
         environment["CARGO_HOME"] = str(root / "cargo-home")
         build = subprocess.run(

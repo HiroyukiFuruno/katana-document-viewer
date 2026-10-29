@@ -108,3 +108,5 @@
 - [x] 設定探索の権限エラーを未設定と扱わず、設定不明時はcleanupを拒否する。実POSIX permissionのRED→GREENでdefault/configured両sentinel保持を確認し、80容量管理回帰と公開契約/AST82985が成功した。build/cleanの設定解決を利用文書にも反映。証跡: file: `tmp/kdv-cargo-config-permission-red.log`、file: `tmp/kdv-cargo-config-permission-green.log`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] nested crateからのcleanも呼び出し元Cargo作業場所を維持し、workspace/configに従う実効targetだけを整理する。設定あり/なしの実Cargo 2 subTestでRED→GREEN、81回帰・公開契約/AST37839が成功。既存FS安全検査はassertを保持し、実fixtureのcwd/有効manifestを明示した。implicit target解決はlock取得・selector拒否の後へ移し、設定権限の拒否も維持する。証跡: file: `tmp/kdv-cargo-config-nested-red.log`、file: `tmp/kdv-cargo-config-nested-final.log`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] Cargo metadataのtarget_directory/build_directory両方を容量と整理へ含め、明示target選択時もCLI値をmetadata環境へ反映する。実Cargoのimplicit/override容量/clean計4ケースでRED→GREEN、nested出力の連続2buildと84回帰・公開契約/AST70173が成功。入れ子出力の所有タグは自動clean後のbuild前にも再初期化し、範囲・所有・使用中・実体固定の検査を維持する。証跡: file: `tmp/kdv-cargo-build-dir-red-final.log`、file: `tmp/kdv-cargo-build-dir-final.log`、file: `tmp/kdv-cargo-build-dir-metadata-probe.json`。delegation-exception: `直列のクリティカルパス`。
