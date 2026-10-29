@@ -6,7 +6,7 @@ use katana_document_viewer::{
 };
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-type TestResult = Result<(), Box<dyn std::error::Error>>;
+type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 const PDF: &[u8] = include_bytes!("../../../../assets/reference/katana/pdf/sample.pdf");
 const EXTERNAL_INPUT_ENV: &str = "KDV_CACHE_INPUT";
 const WORKER_NAME_ENV: &str = "KDV_CACHE_WORKER_NAME";
@@ -27,17 +27,18 @@ pub fn run() -> TestResult {
         let acquired = Instant::now();
         let source = input(&format, &revision)?;
         let acquire_seconds = acquired.elapsed().as_secs_f64();
-        match source {
-            Input::Pdf(source) => pdf_step(source, cache.clone(), hit)?,
-            Input::Office(source) => office_step(source, cache.clone(), hit)?,
-        }
+        let first_frame_ready = match source {
+            Input::Pdf(source) => pdf_step(source, cache.clone(), hit, &format, mode)?,
+            Input::Office(source) => office_step(source, cache.clone(), hit, &format, mode)?,
+        };
         assert_eq!(
             DocumentResourceSnapshot::default(),
             DocumentResourceSnapshot::capture()
         );
+        let first_frame_seconds = first_frame_ready.duration_since(start).as_secs_f64();
+        let cycle_seconds = start.elapsed().as_secs_f64();
         println!(
-            "KDV_CACHE_MEASURE format={format} mode={mode} expected_hit={hit} acquire_seconds={acquire_seconds} first_frame_seconds={}",
-            start.elapsed().as_secs_f64()
+            "KDV_CACHE_MEASURE format={format} mode={mode} expected_hit={hit} acquire_seconds={acquire_seconds} first_frame_seconds={first_frame_seconds} cycle_seconds={cycle_seconds}"
         );
     }
     Ok(())
@@ -91,23 +92,34 @@ fn input_bytes(format: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     Ok(std::fs::read(path)?)
 }
 
-fn pdf_step(source: BinaryDocumentSource, cache: PersistentDocumentCache, hit: bool) -> TestResult {
+fn pdf_step(
+    source: BinaryDocumentSource,
+    cache: PersistentDocumentCache,
+    hit: bool,
+    format: &str,
+    mode: &str,
+) -> TestResult<Instant> {
     let mut session = PersistentPdfViewerSession::open(source, PdfViewerLimits::strict(), cache)?;
     assert!(session.artifact().page_count > 0);
     let (first, actual_hit) = session.render_page(PdfPageRenderRequest::new(0, 0.5))?;
+    let first_frame_ready = Instant::now();
+    println!("KDV_FIRST_FRAME_READY format={format} mode={mode}");
     assert_eq!(hit, actual_hit);
     assert!(!first.surface.rgba.is_empty());
     let (second, repeated_hit) = session.render_page(PdfPageRenderRequest::new(0, 0.5))?;
     assert!(repeated_hit);
     assert_eq!(first, second);
-    Ok(())
+    println!("KDV_REPEAT_VERIFIED format={format} mode={mode}");
+    Ok(first_frame_ready)
 }
 
 fn office_step(
     source: OfficeDocumentSource,
     cache: PersistentDocumentCache,
     hit: bool,
-) -> TestResult {
+    format: &str,
+    mode: &str,
+) -> TestResult<Instant> {
     let executable = std::env::var_os(WORKER_NAME_ENV)
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_kdv-office-worker")));
@@ -116,12 +128,15 @@ fn office_step(
     assert_eq!(hit, session.conversion_cache_hit());
     assert!(session.artifact().item_count > 0);
     let (first, actual_hit) = session.render_item(PdfPageRenderRequest::new(0, 0.5))?;
+    let first_frame_ready = Instant::now();
+    println!("KDV_FIRST_FRAME_READY format={format} mode={mode}");
     assert_eq!(hit, actual_hit);
     assert!(!first.surface.rgba.is_empty());
     let (second, repeated_hit) = session.render_item(PdfPageRenderRequest::new(0, 0.5))?;
     assert!(repeated_hit);
     assert_eq!(first, second);
-    Ok(())
+    println!("KDV_REPEAT_VERIFIED format={format} mode={mode}");
+    Ok(first_frame_ready)
 }
 
 pub fn storage_contract() -> TestResult {
