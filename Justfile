@@ -70,7 +70,7 @@ coverage-missing: coverage-v8-refresh
     DEBUG=true {{CARGO}} llvm-cov {{COVERAGE_TARGET_PACKAGES}} --all-targets --all-features --locked --ignore-filename-regex '{{COVERAGE_IGNORE_FILENAME_REGEX}}' --show-missing-lines --fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}
 
 # Run the local quality gate
-check: fmt-check build-cache-script-test lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
+check: release-contract-source-check fmt-check build-cache-script-test lint ast-lint storybook-entrypoint-check document-surface-boundary-check test release-target-script-test multi-format-scorecard-script-test multi-format-scorecard-check data-descriptor-fixture-check office-profiling-stage-check office-performance-harness-check office-fidelity-harness-check office2pdf-upstream-monitor-check v8-runtime-check check-subagent-harness current-preview-crop-verifier-test
     @echo "checks passed"
 
 build-cache-script-test:
@@ -591,10 +591,13 @@ release-dod-check:
     python3 scripts/release/assert-viewer-recovery-dod.py --self-test
     python3 scripts/release/assert-viewer-recovery-dod.py
 
-# Verify the active OpenSpec release contract before packaging or publishing.
-release-contract-check:
+# ビルド前に公開契約と回帰の対応漏れを検出し、CIだけで発覚する手戻りを防ぐ。
+release-contract-source-check:
     python3 scripts/release/verify-release-contract.py --self-test
     python3 scripts/release/verify-release-contract.py --target-version "{{TAG}}"
+
+# Verify the active OpenSpec release contract before packaging or publishing.
+release-contract-check: release-contract-source-check
     python3 scripts/release/verify-registry-consumer-link.py --self-test
     python3 scripts/feasibility/verify-multi-format-scorecard.py --require-approved
     {{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked -- --test-threads=1

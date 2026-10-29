@@ -98,3 +98,5 @@
 - [x] Ubuntu CIのPPTX行送り検査の原因を、Linux/macOSの実PDF baseline比較で特定する。黒画素中心のfont差による誤判定を、同じ19–24pt幅の実baseline検査へ修正し、実PDF行間圧縮の拒否と関連19回帰、strict Clippy/ASTを確認した。既存pixel検査と品質基準は保持。旧HEAD失敗/停止はPASSに数えず、新HEAD全CI/公開前検査/reviewを上記で回収する。証跡: `tmp/pptx-baseline-contracts.log`、`tmp/pptx-office010-linux-macos-baseline-diagnostic.json`。delegation-exception: `直列のクリティカルパス`。
 
 - [x] 待機中に追加された互換lock更新4件を保持し、ZIP9.1.3/ignore0.4.34/globset0.4.21/unicode-width0.2.3の公式checksumと非yankを確認した。最新graphのstrict Clippy/AST49621と実worker19回帰80084は終了0。全検査・レビューは新HEADで上記未完タスクを継続する。証跡: file: `tmp/kdv-extra-lock-registry-verified-20261029.json`、file: `tmp/kdv-latest-lock-office-contracts.log`。delegation-exception: `直列のクリティカルパス`。
+
+- [x] 公開契約の旧pixel文言依存を実PDF baselineの正例/圧縮拒否・同じ19–24pt幅へ整合させる。静的公開契約を通常check先頭へ追加し、重いbuild前にpre-pushで不整合を検出する。prerequisiteなしRED後、現契約/負例self-test/実行順序とgovernance/harness/AST57032が成功した。既存ゲート/閾値は保持し、新HEADの全CI/preflight/reviewは上記で継続する。証跡: file: `tmp/kdv-contract-source-gate-green.log`、file: `tmp/kdv-contract-source-harness.log`。delegation-exception: `直列のクリティカルパス`。

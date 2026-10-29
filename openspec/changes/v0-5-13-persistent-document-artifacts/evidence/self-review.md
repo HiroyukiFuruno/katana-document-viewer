@@ -262,3 +262,11 @@ HEAD537393c9のUbuntu CI job123188634257は、代表PPTXの黒画素帯が[(136,
 字形の黒画素中心をbaselineと同一視した検査の誤判定を修正した。従来の38–48（2倍値）と同じ19–24ptの許容幅を、既存の実worker/PDF glyph probeで直接測定する。4段落の全テキストと4 baselineを必須とし、実PDFの第三段落だけを上へ移動して行間を1ptへ圧縮する入力も拒否する。既存のpixelによる4行非重複・日本語3字の可視性/字形区別・タイトル26pt/明示autofit/anchor検査は保持した。商用コード・reference・閾値・skip・coverage条件は変更していない。
 
 追加2回帰72638 EXIT0、関連実worker契約7352 EXIT0（12+7件）、strict Clippy/AST80168 EXIT0、diff check成功。局所自己レビューは利用側の行送り契約、測定の誤判定、実PDFを使う最小変更の3観点でPASS。旧HEADの残CI/preflightは修正済みの旧測定を実行するため停止し、watch37892/53139はexit1、成功に数えない。新HEADで全通常hook・3OS CI・coverage/semver/package/dry-run・current reviewを再実施する。
+
+## 2026-10-29 公開契約とbaseline回帰の整合
+
+b0909c9eのpreflight40805509258は、実PDF baselineへ測定を移した後も公開契約が旧pixelテストの文言を要求していたため失敗した。先行のrelease Storybook/実score回帰は成功したが、run全体は失敗として保持する。契約確認側の追従漏れを修正し、pixelの非重複/日本語可視性と、実PDF baselineの4段落・同じ19–24pt・正例・実PDF行間圧縮の拒否を必須化した。検査項目や閾値を外していない。
+
+再発防止として静的な`release-contract-source-check`を`just check`の先頭へ置き、既存pre-push hookから重いbuild前に実行する。従来のrelease-contract-checkも同じ静的phaseを依存として使い、browser/Storybook/semver/coverage/package等は保持する。新prerequisiteなしのREDを確認後、source gateのself-test/現契約・dry-run順序が成功した。許容幅拡大、正例assert削除、行間圧縮回帰削除、通常check依存削除を拒否する自己検査も成功。release-governance/subagent-harness/AST57032 EXIT0。証跡: `tmp/kdv-contract-source-gate-red.log`、`tmp/kdv-contract-source-gate-green.log`、`tmp/kdv-contract-source-order.log`、`tmp/kdv-contract-source-harness.log`。
+
+自己レビューは、測定の意味と既存品質維持・cross-file整合・通常hookでの早期検出の3観点でPASS。商用Rust/依存graphはb0909c9eと同一。新HEADの正常push・review・全CI/preflightを回収するまで全検査完了とは扱わない。

@@ -408,12 +408,33 @@ def office_font_contract_errors(root: Path) -> list[str]:
     ).read_text(encoding="utf-8")
     for token in (
         "paragraph_row_bands",
-        "PPTX paragraphs must preserve the 21.6pt line advance",
+        "PPTX text lines must not overlap",
         "each Japanese glyph must render as ink instead of tofu",
         "Japanese glyphs must not collapse to repeated tofu boxes",
     ):
         if token not in contract:
             errors.append(f"Office cross-platform pixel contract is missing: {token}.")
+    baseline_path = root / "crates/katana-document-viewer/tests/office_wrapped_title_contract.rs"
+    baseline = baseline_path.read_text(encoding="utf-8") if baseline_path.is_file() else ""
+    errors.extend(office_baseline_contract_errors(baseline))
+    return errors
+
+
+def office_baseline_contract_errors(source: str) -> list[str]:
+    required = (
+        "representative_pptx_preserves_21_6pt_paragraph_baseline_advance",
+        "paragraph_spacing_gate_rejects_compressed_actual_worker_pdf",
+        "baseline_y_pt: transform.m32",
+        "pdf_extract::output_doc_page",
+        "all four paragraphs must remain complete in the actual worker PDF",
+        "baselines.len() == 4",
+        "(19.0..=24.0).contains(&(pair[0] - pair[1]))",
+        "pdf.change_page_content(page_id, content.encode()?)?",
+        "!preserves_paragraph_spacing(&baselines)",
+    )
+    errors = [f"Office PDF baseline contract is missing: {token}." for token in required if token not in source]
+    if re.search(r"assert!\(\s*preserves_paragraph_spacing\(&baselines\)", source) is None:
+        errors.append("Office PDF baseline contract must assert the actual paragraph spacing.")
     return errors
 
 
@@ -465,7 +486,10 @@ def justfile_errors(justfile: str) -> list[str]:
         'COVERAGE_MIN_LINES := "100"',
         'COVERAGE_MAX_UNCOVERED_LINES := "0"',
         "--fail-under-functions 100 --fail-under-lines {{COVERAGE_MIN_LINES}} --fail-uncovered-functions 0 --fail-uncovered-lines {{COVERAGE_MAX_UNCOVERED_LINES}}",
-        "release-contract-check:",
+        "check: release-contract-source-check fmt-check",
+        "release-contract-source-check:",
+        "release-contract-check: release-contract-source-check",
+        "verify-release-contract.py --self-test",
         "verify-release-contract.py --target-version \"{{TAG}}\"",
         "{{CARGO}} test -p katana-document-viewer --test browser_session_adapter_contract --locked",
         "release-verify: release-contract-check semver-check check",
@@ -702,6 +726,15 @@ def validate(root: Path, target_version: str) -> list[str]:
 
 
 def self_test() -> None:
+    repository = Path(__file__).resolve().parents[2]
+    justfile = (repository / "Justfile").read_text(encoding="utf-8")
+    assert not justfile_errors(justfile), "normal checks must validate the release source contract first"
+    assert justfile_errors(justfile.replace("check: release-contract-source-check fmt-check", "check: fmt-check"))
+    baseline = (repository / "crates/katana-document-viewer/tests/office_wrapped_title_contract.rs").read_text(encoding="utf-8")
+    assert not office_baseline_contract_errors(baseline)
+    assert office_baseline_contract_errors(baseline.replace("(19.0..=24.0)", "(18.0..=24.0)"))
+    assert office_baseline_contract_errors(baseline.replace("paragraph_spacing_gate_rejects_compressed_actual_worker_pdf", "removed_negative_regression"))
+    assert office_baseline_contract_errors(re.sub(r"assert!\(\s*preserves_paragraph_spacing\(&baselines\)", "assert!(true", baseline))
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         (root / "openspec").mkdir()
