@@ -248,3 +248,9 @@ f496 CI Windows nativeは2件失敗（既存writerがあってもmetadata-only p
 bb78のnative再回帰では旧writer拒否は成功した一方、FILE_WRITE_ATTRIBUTESだけの既存handleによる有効FSCTL_SET_REPARSE_POINTが成功した。共有制御だけで属性変更も防げるという仮定を撤回し、外部非削除というDoDを維持して方式を修正する。volume rootだけ絶対openし、祖先/target/tag/子すべてをNtCreateFile RootDirectory+一成分名+leaf no-followで開く。NtQueryDirectoryFileで保持HANDLEから列挙し、削除/readonly解除も同HANDLEに限定する。所有tagは相対openした保持HANDLEから署名を読み、前後に祖先/root/tagのreparse化を検査する。native回帰は同一valid bufferのoutside正例→live変更成功→stale directory属性での実削除又は安全拒否→外部sentinel保持を確認し、静的junctionのfull-purge成功も追加した。macOS75件exit0（Windows専用等skip6）、x64構造size16/48/16と主要offsetを確認。native成功の代用にはせず再CIで回収する。証跡: tmp/pr68-bb78ec0f-windows-job.log、tmp/kdv-windows-relative-io-script75.log、tmp/kdv-windows-relative-io-layout.json。
 
 root自体のreparse変更もnative回帰へ追加した。OSが5/32/145で防止した場合は通常整理成功、変更が実成功した場合は保持rootの属性検査でELOOPを返して整理を拒否し、どちらも外部sentinelを保持する。通常の有効junction full-purge正例は別回帰で必須とするため、invalid bufferや常時拒否を安全成功として代用しない。
+
+## 2026-10-29 公式Office ZIP9修正版の先行採用
+
+局所自己レビューPASS、追加指摘なし。利用側の観点: Office/派生の公式修正を採用し旧ZIPを除去、既存emoji fallbackを0.37のfeature明示で維持する。自己否定の観点: 以前の4aebゲートを新graphの証跡に流用せず、check99637のactual EXIT0と新consumer契約self-testを回収した。悪魔の代弁者の観点: 未公開patchやforkの直接追加を避け、公式parent0.10.0をexact選択する最小変更とした。consumerは旧ZIP・旧派生の併存も拒否する。ユーザー依存更新を保持し、Rust本体・品質閾値・reference・skip条件は変更していない。
+
+検証: `tmp/kdv-office010-check-feature-fix.log`、`tmp/kdv-daily-publication-20261029.json`、registry consumer self-test EXIT0、`git diff --check`成功。新HEADの全CI/公開前検査/reviewは別途回収し、KRR0.4.23のまま公開しない。

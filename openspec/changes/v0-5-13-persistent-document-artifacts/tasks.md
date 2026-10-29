@@ -5,13 +5,13 @@
 ## 2026-10-22 再検証と独立残作業
 
 - [x] 公式IronCalc0.9.1（ZIP9）をmanifest/lock/release契約へ取り込む。registry checksum、ReleaseのPR1565包含、exact-head CI6件成功を確認した。Python release契約/self-test成功。証跡: file: `tmp/kdv-upstream-publication-20261022.json`。delegation-exception: `直列のクリティカルパス`。
-- [ ] PR68 target pathname差し替えを、所有directoryを保持した内容整理で防ぐ。root/tagは残し、選択clean/sweepは削除前・target作成前に拒否する。40GiB閾値を維持し、POSIX置換・Windows共有競合・外部リンク・readonlyの実回帰と独立レビューを回収する。delegation-exception: `直列のクリティカルパス`。
+- [x] PR68 target pathname差し替えを、所有directoryを保持した内容整理で防ぐ。root/tagは残し、選択clean/sweepは削除前・target作成前に拒否する。40GiB閾値を維持し、POSIX置換・Windows共有競合・外部リンク・readonlyの実回帰と独立レビューを回収する。delegation-exception: `直列のクリティカルパス`。 追補: HEAD4aeb7479で通常push/3OS CI39664459317/preflight39664459501/coverage3843関数31575行100%/semver202PASS/全thread解決を回収済み。証跡 `tmp/kdv-4aeb7479-preparation-receipt.md`。2026-10-29の新graph検査は末尾の別タスクで追跡し、この過去結果を流用しない。
 - [x] POSIX中間ancestor差替えを隔離した実filesystemでRED再現し、`/`からの全component no-follow/dir_fd連鎖で拒否する。最終target差替え・外部保持・選択clean拒否を含む限定8回帰は成功（MacではWindows専用3件skip）。最終全script suite/native CIは上記タスクで回収する。証跡: file: `tmp/pr68-posix-ancestor-red.json`、`tmp/kdv-anchor-ancestor-green.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] 明示cleanの指定外target削除を実filesystemでRED再現し、CLI単一target > 環境target > 既定targetへ限定する。manifest/global/重複/guard専用指定は削除前拒否、helpはtarget作成なし。標準71回帰成功（MacではWindows専用等4件skip）、独立レビュー追加指摘0。既存tag競合回帰は未対応manifest指定を外して同じ競合を検証し、busy時status3も維持する。最終push/native CIは上記未完タスクで追跡。証跡: file: `tmp/pr68-explicit-target-red.json`、`tmp/kdv-target-selection-full71.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] coverageの既存選択cleanとの矛盾を解消し、coverage専用targetだけを明示全体刷新する。親target/所有タグ保持の実filesystem回帰を含む72件成功、公開契約は現recipe受入・旧選択recipe拒否。関数/行100%条件は維持。最終HEADの公開前検査は下記で回収する。証跡: file: `tmp/kdv-coverage-refresh-script72.log`、`tmp/kdv-coverage-refresh-contract-regression.json`。delegation-exception: `直列のクリティカルパス`。
 - [x] fresh Codex reviewのlsof未導入P2へ対応し、Linux CIの共通依存導入とPOSIX初期手順を明示する。ツール不在は導入要求を表示して安全に拒否し、生成物/所有タグを保持する実回帰を含む73件成功。証跡: file: `tmp/kdv-lsof-dependency-script73.log`。delegation-exception: `直列のクリティカルパス`。
-- [ ] Windows native f496回帰の2件失敗を修正し再回収する。属性のみのpinをLIST_DIRECTORY読取で共有検査へ参加させ、失敗時のテストHANDLE漏れを防ぐ。有効なjunction bufferのoutside正例を先行する。bb78再CIで属性専用handleの更新成功が判明したため、祖先/tag/子のopenと列挙を保持HANDLE相対へ統一し、live reparse更新成功後も外部を削除しない回帰と通常junction整理正例を検査する。CIの容量回帰をharnessより先へ移し、ゲートを省略せず早期検出する。証跡: file: `tmp/pr68-f4960c7-windows-job.log`、`tmp/pr68-bb78ec0f-windows-job.log`、`tmp/kdv-windows-relative-io-script75.log`。delegation-exception: `直列のクリティカルパス`。
-- [ ] 上記最終source/graphで既存全ゲート、coverage100%、semver、package/dry-run、3 OS CI、fresh review/reply/resolveを回収する。途中中断のrelease-contract検査（exit130）は成功に数えない。delegation-exception: `直列のクリティカルパス`。
+- [x] Windows native f496回帰の2件失敗を修正し再回収する。属性のみのpinをLIST_DIRECTORY読取で共有検査へ参加させ、失敗時のテストHANDLE漏れを防ぐ。有効なjunction bufferのoutside正例を先行する。bb78再CIで属性専用handleの更新成功が判明したため、祖先/tag/子のopenと列挙を保持HANDLE相対へ統一し、live reparse更新成功後も外部を削除しない回帰と通常junction整理正例を検査する。CIの容量回帰をharnessより先へ移し、ゲートを省略せず早期検出する。証跡: file: `tmp/pr68-f4960c7-windows-job.log`、`tmp/pr68-bb78ec0f-windows-job.log`、`tmp/kdv-windows-relative-io-script75.log`。delegation-exception: `直列のクリティカルパス`。 追補: HEAD4aeb7479で通常push/3OS CI39664459317/preflight39664459501/coverage3843関数31575行100%/semver202PASS/全thread解決を回収済み。証跡 `tmp/kdv-4aeb7479-preparation-receipt.md`。2026-10-29の新graph検査は末尾の別タスクで追跡し、この過去結果を流用しない。
+- [x] 上記最終source/graphで既存全ゲート、coverage100%、semver、package/dry-run、3 OS CI、fresh review/reply/resolveを回収する。途中中断のrelease-contract検査（exit130）は成功に数えない。delegation-exception: `直列のクリティカルパス`。 追補: HEAD4aeb7479で通常push/3OS CI39664459317/preflight39664459501/coverage3843関数31575行100%/semver202PASS/全thread解決を回収済み。証跡 `tmp/kdv-4aeb7479-preparation-receipt.md`。2026-10-29の新graph検査は末尾の別タスクで追跡し、この過去結果を流用しない。
 - [ ] office2pdf/派生2packageの公式ZIP修正版とKRR新版が公開された後に取り込み、最終全検査・公開・Issue Close・ローカル整理を行う。delegation-exception: `直列のクリティカルパス`。
 
 独立した限定作業はzip_diagnosis・profiling_inventory・cache_testsへ渡した。利用可能モデルの制約に従いgpt-5.6-luna / mediumを明示した実履歴がある。以下は主担当が依存順に行う統合と公開判定であり、workerの実装完了をそのまま完了証跡にしない。
@@ -69,7 +69,7 @@
 
 ## 2026-10-20 公開エンジン0.9系の先行準備
 
-- [ ] 公開前検査で発見した、自動clean後に補助ツールが非空targetを再生成すると所有タグが失われる経路を修正する。空の所有出力へだけタグを再作成し、非空・未所有directoryの採用拒否は維持する。実tiny Cargoの入れ子targetと再度の閾値cleanを回帰し、通常push・新HEADレビュー・CI・完全release-checkを回収する。delegation-exception: `直列のクリティカルパス`。
+- [x] 公開前検査で発見した、自動clean後に補助ツールが非空targetを再生成すると所有タグが失われる経路を修正する。空の所有出力へだけタグを再作成し、非空・未所有directoryの採用拒否は維持する。実tiny Cargoの入れ子targetと再度の閾値cleanを回帰し、通常push・新HEADレビュー・CI・完全release-checkを回収する。delegation-exception: `直列のクリティカルパス`。 追補: HEAD4aeb7479で通常push/3OS CI39664459317/preflight39664459501/coverage3843関数31575行100%/semver202PASS/全thread解決を回収済み。証跡 `tmp/kdv-4aeb7479-preparation-receipt.md`。2026-10-29の新graph検査は末尾の別タスクで追跡し、この過去結果を流用しない。
 - [x] 自動clean成功直後に空targetの所有タグを準備し直す。実offline Cargoの入れ子buildで旧実装のタグ欠落・次回拒否を再現し、修正後は2回のbuild/閾値cleanが成功した。標準49回帰終了0、独立レビュー指摘0、OpenSpec strict成功。Windowsのbinary suffixにも対応したが、修正後3 OS/full検査は上記で継続する。証跡: file: `tmp/pr68-23bb-semver-red.log`、file: `tmp/pr68-cache-repair-final-script-check.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] HEAD23bb9f65の通常push・最新Codexレビュー・3 OS CIを回収した。通常push55713終了0、Codex新規指摘0・全27thread解決済み、3 OS成功。Linuxは3843関数/31575行100%、未カバー0。公開前検査はsemver202成功後、所有タグの安全検査で停止したため、完全release-check成功とは扱わない。証跡: file: `tmp/pr68-23bb-ci-release-evidence.json`、file: `tmp/pr68-23bb-review-receipt.json`。delegation-exception: `直列のクリティカルパス`。
 - [x] Issue参照の不足を重い品質検査より前にも検出する。通常push77570の品質delegate通過後のURL欠如拒否を受け、既存最終Issue検査を維持した予備検査を追加した。実Git fixtureで事前拒否・正常push・stdin引継ぎ・delegate後の再検査・既存delegate失敗伝播を検証。旧hookのRED後、標準release-governance-checkが終了0、独立レビュー指摘0。品質検査の省略や閾値緩和なし。証跡: file: `tmp/kdv-upstream09-normal-push-first-result.json`、file: `tmp/release-governance-check-current.log`。delegation-exception: `直列のクリティカルパス`。
@@ -79,7 +79,7 @@
 - [x] 配布パッケージの先行検査を回収する。98034 EXIT0、962files、配布package build/publish dry-run/0.5.13未公開確認成功。これは最後のtest-only回帰追加前のRust1.97.1互換性証跡であり、最終HEADのCI/package検査は別途回収する。証跡: file: `tmp/kdv-upstream09-publish-precheck-final.log`。delegation-exception: `直列のクリティカルパス`。
 - [x] 認証済みAPIで上流5PRの全レビュー/threads/CIと公式registry/Releaseを再確認する。2026-10-20T09:24:21Z、新しいactionable findingなし。IronCalc#1565は承認・マージ済みだが、公式ZIP修正版/KRR新版は未公開。証跡: file: `tmp/upstream-20261020-latest-final-audit.json`。delegation-exception: `直列のクリティカルパス`。
 - [x] 現行sourceの全通常検査を回収する。10774のfmt/容量guard42/strict Clippy/AST/境界・入口成功後、容量復旧した6955が終了0。workspace2352、Storybook646と分離1件、Office/V8/harness/crop検査成功。source/graph18件のhash不変。証跡: file: `tmp/kdv-upstream09-normal-check-resumed-final.log`。delegation-exception: `直列のクリティカルパス`。
-- [ ] 通常commit/push、最新HEAD Codex review/全指摘回収・reply/resolve、3 OS CI/既存release-preflightの全release-checkを完了する。最新HEADのsemver/coverage/package/publish dry-runも既存CIで回収し、最終公開前の2.1/2.2を代用しない。delegation-exception: `直列のクリティカルパス`。
+- [x] 通常commit/push、最新HEAD Codex review/全指摘回収・reply/resolve、3 OS CI/既存release-preflightの全release-checkを完了する。最新HEADのsemver/coverage/package/publish dry-runも既存CIで回収し、最終公開前の2.1/2.2を代用しない。delegation-exception: `直列のクリティカルパス`。 追補: HEAD4aeb7479で通常push/3OS CI39664459317/preflight39664459501/coverage3843関数31575行100%/semver202PASS/全thread解決を回収済み。証跡 `tmp/kdv-4aeb7479-preparation-receipt.md`。2026-10-29の新graph検査は末尾の別タスクで追跡し、この過去結果を流用しない。
 - [ ] 公式ZIP修正版が公開され次第registry依存として取り込み、#69の旧ZIP graphが解消したことを確認して全再検査する。KRR修正版の取込/最終公開は1.3/2.1–2.3で継続する。delegation-exception: `直列のクリティカルパス`。
 
 上流のoffice2pdf/owner forksへの編集は、親Issue2323を根拠にした今回限りの明示許可と外部編集許可の範囲に限る。現公開0.9系にも旧ZIP依存が残るため、現状をKRRだけの待機と扱わない。
@@ -87,3 +87,10 @@
 - [x] PR68 b834のP2: 所有タグはlstatで通常ファイルと確認し、外部署名へのsymlinkを未所有として拒否する。実Cargo maintenance経路の旧削除を再現し、自動閾値/明示cleanの両経路でタグ・外部ファイル・無関係出力を保持する51回帰が成功した。fixtureは一時領域内へ隔離した。証跡: file: `tmp/pr68-symlink-red.log`、file: `tmp/pr68-symlink-standard.log`。通常push・各thread reply/resolve・最新HEAD全ゲートは継続する。delegation-exception: `直列のクリティカルパス`。
 
 - [x] PR68 dbd5のP2: 所有タグのlstat/read競合を、同一descriptorの属性検査と署名読取へ変更する。POSIXはNOFOLLOW/NONBLOCK、WindowsはOPEN_REPARSE_POINTと同HANDLE属性検査を使用し、inode照合だけのfallbackは採用しない。実maintenance競合の旧削除RED、修正後拒否・外部/出力保持、同inodeへのsymlink置換、FIFO置換、NOFOLLOW未提供の拒否を回帰した。標準56件成功（MacではWindows専用1件skip）。Windows nativeと最新HEAD全ゲートは通常push/3 OS CIで継続する。証跡: file: `tmp/pr68-tag-handle-dbd5-red.log`、file: `tmp/pr68-tag-handle-final-standard.log`。delegation-exception: `直列のクリティカルパス`。
+
+## 2026-10-29 office2pdf公式ZIP9修正版の採用
+
+- [x] 公式office2pdf0.10.0のRelease・registry checksum/VCSと派生0.2.0/ZIP9要件を確認し、既存ユーザー依存更新を保持してexact registry依存へ更新する。Cargo update EXIT0、旧ZIP0.6.6/2.5.0/8.6.0が消えZIP9.1.2のみ。証跡: `tmp/kdv-daily-publication-20261029.json`。delegation-exception: `直列のクリティカルパス`。
+- [ ] 採用後の全品質・coverage関数/行100%・semver・package/dry-run・3OS CI・current HEAD reviewを回収し、失敗を修正する。通常check session18048開始、ログ `tmp/kdv-office010-check.log`。KRR0.4.23のまま公開しない。delegation-exception: `直列のクリティカルパス`。
+
+- [x] 採用後の通常check99637を終了0で回収し、epaint_default_fonts0.37のfeature不足を修正する。新consumerの期待版/旧ZIP・旧派生混在拒否のself-testも成功。全CI/coverage/公開前検査/reviewは上の未完タスクで継続する。証跡: `tmp/kdv-office010-check-feature-fix.log`。delegation-exception: `直列のクリティカルパス`。

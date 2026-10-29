@@ -40,3 +40,15 @@ KRRはGitHub Release/registryとも0.4.23で、新版待ちは維持する。全
 
 
 2026-10-20T09:24:21Zの認証済み全ページ監査で、IronCalc#1565の保守者nhatcherによる承認（08:13:13Z）とマージ（08:13:24Z）を確認した。全5PRの未解決thread/新しいactionable findingは0。IronCalcの公式registryは依然0.9.0（zip ^0.6.6）であり、残る条件は修正版公式公開。office2pdf/owner forksとKRRの公開状況は未変更。元umya#384のworkflow承認待ちは残るが、owner forkの公式公開graphへの移行を妨げる条件には追加しない。証跡: `tmp/upstream-20261020-latest-final-audit.json`。
+
+## 2026-10-29 公式office2pdf0.10.0の採用
+
+公式Release v0.10.0とregistry公開を確認した。archive SHA256は`bb210d293ca16b7ca9874a82390c9e1857558e2a97137d003a2b382de64a7a2e`、VCSは`e8d7378f49823d03208f52eb86ab6f0a12b71d8e`。PR2325 merge `aa226d197b202160fd2e9d9bf73d47fe1d733316`から87 ahead/0 behindで修正を包含する。派生2package0.2.0は前日の検証と同一checksum。
+
+ユーザーの既存依存更新を保持してexact office2pdf0.10.0へ更新し、Cargo updateは終了0。実lock graphはoffice2pdf0.10.0、派生2package0.2.0、ZIP9.1.2の一版のみ。旧ZIP0.6.6/2.5.0/8.6.0は除去された。release契約の選択engineはmanifestのexact値から導出される。公開後registry consumerにもoffice2pdf0.10.0/派生0.2.0の期待版と旧ZIP・旧派生混在の拒否を追加し、自己検査で正常graph・旧版混在・office欠落を検証した。契約self-testと静的release契約は成功、通常全検査と実consumer契約は実行中。まだ全検査成功やKDV公開完了とは扱わない。KRRはregistry/Release0.4.23のままで、修正版公開後の採用と再検査が必要。
+
+証跡: `tmp/kdv-daily-publication-20261029.json`、`tmp/kdv-office010-check.log`、`tmp/kdv-office010-contract.log`。
+
+通常check18048はexit101でepaint_default_fonts0.37の既存定数4箇所がfeature未指定と判明した。公式0.37のCargo.toml/src定義を確認し`monochrome_emoji_fonts`を明示する。ユーザーの0.37更新と既存fallbackを維持し、ゲート緩和なし。重複起動して待機後にbuildへ入った実consumer契約54461は、同じ既知の不備と競合buildを避けるため自分のcargo PID77260へTERMで中断した（exit241、成功に数えない）。修正後は通常check、公開前検査を直列で回収する。
+
+通常全品質check99637はactual EXIT0（`tmp/kdv-office010-check-feature-fix.log`）。fmt/strict Clippy/AST、Rust test結果の集計3003件（Storybook646件+分離1件を含む）、容量guard75回帰（macOS専用条件による6skip）、既存harnessが成功した。新consumer契約self-testもEXIT0。3OS CI・coverage/semver/package/dry-run・current HEAD reviewは、この新graphでは未回収として継続する。

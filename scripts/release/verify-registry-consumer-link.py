@@ -20,6 +20,11 @@ TEMPLATE = ROOT / "tools/kdv-v8-registry-consumer"
 REGISTRY_SOURCE = "registry+https://github.com/rust-lang/crates.io-index"
 EXPECTED_V8_VERSION = "152.2.0"
 EXPECTED_KRR_VERSION = "0.4.23"
+EXPECTED_OFFICE_PACKAGES = {
+    "office2pdf": "0.10.0",
+    "office2pdf-docx-rs": "0.2.0",
+    "office2pdf-umya-spreadsheet": "0.2.0",
+}
 VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 ROOT_V8_LINE = re.compile(r"^v8 v(?P<version>[^\s]+)", re.MULTILINE)
 
@@ -92,6 +97,15 @@ def package_errors(metadata: dict[str, object], version: str) -> list[str]:
     errors.extend(
         exact_registry_package_errors(records, "katana-render-runtime", EXPECTED_KRR_VERSION)
     )
+    for name, expected in EXPECTED_OFFICE_PACKAGES.items():
+        errors.extend(exact_registry_package_errors(records, name, expected))
+        if sum(package.get("name") == name for package in records) != 1:
+            errors.append(f"fresh consumer must not retain another {name} version.")
+    zip_versions = [package.get("version") for package in records if package.get("name") == "zip"]
+    if not zip_versions or any(
+        not isinstance(version, str) or not version.startswith("9.") for version in zip_versions
+    ):
+        errors.append("fresh consumer must use ZIP 9 without legacy ZIP versions.")
     return errors
 
 
@@ -221,6 +235,27 @@ def self_test() -> None:
         assert not manifest_errors(manifest_path, "0.5.6")
     metadata = registry_metadata()
     assert package_errors(metadata, "0.5.6") == []
+    legacy_zip = registry_metadata()
+    legacy_zip["packages"].append(
+        {"name": "zip", "version": "2.5.0", "source": REGISTRY_SOURCE}
+    )
+    assert "fresh consumer must use ZIP 9 without legacy ZIP versions." in package_errors(
+        legacy_zip, "0.5.6"
+    )
+    legacy_fork = registry_metadata()
+    legacy_fork["packages"].append(
+        {"name": "office2pdf-docx-rs", "version": "0.1.0", "source": REGISTRY_SOURCE}
+    )
+    assert "fresh consumer must not retain another office2pdf-docx-rs version." in package_errors(
+        legacy_fork, "0.5.6"
+    )
+    missing_office = registry_metadata()
+    missing_office["packages"] = [
+        package for package in missing_office["packages"] if package["name"] != "office2pdf"
+    ]
+    assert "fresh consumer must resolve exactly office2pdf 0.10.0." in package_errors(
+        missing_office, "0.5.6"
+    )
     published_krr = registry_metadata()
     published_krr["packages"][3]["version"] = "0.4.23"
     assert package_errors(published_krr, "0.5.6") == []
@@ -287,6 +322,11 @@ def registry_metadata() -> dict[str, object]:
                 "version": EXPECTED_KRR_VERSION,
                 "source": REGISTRY_SOURCE,
             },
+            *[
+                {"name": name, "version": version, "source": REGISTRY_SOURCE}
+                for name, version in EXPECTED_OFFICE_PACKAGES.items()
+            ],
+            {"name": "zip", "version": "9.1.2", "source": REGISTRY_SOURCE},
         ],
         "resolve": {"root": root_id},
     }
