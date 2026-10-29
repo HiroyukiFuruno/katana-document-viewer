@@ -40,7 +40,7 @@ fn title_pptx(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
     );
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes)?;
         if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") {
@@ -53,11 +53,12 @@ fn title_pptx(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
 }
 
 fn converted_pdf(autofit: bool, anchor: &str) -> TestResult<Vec<u8>> {
+    converted_input_pdf(title_pptx(autofit, anchor)?)
+}
+
+fn converted_input_pdf(input: Vec<u8>) -> TestResult<Vec<u8>> {
     let directory = worker_workspace()?;
-    std::fs::write(
-        directory.path().join("input.office"),
-        title_pptx(autofit, anchor)?,
-    )?;
+    std::fs::write(directory.path().join("input.office"), input)?;
     let worker = std::env::var_os("KDV_WRAPPED_TITLE_WORKER")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_kdv-office-worker")));
@@ -111,6 +112,7 @@ fn run_worker(worker: &Path, workspace: &Path) -> TestResult<i64> {
 struct GlyphObservation {
     character: String,
     height_pt: f64,
+    baseline_x_pt: f64,
     baseline_y_pt: f64,
 }
 
@@ -151,6 +153,7 @@ impl pdf_extract::OutputDev for GlyphProbe {
         self.0.push(GlyphObservation {
             character: character.to_owned(),
             height_pt: font_size * transform.m21.hypot(transform.m22),
+            baseline_x_pt: transform.m31,
             baseline_y_pt: transform.m32,
         });
         Ok(())
@@ -183,6 +186,89 @@ fn observations(bytes: Vec<u8>) -> TestResult<Vec<GlyphObservation>> {
             .all(|glyph| glyph.height_pt.is_finite() && glyph.baseline_y_pt.is_finite())
     );
     Ok(probe.0)
+}
+
+fn representative_pdf() -> TestResult<Vec<u8>> {
+    let input = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../assets/fixtures/multi-format/representative.pptx");
+    converted_input_pdf(std::fs::read(input)?)
+}
+
+fn paragraph_baselines(bytes: &[u8]) -> TestResult<Vec<f64>> {
+    let pdf = pdf_extract::Document::load_mem(bytes)?;
+    let mut probe = GlyphProbe::default();
+    pdf_extract::output_doc_page(&pdf, &mut probe, 1)?;
+    let glyphs = probe.0.iter().filter(|glyph| {
+        (660.0..=900.0).contains(&glyph.baseline_x_pt)
+            && (320.0..=420.0).contains(&glyph.baseline_y_pt)
+    });
+    let actual: String = glyphs
+        .clone()
+        .map(|glyph| glyph.character.as_str())
+        .collect();
+    let normalized: String = actual
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    assert_eq!(
+        "LayoutfeaturesAbsolutepositioningEmbeddedimageJapanese日本語", normalized,
+        "all four paragraphs must remain complete in the actual worker PDF"
+    );
+    let mut baselines = glyphs.map(|glyph| glyph.baseline_y_pt).collect::<Vec<_>>();
+    baselines.sort_by(|left, right| right.total_cmp(left));
+    baselines.dedup_by(|left, right| (*left - *right).abs() < 0.001);
+    Ok(baselines)
+}
+
+fn preserves_paragraph_spacing(baselines: &[f64]) -> bool {
+    // 字形の黒画素中心はfontごとに変わるため、同じ19–24ptの許容幅を実baselineへ適用する。
+    baselines.len() == 4
+        && baselines
+            .windows(2)
+            .all(|pair| (19.0..=24.0).contains(&(pair[0] - pair[1])))
+}
+
+#[test]
+fn representative_pptx_preserves_21_6pt_paragraph_baseline_advance() -> TestResult {
+    let baselines = paragraph_baselines(&representative_pdf()?)?;
+    assert!(
+        preserves_paragraph_spacing(&baselines),
+        "actual PDF baselines: {baselines:?}"
+    );
+    Ok(())
+}
+
+#[test]
+fn paragraph_spacing_gate_rejects_compressed_actual_worker_pdf() -> TestResult {
+    let bytes = representative_pdf()?;
+    let original = paragraph_baselines(&bytes)?;
+    assert!(preserves_paragraph_spacing(&original));
+    let mut pdf = pdf_extract::Document::load_mem(&bytes)?;
+    let page_id = *pdf.get_pages().get(&1).ok_or("first page is missing")?;
+    let mut content = pdf_extract::content::Content::decode(&pdf.get_page_content(page_id)?)?;
+    let mut changed = 0;
+    for operation in &mut content.operations {
+        if operation.operator != "cm" || operation.operands.len() != 6 {
+            continue;
+        }
+        let x = f64::from(operation.operands[4].as_float()?);
+        let y = f64::from(operation.operands[5].as_float()?);
+        if (660.0..=900.0).contains(&x) && (y - original[2]).abs() < 0.001 {
+            operation.operands[5] = pdf_extract::Object::Real((original[1] - 1.0) as f32);
+            changed += 1;
+        }
+    }
+    assert!(changed > 0, "the actual third paragraph must be moved");
+    pdf.change_page_content(page_id, content.encode()?)?;
+    let mut compressed = Vec::new();
+    pdf.save_to(&mut compressed)?;
+    let baselines = paragraph_baselines(&compressed)?;
+    assert_eq!(4, baselines.len(), "all paragraphs must remain present");
+    assert!(
+        !preserves_paragraph_spacing(&baselines),
+        "compressed PDF baselines: {baselines:?}"
+    );
+    Ok(())
 }
 
 #[test]

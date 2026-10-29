@@ -197,7 +197,7 @@ fn exact_katana_data_descriptor_docx_passes_bounded_preflight() -> TestResult {
         let (name, header_start, compressed_size, uncompressed_size) = {
             let entry = archive.by_index(index)?;
             (
-                entry.name().to_owned(),
+                entry.name()?.into_owned(),
                 usize::try_from(entry.header_start())?,
                 entry.compressed_size(),
                 entry.size(),

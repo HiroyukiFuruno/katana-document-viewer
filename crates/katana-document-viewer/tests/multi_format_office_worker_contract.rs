@@ -14,8 +14,6 @@ use zip::write::SimpleFileOptions;
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 
 const MAX_GLYPH_FRAGMENT_GAP_ROWS: u32 = 2;
-const MIN_PARAGRAPH_CENTER_ADVANCE_TWICE: u32 = 38;
-const MAX_PARAGRAPH_CENTER_ADVANCE_TWICE: u32 = 48;
 const JAPANESE_BAND_PADDING_ROWS: u32 = 2;
 const MIN_WORD_GAP_COLUMNS: u32 = 3;
 
@@ -55,7 +53,7 @@ fn pptx_with_external_hyperlink(target: &str) -> TestResult<OfficeDocumentSource
 
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes)?;
         if name == "ppt/slides/_rels/slide1.xml.rels" {
@@ -189,14 +187,7 @@ fn assert_pptx_text_layout(rgba: &[u8], width: u32, height: u32) -> TestResult {
         bands.len(),
         "PPTX text lines must not overlap: {bands:?}"
     );
-    assert!(
-        bands.windows(2).all(|pair| {
-            let center_advance_twice = pair[1].0 + pair[1].1 - pair[0].0 - pair[0].1;
-            (MIN_PARAGRAPH_CENTER_ADVANCE_TWICE..=MAX_PARAGRAPH_CENTER_ADVANCE_TWICE)
-                .contains(&center_advance_twice)
-        }),
-        "PPTX paragraphs must preserve the 21.6pt line advance: {bands:?}"
-    );
+    // font依存の黒画素中心と混同せず、行送りはoffice_wrapped_title_contractで実PDFのbaselineを検査する。
     let japanese_band = bands[3];
     let japanese_y = japanese_band.0.saturating_sub(JAPANESE_BAND_PADDING_ROWS)
         ..(japanese_band.1 + JAPANESE_BAND_PADDING_ROWS + 1).min(height);

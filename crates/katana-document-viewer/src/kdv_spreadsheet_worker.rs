@@ -25,6 +25,13 @@ mod multi_format {
     mod spreadsheet_filter_test_support;
     #[path = "spreadsheet_filter_xml.rs"]
     mod spreadsheet_filter_xml;
+    #[cfg(test)]
+    #[path = "spreadsheet_filter_xml_edge_tests.rs"]
+    mod spreadsheet_filter_xml_edge_tests;
+    #[path = "spreadsheet_filter_xml_filter.rs"]
+    mod spreadsheet_filter_xml_filter;
+    #[path = "spreadsheet_filter_xml_merge.rs"]
+    mod spreadsheet_filter_xml_merge;
     #[path = "spreadsheet_filter_xml_parser.rs"]
     mod spreadsheet_filter_xml_parser;
     #[cfg(test)]

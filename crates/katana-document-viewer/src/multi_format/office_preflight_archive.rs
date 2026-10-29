@@ -99,7 +99,9 @@ fn scan_archive(
             .map_err(OfficePreflightSupport::archive_error)?;
         record_entry(
             &mut scan,
-            entry.name(),
+            &entry
+                .name()
+                .map_err(OfficePreflightSupport::archive_error)?,
             entry.compressed_size(),
             entry.size(),
             format,

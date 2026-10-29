@@ -22,6 +22,8 @@ if [[ -n "$delegate" ]]; then
     exit 1
   fi
   updates="$(cat)"
+  # 参照不足で重い検査を無駄にせず、検査後にもIssueの最新状態を再確認する。
+  printf '%s\n' "$updates" | "${python[@]}" "$root/scripts/release/verify-issue-governance.py"
   printf '%s\n' "$updates" | "$delegate" "$@"
   printf '%s\n' "$updates" | "${python[@]}" "$root/scripts/release/verify-issue-governance.py"
   exit $?

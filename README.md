@@ -59,6 +59,10 @@ reference an Open KDV Issue; dependency updates additionally require public
 registry, migration, manifest, lockfile, and verification evidence in that
 Issue.
 
+The dispatcher validates Issue evidence before running the delegate and again
+before allowing the push. Invalid references fail before expensive quality
+checks; delegate failures still reject the push.
+
 After a published GitHub Release, run
 `python3 scripts/release/post-release-cleanup.py --repo HiroyukiFuruno/katana-document-viewer --version vX.Y.Z --scope local --apply`
 from a clean checkout. The default mode is audit-only; `--apply` removes only

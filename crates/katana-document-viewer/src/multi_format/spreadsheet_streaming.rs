@@ -39,7 +39,7 @@ impl StreamingSpreadsheetSession {
         let mut archive = ZipArchive::new(Cursor::new(bytes)).map_err(zip_error)?;
         for index in 0..archive.len() {
             let entry = archive.by_index(index).map_err(zip_error)?;
-            if worksheet_requires_streaming(entry.name(), entry.size()) {
+            if worksheet_requires_streaming(&entry.name().map_err(zip_error)?, entry.size()) {
                 return Ok(true);
             }
         }
