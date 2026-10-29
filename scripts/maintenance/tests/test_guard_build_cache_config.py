@@ -52,6 +52,50 @@ class CargoConfigBuildCacheTests(unittest.TestCase):
             lambda root, target: None,
         )
 
+    def test_cargo_clean_uses_workspace_config_target_dir_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "owned-cache"
+            config = root / ".cargo"
+            config.mkdir()
+            (config / "config.toml").write_text(
+                '[build]\ntarget-dir = "owned-cache"\n'
+            )
+            manifest = root / "Cargo.toml"
+            manifest.write_text(
+                '[package]\nname="config-clean-smoke"\nversion="0.0.0"\nedition="2021"\n'
+            )
+            (root / "src").mkdir()
+            (root / "src/main.rs").write_text("fn main() {}\n")
+            environment = os.environ.copy()
+            for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR"):
+                environment.pop(name, None)
+            environment["CARGO_HOME"] = str(root / "cargo-home")
+
+            build = subprocess.run(
+                ["cargo", "--offline", "build"],
+                cwd=root, env=environment, capture_output=True, text=True,
+            )
+            self.assertEqual(0, build.returncode, build.stderr)
+            self.assertTrue(target.is_dir(), "Cargo did not use the configured target directory")
+
+            default_target = root / "target"
+            default_target.mkdir()
+            configured_sentinel = target / "configured-sentinel"
+            default_sentinel = default_target / "default-sentinel"
+            configured_sentinel.write_text("remove configured cache\n")
+            default_sentinel.write_text("preserve unrelated target\n")
+            for owned_target in (target, default_target):
+                (owned_target / "CACHEDIR.TAG").write_text(CACHEDIR_TAG)
+
+            cleaned = subprocess.run(
+                [sys.executable, str(GUARD), "--repo-root", str(root), "--", "cargo", "clean"],
+                cwd=root, env=environment, capture_output=True, text=True,
+            )
+            self.assertEqual(0, cleaned.returncode, cleaned.stderr)
+            self.assertFalse(configured_sentinel.exists(), "guard did not clean configured target")
+            self.assertTrue(default_sentinel.exists(), "guard cleaned the unrelated default target")
+
     def _run_fixture(self, root, target, cargo_arguments):
         manifest = root / "Cargo.toml"
         manifest.write_text(
