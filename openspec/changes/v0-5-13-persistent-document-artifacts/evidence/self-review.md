@@ -254,3 +254,11 @@ root自体のreparse変更もnative回帰へ追加した。OSが5/32/145で防�
 局所自己レビューPASS、追加指摘なし。利用側の観点: Office/派生の公式修正を採用し旧ZIPを除去、既存emoji fallbackを0.37のfeature明示で維持する。自己否定の観点: 以前の4aebゲートを新graphの証跡に流用せず、check99637のactual EXIT0と新consumer契約self-testを回収した。悪魔の代弁者の観点: 未公開patchやforkの直接追加を避け、公式parent0.10.0をexact選択する最小変更とした。consumerは旧ZIP・旧派生の併存も拒否する。ユーザー依存更新を保持し、Rust本体・品質閾値・reference・skip条件は変更していない。
 
 検証: `tmp/kdv-office010-check-feature-fix.log`、`tmp/kdv-daily-publication-20261029.json`、registry consumer self-test EXIT0、`git diff --check`成功。新HEADの全CI/公開前検査/reviewは別途回収し、KRR0.4.23のまま公開しない。
+
+## 2026-10-29 Linux PPTX行送り検査の測定原因修正
+
+HEAD537393c9のUbuntu CI job123188634257は、代表PPTXの黒画素帯が[(136,146),(160,168),(182,190),(198,211)]となり、最終の画素中心間隔18.5ptが19–24pt条件を外れて失敗した。実PDFを比較すると、LinuxのCarlito/NotoSansCJK SCとmacOSのCalibri/MicrosoftYaHeiで字形は異なるが、baselineは双方393/371/349/328pt、行送り22/22/21ptで完全に一致する。Linux公式engineの独立実行53949はEXIT0。証跡: `tmp/pptx-office010-linux-macos-baseline-diagnostic.json`、`tmp/office010-linux-layout-diagnostic.log`、`tmp/pr68-537393c9-ubuntu-failed.log`。
+
+字形の黒画素中心をbaselineと同一視した検査の誤判定を修正した。従来の38–48（2倍値）と同じ19–24ptの許容幅を、既存の実worker/PDF glyph probeで直接測定する。4段落の全テキストと4 baselineを必須とし、実PDFの第三段落だけを上へ移動して行間を1ptへ圧縮する入力も拒否する。既存のpixelによる4行非重複・日本語3字の可視性/字形区別・タイトル26pt/明示autofit/anchor検査は保持した。商用コード・reference・閾値・skip・coverage条件は変更していない。
+
+追加2回帰72638 EXIT0、関連実worker契約7352 EXIT0（12+7件）、strict Clippy/AST80168 EXIT0、diff check成功。局所自己レビューは利用側の行送り契約、測定の誤判定、実PDFを使う最小変更の3観点でPASS。旧HEADの残CI/preflightは修正済みの旧測定を実行するため停止し、watch37892/53139はexit1、成功に数えない。新HEADで全通常hook・3OS CI・coverage/semver/package/dry-run・current reviewを再実施する。
