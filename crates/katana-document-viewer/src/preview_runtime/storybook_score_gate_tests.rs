@@ -173,10 +173,7 @@ fn assert_active_release_contract(
     root: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let justfile = std::fs::read_to_string(root.join("Justfile"))?;
-    let release_verify = recipe_body(&justfile, "release-verify")?;
-    let release_contract = recipe_body(&justfile, "release-contract-check")?;
-
-    assert_release_contract_recipe(root, release_verify, release_contract);
+    assert_active_release_recipes(root, &justfile)?;
     let release_contract_script =
         std::fs::read_to_string(root.join("scripts/release/verify-release-contract.py"))?;
     assert_contains_all(
@@ -1636,6 +1633,19 @@ fn assert_overlay_controls_rejected(sources: &ScoreSurfaceSources) {
     }
 }
 
+fn assert_active_release_recipes(root: &std::path::Path, justfile: &str) -> Result<(), String> {
+    assert_release_contract_recipe(
+        root,
+        recipe_body(justfile, "release-verify")?,
+        recipe_body(justfile, "release-contract-check")?,
+    );
+    assert_release_source_recipe(
+        recipe_body(justfile, "release-contract-source-check")?,
+        recipe_body(justfile, "check")?,
+    );
+    Ok(())
+}
+
 fn assert_release_contract_recipe(
     root: &std::path::Path,
     release_verify: &str,
@@ -1646,15 +1656,27 @@ fn assert_release_contract_recipe(
         "release-verify must enforce the active target release contract before package/publish"
     );
     assert!(
-        release_contract.contains("scripts/release/verify-release-contract.py")
-            && release_contract.contains("--self-test")
+        release_contract.contains("release-contract-source-check")
             && release_contract.contains("browser_session_adapter_contract"),
-        "release-contract-check must self-test and run the browser-session adapter contract"
+        "release-contract-check must enforce its source prerequisite and browser-session adapter contract"
     );
     assert!(
         root.join("scripts/release/verify-release-contract.py")
             .is_file(),
         "release contract script must exist"
+    );
+}
+
+fn assert_release_source_recipe(source_contract: &str, normal_check: &str) {
+    assert!(
+        source_contract.contains("scripts/release/verify-release-contract.py")
+            && source_contract.contains("--self-test")
+            && source_contract.contains("--target-version"),
+        "the source prerequisite must self-test and validate the active release contract"
+    );
+    assert!(
+        normal_check.starts_with("check: release-contract-source-check "),
+        "normal checks must enforce the release source contract before building"
     );
 }
 
@@ -1776,7 +1798,13 @@ fn assert_publish_script_requires_clean_token(publish_script: &str) {
 fn recipe_body<'a>(justfile: &'a str, recipe: &str) -> Result<&'a str, String> {
     let header = format!("{recipe}:");
     let start = justfile
-        .find(&header)
+        .starts_with(&header)
+        .then_some(0)
+        .or_else(|| {
+            justfile
+                .find(&format!("\n{header}"))
+                .map(|offset| offset + 1)
+        })
         .ok_or_else(|| format!("recipe `{recipe}` not found"))?;
     let tail = &justfile[start..];
     let end = tail
